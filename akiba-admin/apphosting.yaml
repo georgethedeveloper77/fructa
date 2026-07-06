@@ -1,4 +1,4 @@
-# Firebase App Hosting config (europe-west4 backend).
+# Firebase App Hosting config (project: tbaprint, europe-west4 backend).
 # NEXT_PUBLIC_* vars MUST be available at BUILD as well as RUNTIME, or they get
 # inlined as `undefined` and the proxy throws "supabaseUrl is required" -> 500 on /login.
 
@@ -7,7 +7,7 @@ runConfig:
   maxInstances: 2
 
 env:
-  # Public by design — safe as plain values.
+  # Public by design — safe as plain values. These two fix the /login 500.
   - variable: NEXT_PUBLIC_SUPABASE_URL
     value: https://lxtyrtgyfrhxyjraroku.supabase.co
     availability:
@@ -15,7 +15,7 @@ env:
       - RUNTIME
 
   - variable: NEXT_PUBLIC_SUPABASE_ANON_KEY
-    value: PASTE_ANON_KEY_HERE   # Supabase Dashboard -> Project Settings -> API -> anon/public
+    value: sb_publishable_Nn3p9o-iA2wzcZ8sfev1qw_PkkOcNtl   # Supabase Dashboard -> Project Settings -> API -> anon/public
     availability:
       - BUILD
       - RUNTIME
@@ -26,9 +26,26 @@ env:
     availability:
       - RUNTIME
 
-  # SECRET — never a plain value. Create it first (see notes), then reference by name.
-  # Only needed by server actions that use the service role, not by the proxy.
-  - variable: SUPABASE_SERVICE_ROLE_KEY
-    secret: supabase-service-role-key
-    availability:
-      - RUNTIME
+  # -------------------------------------------------------------------------
+  # SERVICE ROLE KEY — needed by admin server actions (Postgres reads), NOT by
+  # the proxy. Secret Manager is blocked until billing is reopened, so this is
+  # commented out. Pick ONE of the two paths below once you're ready.
+  #
+  # PATH A (correct — after reopening billing, run:
+  #   firebase apphosting:secrets:set supabase-service-role-key
+  #   firebase apphosting:secrets:grantaccess supabase-service-role-key --backend akiba
+  # then uncomment):
+  #
+  # - variable: SUPABASE_SERVICE_ROLE_KEY
+  #   secret: supabase-service-role-key
+  #   availability:
+  #     - RUNTIME
+  #
+  # PATH B (stopgap only, if billing can't be fixed now): plaintext value.
+  # If you use this, add apphosting.yaml to .gitignore and ROTATE the key
+  # first (the old one leaked). Delete this block once Path A is live.
+  #
+  # - variable: SUPABASE_SERVICE_ROLE_KEY
+  #   value: PASTE_ROTATED_SERVICE_ROLE_KEY
+  #   availability:
+  #     - RUNTIME
