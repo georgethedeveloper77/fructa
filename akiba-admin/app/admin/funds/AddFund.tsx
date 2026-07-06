@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { addFund } from "./actions";
+import { IconPlus, IconX } from "../_icons";
 
 type Co = { id: string; name: string };
 
@@ -13,23 +14,6 @@ const TYPES: [string, string][] = [
   ["special", "Special"],
 ];
 const CCY = ["KES", "USD", "GBP", "EUR", "ZAR"];
-
-function PlusIcon() {
-  return (
-    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-      <line x1="12" y1="5" x2="12" y2="19" />
-      <line x1="5" y1="12" x2="19" y2="12" />
-    </svg>
-  );
-}
-function XIcon() {
-  return (
-    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-      <line x1="6" y1="6" x2="18" y2="18" />
-      <line x1="18" y1="6" x2="6" y2="18" />
-    </svg>
-  );
-}
 
 export function AddFund({ companies }: { companies: Co[] }) {
   const [open, setOpen] = useState(false);
@@ -89,7 +73,7 @@ export function AddFund({ companies }: { companies: Co[] }) {
         onClick={() => setOpen(true)}
         className="inline-flex items-center gap-1.5 rounded-md border border-gold/50 bg-gold/10 px-3 py-1.5 text-sm font-medium text-gold hover:bg-gold/20"
       >
-        <PlusIcon /> Create fund
+        <IconPlus size={14} /> Create fund
       </button>
 
       {open && (
@@ -103,7 +87,7 @@ export function AddFund({ companies }: { companies: Co[] }) {
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-base font-semibold text-ink">Create fund</h2>
               <button onClick={() => setOpen(false)} className="text-faint hover:text-ink" aria-label="Close">
-                <XIcon />
+                <IconX size={16} />
               </button>
             </div>
 

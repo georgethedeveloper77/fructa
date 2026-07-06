@@ -186,7 +186,11 @@ export async function publishSnapshot(
   const { error: upErr } = await db.storage.from(BUCKET).upload(FILE, body, {
     upsert: true,
     contentType: "application/json",
-    cacheControl: "3600", // CDN caches ~1h; ETag handles freshness
+    // 60s, not 1h. The file changes on every scrape/admin edit, so a long
+    // max-age made a fresh publish take up to an hour to reach devices even
+    // though the app revalidates via ETag. 60s lets fetch-if-changed actually
+    // run soon after a republish; unchanged fetches still return a cheap 304.
+    cacheControl: "60",
   });
   if (upErr) throw new Error(`snapshot upload failed: ${upErr.message}`);
 

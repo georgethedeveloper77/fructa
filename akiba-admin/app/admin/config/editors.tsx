@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { upsertConfig, deleteConfig } from "./actions";
+import { IconPlus, IconX } from "../_icons";
 import {
   type Field,
   type Model,
@@ -12,25 +13,6 @@ import {
   serializeValue,
   validate,
 } from "./schema";
-
-// ── icons (inline SVG, currentColor — no emoji) ─────────────────────────────
-
-function PlusIcon() {
-  return (
-    <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-      <line x1="12" y1="5" x2="12" y2="19" />
-      <line x1="5" y1="12" x2="19" y2="12" />
-    </svg>
-  );
-}
-function XIcon() {
-  return (
-    <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-      <line x1="6" y1="6" x2="18" y2="18" />
-      <line x1="18" y1="6" x2="6" y2="18" />
-    </svg>
-  );
-}
 
 // ── shared field styles ─────────────────────────────────────────────────────
 
@@ -151,7 +133,7 @@ function StringListEditor({ model, onChange }: EditorProps) {
               className="text-faint hover:text-bad"
               aria-label={`Remove ${s}`}
             >
-              <XIcon />
+              <IconX size={12} />
             </button>
           </span>
         ))}
@@ -174,7 +156,7 @@ function StringListEditor({ model, onChange }: EditorProps) {
           onClick={add}
           className="flex items-center gap-1 rounded-md border border-line bg-panel2 px-2.5 text-xs text-mute hover:text-ink"
         >
-          <PlusIcon /> Add
+          <IconPlus size={13} /> Add
         </button>
       </div>
     </div>
@@ -258,7 +240,7 @@ function TableEditor({ field, model, onChange }: EditorProps) {
                     className="text-faint hover:text-bad"
                     aria-label={`Remove row ${i + 1}`}
                   >
-                    <XIcon />
+                    <IconX size={12} />
                   </button>
                 </td>
               </tr>
@@ -280,7 +262,7 @@ function TableEditor({ field, model, onChange }: EditorProps) {
           onClick={addRow}
           className="flex items-center gap-1 rounded-md border border-line bg-panel2 px-2.5 py-1 text-xs text-mute hover:text-ink"
         >
-          <PlusIcon /> {field.addLabel}
+          <IconPlus size={13} /> {field.addLabel}
         </button>
         {shareSum != null && (
           <span className={"tnum text-xs " + (Math.abs(shareSum - 100) > 0.5 ? "text-warn" : "text-faint")}>

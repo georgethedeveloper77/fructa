@@ -1,6 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { runAggregator, rebuildSnapshot } from "./actions";
-import { IconExternal } from "../_icons";
+import { IconExternal, IconChevronRight, IconClock } from "../_icons";
 
 export const dynamic = "force-dynamic";
 
@@ -109,24 +109,6 @@ function groupUnmapped(list: string[]): Record<string, string[]> {
   return g;
 }
 
-function Chevron() {
-  return (
-    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
-      strokeLinecap="round" strokeLinejoin="round"
-      className="shrink-0 text-faint transition-transform [details[open]_&]:rotate-90">
-      <path d="M9 6l6 6-6 6" />
-    </svg>
-  );
-}
-function ClockIcon({ size = 15 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
-      strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />
-    </svg>
-  );
-}
-
 function RunDetail({ r }: { r: Run }) {
   const groups = groupUnmapped(r.unmapped);
   const hasUnmapped = (r.unmapped?.length ?? 0) > 0;
@@ -223,7 +205,7 @@ export default async function ScrapersPage() {
       <div className="mb-4 rounded-xl border border-line bg-panel p-4">
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
           <div className="flex items-center gap-2.5">
-            <span className="text-gold"><ClockIcon /></span>
+            <span className="text-gold"><IconClock size={15} /></span>
             <div>
               <div className="text-[10px] uppercase tracking-wider text-faint">Schedule</div>
               <div className="text-sm font-medium text-ink">{SCHEDULE_HUMAN}</div>
@@ -346,7 +328,9 @@ export default async function ScrapersPage() {
           return (
             <details key={r.id} className="border-b border-line/60 last:border-0">
               <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-3 text-sm hover:bg-panel2/30 [&::-webkit-details-marker]:hidden">
-                <Chevron />
+                <span className="shrink-0 text-faint transition-transform [details[open]_&]:rotate-90">
+                  <IconChevronRight size={14} />
+                </span>
                 <span className="flex flex-1 items-center gap-2">
                   <span className="font-mono text-xs text-ink">{r.source}</span>
                   {r.source === "ke-aggregator" && <TriggerTag t={r.trigger} />}

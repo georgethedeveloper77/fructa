@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabase/server";
+import { IconExternal, IconArrowRight } from "./_icons";
 
 export const dynamic = "force-dynamic"; // admin data is always live, never cached
 
@@ -145,7 +146,9 @@ export default async function Dashboard() {
           <div className="k">Snapshot on CDN</div>
           <div className="v" style={{ fontSize: 17, marginTop: 11 }}>funds-snapshot.json</div>
           <div className="s">
-            <a className="tick mut" href={snapshotUrl} target="_blank" rel="noreferrer">open ↗</a>
+            <a className="tick mut" href={snapshotUrl} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+              open <IconExternal size={11} />
+            </a>
           </div>
         </div>
       </div>
@@ -156,7 +159,9 @@ export default async function Dashboard() {
           <div className="ph">
             <h3>Scraper health</h3>
             <span className="sub">14 days · per source</span>
-            <a className="act" href="/admin/scrapers">run log →</a>
+            <a className="act" href="/admin/scrapers" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+              run log <IconArrowRight size={11} />
+            </a>
           </div>
           {sources.length === 0 ? (
             <div className="pb"><div className="ph-empty">No scraper has run yet. Trigger the CBK workflow or the aggregator; runs land here.</div></div>
@@ -244,7 +249,9 @@ export default async function Dashboard() {
         <div className="ph">
           <h3>App snapshot</h3>
           <span className="sub">the static file the app reads · refreshed after every scrape</span>
-          <a className="act" href={snapshotUrl} target="_blank" rel="noreferrer">open snapshot ↗</a>
+          <a className="act" href={snapshotUrl} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+            open snapshot <IconExternal size={11} />
+          </a>
         </div>
       </div>
     </>

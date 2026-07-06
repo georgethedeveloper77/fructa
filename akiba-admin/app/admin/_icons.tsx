@@ -71,8 +71,20 @@ export const IconChevronUp = (p: IconProps) => (
 export const IconChevronDown = (p: IconProps) => (
   <svg {...base(p)}><path d="m6 9 6 6 6-6" /></svg>
 );
+export const IconChevronRight = (p: IconProps) => (
+  <svg {...base(p)}><path d="m9 6 6 6-6 6" /></svg>
+);
 export const IconX = (p: IconProps) => (
   <svg {...base(p)}><path d="M18 6 6 18M6 6l12 12" /></svg>
+);
+export const IconPlus = (p: IconProps) => (
+  <svg {...base(p)}><path d="M12 5v14M5 12h14" /></svg>
+);
+export const IconClock = (p: IconProps) => (
+  <svg {...base(p)}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+);
+export const IconArrowRight = (p: IconProps) => (
+  <svg {...base(p)}><path d="M5 12h14M13 6l6 6-6 6" /></svg>
 );
 export const IconExternal = (p: IconProps) => (
   <svg {...base(p)}><path d="M15 3h6v6" /><path d="M10 14 21 3" /><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5" /></svg>

@@ -8,6 +8,7 @@ import {
   type MatchRow,
   type ApplyRow,
 } from "./actions";
+import { IconChevronRight, IconArrowRight } from "../_icons";
 
 // ── parsing ─────────────────────────────────────────────────────────────────
 // Accepts "name,rate,min,fee,aum" lines. Numbers tolerate a "KES" prefix and
@@ -65,25 +66,6 @@ function fmtKes(v: number | null): string {
   return `${v}`;
 }
 const fmtPct = (v: number | null) => (v == null ? "—" : `${v}%`);
-
-// ── icons (SVG only) ────────────────────────────────────────────────────────
-function ChevronIcon({ open }: { open: boolean }) {
-  return (
-    <svg
-      width={13}
-      height={13}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={"transition-transform " + (open ? "rotate-90" : "")}
-    >
-      <path d="M9 6l6 6-6 6" />
-    </svg>
-  );
-}
 
 const fileCls =
   "text-xs text-faint file:mr-2 file:rounded file:border file:border-line file:bg-panel2 file:px-2 file:py-1 file:text-xs file:text-mute";
@@ -175,8 +157,8 @@ export function ImportFundDetails() {
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-medium text-ink"
       >
-        <span className="text-mute">
-          <ChevronIcon open={open} />
+        <span className={"text-faint transition-transform " + (open ? "rotate-90" : "")}>
+          <IconChevronRight size={13} />
         </span>
         Bulk import fund details
         <span className="ml-2 text-xs font-normal text-faint">rate · minimum · fee · AUM, matched by name</span>
@@ -342,9 +324,11 @@ function Cell({
   }
   return (
     <td className="px-2 py-2">
-      <span className="text-faint">{fmt(d.from)}</span>
-      <span className="mx-1 text-gold">&rarr;</span>
-      <span className="font-medium text-gold">{fmt(d.to)}</span>
+      <span className="inline-flex items-center gap-1">
+        <span className="text-faint">{fmt(d.from)}</span>
+        <IconArrowRight size={12} className="text-gold" />
+        <span className="font-medium text-gold">{fmt(d.to)}</span>
+      </span>
     </td>
   );
 }
