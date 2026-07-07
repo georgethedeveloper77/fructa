@@ -1,36 +1,9 @@
-# Firebase App Hosting config (project: akiba-14e48, europe-west4 backend).
-# Single source of truth for env. NEXT_PUBLIC_* must be BUILD + RUNTIME or they
-# inline as `undefined` at build time. The service-role KEY comes from Secret
-# Manager (already created + IAM-granted via `firebase apphosting:secrets:*`).
-
-runConfig:
-  minInstances: 0
-  maxInstances: 2
-
 env:
-  # Public URL — reused by both the anon clients and the service-role client.
-  - variable: NEXT_PUBLIC_SUPABASE_URL
-    value: https://lxtyrtgyfrhxyjraroku.supabase.co
-    availability:
-      - BUILD
-      - RUNTIME
+  - variable: SUPABASE_ANON_KEY
+    secret: supabase-anon-key
 
   - variable: NEXT_PUBLIC_SUPABASE_ANON_KEY
-    value: NEXT_PUBLIC_SUPABASE_ANON_KEY # copy from Supabase -> Project Settings -> API -> anon/public
-    availability:
-      - BUILD
-      - RUNTIME
-
-  # Owner allowlist used by proxy.ts.
-  - variable: ADMIN_EMAIL
-    value: georgekarani77@gmail.com
-    availability:
-      - BUILD
-      - RUNTIME
-
-  # Service-role key — secret, runtime-only. Read by lib/supabase/server.ts.
-  - variable: SUPABASE_SERVICE_ROLE_KEY
-    secret: supabase-service-role-key
+    secret: supabase-anon-key
     availability:
       - BUILD
       - RUNTIME

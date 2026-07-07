@@ -14,7 +14,7 @@ const TYPE_LABEL: Record<string, string> = {
 export default async function CompaniesPage() {
   const db = supabaseAdmin();
   const [{ data: companies, error }, { data: funds }] = await Promise.all([
-    db.from("companies").select("id,name,type,brand_color,logo_url,website,verified").order("name"),
+    db.from("companies").select("id,name,type,brand_color,logo_url,website,phone,whatsapp,email,verified").order("name"),
     db.from("funds").select("company_id"),
   ]);
 

@@ -37,11 +37,16 @@ export async function updateCompany(formData: FormData) {
   await supabaseAdmin()
     .from("companies")
     .update({
+      // Brand colour and logo are owned by setBrandColor / uploadCompanyLogo /
+      // removeCompanyLogo — they are NOT inputs in this row form. Writing them
+      // here read them back as null on every Save and wiped them. Same rule as
+      // updateCustody: a writer only touches the fields its own form carries.
       name: String(formData.get("name")),
       type: TYPES.includes(type) ? type : "fund_manager",
-      brand_color: strOrNull(formData.get("brand_color")),
-      logo_url: strOrNull(formData.get("logo_url")),
       website: strOrNull(formData.get("website")),
+      phone: strOrNull(formData.get("phone")),
+      whatsapp: strOrNull(formData.get("whatsapp")),
+      email: strOrNull(formData.get("email")),
     })
     .eq("id", id);
   await republishSnapshot();

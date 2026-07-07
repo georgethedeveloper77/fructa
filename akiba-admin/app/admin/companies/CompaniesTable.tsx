@@ -20,6 +20,9 @@ export type Company = {
   brand_color: string | null;
   logo_url: string | null;
   website: string | null;
+  phone: string | null;
+  whatsapp: string | null;
+  email: string | null;
   verified: boolean;
 };
 
@@ -38,6 +41,30 @@ function SearchIcon() {
     <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
       <circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.5" y2="16.5" />
     </svg>
+  );
+}
+
+function LabeledInput({
+  label,
+  name,
+  defaultValue,
+  placeholder,
+}: {
+  label: string;
+  name: string;
+  defaultValue: string | null;
+  placeholder?: string;
+}) {
+  return (
+    <label className="flex min-w-0 flex-col gap-1">
+      <span className="text-[10px] uppercase tracking-wider text-faint">{label}</span>
+      <input
+        name={name}
+        defaultValue={defaultValue ?? ""}
+        placeholder={placeholder}
+        className="w-full rounded-md border border-line bg-panel2 px-2.5 py-1.5 text-xs text-ink outline-none placeholder:text-faint focus:border-gold/60"
+      />
+    </label>
   );
 }
 
@@ -206,17 +233,22 @@ export function CompaniesTable({
                 <td className="px-4 py-3"><input type="checkbox" checked={sel.has(c.id)} onChange={() => toggle(c.id)} className="mt-1 accent-gold" /></td>
 
                 <td className="px-3 py-3">
-                  <form action={updateCompany} className="flex flex-col gap-1.5">
+                  <form action={updateCompany} className="flex w-[400px] flex-col gap-2">
                     <input type="hidden" name="id" value={c.id} />
-                    <input name="name" defaultValue={c.name} className="w-64 rounded-md border border-line bg-panel2 px-2.5 py-1 text-sm font-medium text-ink outline-none focus:border-gold/60" />
-                    <div className="flex items-center gap-1.5">
-                      <input name="website" defaultValue={c.website ?? ""} placeholder="https://…" className="w-64 rounded-md border border-line bg-panel2 px-2.5 py-1 text-xs text-mute outline-none focus:border-gold/60" />
-                      <select name="type" defaultValue={c.type} className="rounded-md border border-line bg-panel2 px-2 py-1 text-xs text-mute outline-none focus:border-gold/60">
+                    <input name="name" defaultValue={c.name} className="w-full rounded-md border border-line bg-panel2 px-2.5 py-1.5 text-sm font-medium text-ink outline-none focus:border-gold/60" />
+                    <div className="grid grid-cols-2 gap-2">
+                      <LabeledInput label="Website" name="website" defaultValue={c.website} placeholder="https://…" />
+                      <LabeledInput label="Phone" name="phone" defaultValue={c.phone} placeholder="+254…" />
+                      <LabeledInput label="WhatsApp" name="whatsapp" defaultValue={c.whatsapp} placeholder="+254…" />
+                      <LabeledInput label="Email" name="email" defaultValue={c.email} placeholder="name@domain" />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <select name="type" defaultValue={c.type} className="rounded-md border border-line bg-panel2 px-2 py-1.5 text-xs text-mute outline-none focus:border-gold/60">
                         {Object.entries(TYPES).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
                       </select>
-                      <button className="rounded-md border border-gold/50 bg-gold/10 px-2 py-1 text-xs font-medium text-gold hover:bg-gold/20">Save</button>
+                      <button className="rounded-md border border-gold/50 bg-gold/10 px-3 py-1.5 text-xs font-medium text-gold hover:bg-gold/20">Save</button>
+                      <span className="ml-auto truncate text-[11px] text-faint">{c.id}</span>
                     </div>
-                    <span className="text-[11px] text-faint">{c.id}</span>
                   </form>
                 </td>
 
