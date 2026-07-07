@@ -210,11 +210,11 @@ export function CompaniesTable({
                     <input type="hidden" name="id" value={c.id} />
                     <input name="name" defaultValue={c.name} className="w-64 rounded-md border border-line bg-panel2 px-2.5 py-1 text-sm font-medium text-ink outline-none focus:border-gold/60" />
                     <div className="flex items-center gap-1.5">
-                      <input name="website" defaultValue={c.website ?? ""} placeholder="https://…" className="w-52 rounded-md border border-line bg-panel2 px-2.5 py-1 text-xs text-mute outline-none focus:border-gold/60" />
+                      <input name="website" defaultValue={c.website ?? ""} placeholder="https://…" className="w-64 rounded-md border border-line bg-panel2 px-2.5 py-1 text-xs text-mute outline-none focus:border-gold/60" />
                       <select name="type" defaultValue={c.type} className="rounded-md border border-line bg-panel2 px-2 py-1 text-xs text-mute outline-none focus:border-gold/60">
                         {Object.entries(TYPES).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
                       </select>
-                      <button className="rounded-md border border-line px-2 py-1 text-xs text-mute hover:border-gold/60 hover:text-gold">Save</button>
+                      <button className="rounded-md border border-gold/50 bg-gold/10 px-2 py-1 text-xs font-medium text-gold hover:bg-gold/20">Save</button>
                     </div>
                     <span className="text-[11px] text-faint">{c.id}</span>
                   </form>
@@ -225,7 +225,7 @@ export function CompaniesTable({
                     <input type="hidden" name="id" value={c.id} />
                     <span className="h-5 w-5 rounded border border-line" style={{ background: c.brand_color ?? "transparent" }} />
                     <input type="color" name="brand_color" defaultValue={c.brand_color ?? "#8A92A3"} className="h-7 w-10 cursor-pointer rounded border border-line bg-panel2" />
-                    <button className="rounded-md border border-line px-2 py-1 text-xs text-mute hover:border-gold/60 hover:text-gold">Set</button>
+                    <button className="rounded-md border border-gold/50 bg-gold/10 px-2 py-1 text-xs font-medium text-gold hover:bg-gold/20">Set</button>
                   </form>
                 </td>
 

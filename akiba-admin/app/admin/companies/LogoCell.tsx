@@ -90,7 +90,7 @@ export function LogoCell({
           </span>
         )}
       </div>
-      <button className="rounded-md border border-line px-2 py-1 text-xs text-mute hover:border-gold/60 hover:text-gold">
+      <button className="rounded-md border border-gold/50 bg-gold/10 px-2 py-1 text-xs font-medium text-gold hover:bg-gold/20">
         Upload
       </button>
     </form>

@@ -25,10 +25,12 @@ env:
   - variable: ADMIN_EMAIL
     value: georgekarani77@gmail.com
     availability:
+      - BUILD
       - RUNTIME
 
   # Service-role key — secret, runtime-only. Read by lib/supabase/server.ts.
   - variable: SUPABASE_SERVICE_ROLE_KEY
     secret: supabase-service-role-key
     availability:
+      - BUILD
       - RUNTIME

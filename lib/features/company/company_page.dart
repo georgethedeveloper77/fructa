@@ -85,6 +85,18 @@ class CompanyPage extends ConsumerWidget {
     return null;
   }
 
+  /// First reachable agent as a launch URL — WhatsApp when the agent takes it,
+  /// otherwise a dialer link. Null when no agent has a usable number, so the
+  /// Contact CTA hides rather than dangling. Mirrors the per-agent row logic.
+  String? _contactUrl(List<Agent> agents) {
+    for (final a in agents) {
+      final digits = (a.phone ?? '').replaceAll(RegExp(r'[^0-9]'), '');
+      if (a.whatsapp && digits.isNotEmpty) return 'https://wa.me/$digits';
+      if (a.phone != null && a.phone!.isNotEmpty) return 'tel:${a.phone}';
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.c;
@@ -463,9 +475,17 @@ class CompanyPage extends ConsumerWidget {
               // ── CTAs ───────────────────────────────────────────────────
               if (invest != null)
                 CtaFull(
-                    label: t('company.fundTopUp'), onTap: () => _open(invest)),
+                    icon: Icons.add,
+                    label: t('company.fundTopUp'),
+                    onTap: () => _open(invest)),
+              if (_contactUrl(agents) case final contact?)
+                CtaGhost(
+                    icon: Icons.chat_bubble_outline,
+                    label: t('company.contact'),
+                    onTap: () => _open(contact)),
               if (fund.siteUrl != null)
                 CtaGhost(
+                    icon: Icons.north_east,
                     label: t('company.officialSite'),
                     onTap: () => _open(fund.siteUrl)),
 
