@@ -5,19 +5,28 @@ import 'package:flutter/material.dart';
 import '../../../core/theme.dart';
 import '../../../data/models/fund.dart';
 
-/// "Performance" — trailing annualised returns (YTD/1Y/3Y/5Y) as paired
-/// fund-vs-benchmark bars on one shared scale, plus the best/worst monthly
-/// band as a consistency signal. Same data the manager's fact sheet publishes
-/// (0027) — this is a dataless reskin of the old table, so nothing new is read.
+/// "Performance" — trailing annualised returns (YTD/1Y/3Y/5Y) as a dumbbell
+/// chart: fund and benchmark plotted as two connected dots on one shared scale,
+/// so the eye lands on the GAP (fund vs bench) rather than on bar length. The
+/// scale spans the data's own min/max (not a 0 baseline), which is honest for a
+/// position plot and — unlike bars-from-zero — actually separates values that
+/// cluster in a tight band. Dots animate out from centre on load; tap a period
+/// to highlight it. Plus the best/worst monthly band beneath.
 ///
-/// Hidden when nothing is seeded (fund.hasReturns == false), so it never shows
-/// an empty or fabricated chart. Icon-free — mono figures and drawn legend
-/// swatches (never glyphs), matched to the peer-compare bars on the same page.
-class FundPerformance extends StatelessWidget {
+/// Same data the manager's fact sheet publishes (0027); hidden when nothing is
+/// seeded. Icon-free — drawn dots and mono figures, no glyphs.
+class FundPerformance extends StatefulWidget {
   const FundPerformance(this.fund, {super.key, this.tint});
 
   final Fund fund;
   final Color? tint;
+
+  @override
+  State<FundPerformance> createState() => _FundPerformanceState();
+}
+
+class _FundPerformanceState extends State<FundPerformance> {
+  int _selected = -1;
 
   static const _months = [
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -25,15 +34,16 @@ class FundPerformance extends StatelessWidget {
   ];
 
   String? _asOf() {
-    final iso = fund.returnsAsOf;
+    final iso = widget.fund.returnsAsOf;
     final d = iso == null ? null : DateTime.tryParse(iso);
     return d == null ? null : '${_months[d.month - 1]} ${d.year}';
   }
 
   @override
   Widget build(BuildContext context) {
+    final fund = widget.fund;
     final c = context.c;
-    final brand = tint ?? c.accent;
+    final brand = widget.tint ?? c.accent;
 
     // (label, fund, benchmark). YTD has no stored benchmark → null.
     final rows = <(String, double?, double?)>[
@@ -45,14 +55,22 @@ class FundPerformance extends StatelessWidget {
     final hasBand = fund.bestMonth != null && fund.worstMonth != null;
     if (rows.isEmpty && !hasBand) return const SizedBox.shrink();
 
-    // One scale across every fund + benchmark magnitude on the card, so bar
-    // lengths are comparable row to row. Abs keeps a negative period in frame.
-    var maxV = 0.0;
+    // Shared scale over the data's own range, padded — a position plot, so a
+    // non-zero baseline is legitimate and it separates clustered values.
+    final vals = <double>[];
     for (final r in rows) {
-      if (r.$2 != null) maxV = math.max(maxV, r.$2!.abs());
-      if (r.$3 != null) maxV = math.max(maxV, r.$3!.abs());
+      if (r.$2 != null) vals.add(r.$2!);
+      if (r.$3 != null) vals.add(r.$3!);
     }
-    if (maxV <= 0) maxV = 1;
+    var lo = vals.isEmpty ? 0.0 : vals.reduce(math.min);
+    var hi = vals.isEmpty ? 1.0 : vals.reduce(math.max);
+    if ((hi - lo).abs() < 0.5) {
+      lo -= 1;
+      hi += 1;
+    }
+    final pad = (hi - lo) * 0.18;
+    lo -= pad;
+    hi += pad;
 
     final hasBench = rows.any((r) => r.$3 != null);
     final asOf = _asOf();
@@ -77,7 +95,7 @@ class FundPerformance extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Container(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+            padding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
             decoration: BoxDecoration(
               color: c.s1,
               borderRadius: BorderRadius.circular(18),
@@ -87,27 +105,36 @@ class FundPerformance extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (rows.isNotEmpty) ...[
-                  if (hasBench) _Legend(brand: brand),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(8, 0, 8, 6),
+                    child: _Legend(brand: brand, hasBench: hasBench),
+                  ),
                   for (var i = 0; i < rows.length; i++)
-                    _PerfBars(
+                    _Dumbbell(
                       label: rows[i].$1,
-                      fund: rows[i].$2,
-                      bench: rows[i].$3,
-                      maxV: maxV,
+                      fundV: rows[i].$2!,
+                      benchV: rows[i].$3,
+                      lo: lo,
+                      hi: hi,
                       brand: brand,
-                      divider: i < rows.length - 1,
+                      selected: _selected == i,
+                      onTap: () =>
+                          setState(() => _selected = _selected == i ? -1 : i),
                     ),
                 ],
                 if (hasBand) ...[
                   if (rows.isNotEmpty)
                     Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.fromLTRB(8, 8, 8, 12),
                       child: Divider(height: 1, color: c.line),
                     ),
-                  _MonthBand(
-                    worst: fund.worstMonth!,
-                    best: fund.bestMonth!,
-                    tint: brand,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: _MonthBand(
+                      worst: fund.worstMonth!,
+                      best: fund.bestMonth!,
+                      tint: brand,
+                    ),
                   ),
                 ],
               ],
@@ -119,195 +146,243 @@ class FundPerformance extends StatelessWidget {
   }
 }
 
-/// Drawn swatch + label legend (no glyph dots). Fund in brand, benchmark in the
-/// same muted fill the benchmark bars use.
+/// Fund (filled brand) vs Benchmark (hollow ring) legend, matching the dots.
 class _Legend extends StatelessWidget {
-  const _Legend({required this.brand});
+  const _Legend({required this.brand, required this.hasBench});
   final Color brand;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.c;
-    Widget item(Color col, String label) => Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(
-                  color: col, borderRadius: BorderRadius.circular(2)),
-            ),
-            const SizedBox(width: 6),
-            Text(label,
-                style: TextStyle(
-                    color: c.muted,
-                    fontFamily: AkibaFonts.mono,
-                    fontSize: 10)),
-          ],
-        );
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: Row(
-        children: [
-          item(brand, 'Fund'),
-          const SizedBox(width: 16),
-          item(c.s3, 'Benchmark'),
-        ],
-      ),
-    );
-  }
-}
-
-/// One period: label + fund-vs-bench delta header, then a fund bar and (when
-/// present) a benchmark bar on the card's shared scale.
-class _PerfBars extends StatelessWidget {
-  const _PerfBars({
-    required this.label,
-    required this.fund,
-    required this.bench,
-    required this.maxV,
-    required this.brand,
-    required this.divider,
-  });
-  final String label;
-  final double? fund;
-  final double? bench;
-  final double maxV;
-  final Color brand;
-  final bool divider;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.c;
-    final delta = (fund != null && bench != null) ? fund! - bench! : null;
-
-    return Container(
-      decoration: divider
-          ? BoxDecoration(border: Border(bottom: BorderSide(color: c.line)))
-          : null,
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(label,
-                  style: TextStyle(
-                      color: c.muted,
-                      fontFamily: AkibaFonts.mono,
-                      fontSize: 11,
-                      letterSpacing: 0.4)),
-              const Spacer(),
-              if (delta != null)
-                Text(
-                  '${delta >= 0 ? '+' : ''}${delta.toStringAsFixed(2)} pts vs bench',
-                  style: TextStyle(
-                      color: c.delta(delta),
-                      fontFamily: AkibaFonts.mono,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      fontFeatures: const [FontFeature.tabularFigures()]),
-                ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          if (fund != null)
-            _MiniBar(
-              name: 'FUND',
-              value: fund!,
-              frac: (fund!.abs() / maxV).clamp(0.0, 1.0),
-              fill: fund! >= 0 ? brand : c.down,
-              valueColor: fund! >= 0 ? brand : c.down,
-              bold: true,
-            ),
-          if (bench != null) ...[
-            const SizedBox(height: 7),
-            _MiniBar(
-              name: 'BENCH',
-              value: bench!,
-              frac: (bench!.abs() / maxV).clamp(0.0, 1.0),
-              fill: bench! >= 0 ? c.s3 : c.down,
-              valueColor: bench! >= 0 ? c.muted : c.down,
-              bold: false,
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _MiniBar extends StatelessWidget {
-  const _MiniBar({
-    required this.name,
-    required this.value,
-    required this.frac,
-    required this.fill,
-    required this.valueColor,
-    required this.bold,
-  });
-  final String name;
-  final double value;
-  final double frac;
-  final Color fill;
-  final Color valueColor;
-  final bool bold;
+  final bool hasBench;
 
   @override
   Widget build(BuildContext context) {
     final c = context.c;
     return Row(
       children: [
-        SizedBox(
-          width: 44,
-          child: Text(name,
+        _dot(filled: true, color: brand, ring: brand),
+        const SizedBox(width: 6),
+        Text('Fund',
+            style: TextStyle(
+                color: c.muted, fontFamily: AkibaFonts.mono, fontSize: 10)),
+        if (hasBench) ...[
+          const SizedBox(width: 16),
+          _dot(filled: false, color: c.s3, ring: c.muted),
+          const SizedBox(width: 6),
+          Text('Benchmark',
               style: TextStyle(
-                  color: c.faint,
-                  fontFamily: AkibaFonts.mono,
-                  fontSize: 9,
-                  letterSpacing: 0.6,
-                  fontWeight: FontWeight.w600)),
+                  color: c.muted, fontFamily: AkibaFonts.mono, fontSize: 10)),
+        ],
+      ],
+    );
+  }
+
+  Widget _dot(
+          {required bool filled, required Color color, required Color ring}) =>
+      Container(
+        width: 10,
+        height: 10,
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          border: filled ? null : Border.all(color: ring, width: 1.5),
         ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(5),
-            child: SizedBox(
-              height: 8,
-              child: Stack(
-                children: [
-                  Container(color: c.s2),
-                  FractionallySizedBox(
-                    widthFactor: frac,
-                    child: TweenAnimationBuilder<double>(
-                      tween: Tween(begin: 0, end: 1),
-                      duration: const Duration(milliseconds: 500),
-                      curve: Curves.easeOutCubic,
-                      builder: (_, t, child) =>
-                          FractionallySizedBox(widthFactor: t, child: child),
-                      child: DecoratedBox(decoration: BoxDecoration(color: fill)),
-                    ),
+      );
+}
+
+/// One period: header (label + delta), then a shared-scale track with a
+/// benchmark dot and a fund dot joined by a connector. Dots animate out from
+/// centre; selecting the period enlarges and glows them.
+class _Dumbbell extends StatelessWidget {
+  const _Dumbbell({
+    required this.label,
+    required this.fundV,
+    required this.benchV,
+    required this.lo,
+    required this.hi,
+    required this.brand,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final double fundV;
+  final double? benchV;
+  final double lo;
+  final double hi;
+  final Color brand;
+  final bool selected;
+  final VoidCallback onTap;
+
+  double _frac(double v) => ((v - lo) / (hi - lo)).clamp(0.0, 1.0);
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    final fundColor = fundV >= 0 ? brand : c.down;
+    final delta = benchV != null ? fundV - benchV! : null;
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        margin: const EdgeInsets.symmetric(vertical: 2),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+        decoration: BoxDecoration(
+          color: selected ? c.s2 : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text(label,
+                    style: TextStyle(
+                        color: c.muted,
+                        fontFamily: AkibaFonts.mono,
+                        fontSize: 11,
+                        letterSpacing: 0.4)),
+                const Spacer(),
+                if (delta != null)
+                  Text(
+                    '${delta >= 0 ? '+' : ''}${delta.toStringAsFixed(2)} pts vs bench',
+                    style: TextStyle(
+                        color: c.delta(delta),
+                        fontFamily: AkibaFonts.mono,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        fontFeatures: const [FontFeature.tabularFigures()]),
                   ),
-                ],
+              ],
+            ),
+            SizedBox(
+              height: 48,
+              child: LayoutBuilder(
+                builder: (ctx, cons) {
+                  final w = cons.maxWidth;
+                  final ff = _frac(fundV);
+                  final bf = benchV != null ? _frac(benchV!) : null;
+                  return TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0, end: 1),
+                    duration: const Duration(milliseconds: 650),
+                    curve: Curves.easeOutCubic,
+                    builder: (ctx, t, _) {
+                      final fx = (0.5 + (ff - 0.5) * t) * w;
+                      final bx = bf != null ? (0.5 + (bf - 0.5) * t) * w : null;
+                      final fundR = selected ? 8.0 : 6.5;
+                      final benchR = selected ? 7.0 : 5.5;
+                      const cy = 24.0;
+                      return Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          // baseline
+                          Positioned(
+                            left: 0,
+                            right: 0,
+                            top: cy - 1,
+                            child: Container(height: 2, color: c.line),
+                          ),
+                          // connector
+                          if (bx != null)
+                            Positioned(
+                              left: math.min(fx, bx),
+                              top: cy - 2,
+                              child: Container(
+                                width: (fx - bx).abs(),
+                                height: 4,
+                                decoration: BoxDecoration(
+                                    color: c.line2,
+                                    borderRadius: BorderRadius.circular(2)),
+                              ),
+                            ),
+                          // benchmark value (below)
+                          if (bx != null)
+                            Positioned(
+                              left: (bx - 22).clamp(0.0, w - 44),
+                              top: cy + 8,
+                              child: SizedBox(
+                                width: 44,
+                                child: Text(
+                                  '${benchV!.toStringAsFixed(2)}%',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                      color: c.muted,
+                                      fontFamily: AkibaFonts.mono,
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w500,
+                                      fontFeatures: const [
+                                        FontFeature.tabularFigures()
+                                      ]),
+                                ),
+                              ),
+                            ),
+                          // benchmark dot (hollow ring)
+                          if (bx != null)
+                            Positioned(
+                              left: bx - benchR,
+                              top: cy - benchR,
+                              child: Container(
+                                width: benchR * 2,
+                                height: benchR * 2,
+                                decoration: BoxDecoration(
+                                  color: c.s3,
+                                  shape: BoxShape.circle,
+                                  border:
+                                      Border.all(color: c.muted, width: 1.5),
+                                ),
+                              ),
+                            ),
+                          // fund value (above)
+                          Positioned(
+                            left: (fx - 24).clamp(0.0, w - 48),
+                            top: 0,
+                            child: SizedBox(
+                              width: 48,
+                              child: Text(
+                                '${fundV.toStringAsFixed(2)}%',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                    color: fundColor,
+                                    fontFamily: AkibaFonts.mono,
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w700,
+                                    fontFeatures: const [
+                                      FontFeature.tabularFigures()
+                                    ]),
+                              ),
+                            ),
+                          ),
+                          // fund dot (filled brand, glow when selected)
+                          Positioned(
+                            left: fx - fundR,
+                            top: cy - fundR,
+                            child: Container(
+                              width: fundR * 2,
+                              height: fundR * 2,
+                              decoration: BoxDecoration(
+                                color: fundColor,
+                                shape: BoxShape.circle,
+                                boxShadow: selected
+                                    ? [
+                                        BoxShadow(
+                                          color:
+                                              fundColor.withValues(alpha: 0.45),
+                                          blurRadius: 8,
+                                        )
+                                      ]
+                                    : null,
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                },
               ),
             ),
-          ),
+          ],
         ),
-        const SizedBox(width: 10),
-        SizedBox(
-          width: 58,
-          child: Text(
-            '${value.toStringAsFixed(2)}%',
-            textAlign: TextAlign.right,
-            style: TextStyle(
-                color: valueColor,
-                fontFamily: AkibaFonts.mono,
-                fontSize: 12.5,
-                fontWeight: bold ? FontWeight.w700 : FontWeight.w600,
-                fontFeatures: const [FontFeature.tabularFigures()]),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }

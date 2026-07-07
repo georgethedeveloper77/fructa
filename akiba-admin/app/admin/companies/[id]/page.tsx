@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { addFund, setRate, toggleRetail } from "../../funds/actions";
-import { updateCustody } from "../actions";
+import { updateCustody, updateContact } from "../actions";
 import { IconCheck } from "../../_icons";
 
 export const dynamic = "force-dynamic";
@@ -37,7 +37,7 @@ export default async function CompanyDetail({ params }: { params: Promise<{ id: 
   const db = supabaseAdmin();
 
   const { data: c } = await db.from("companies")
-    .select("id,name,type,brand_color,logo_url,website,verified,manager,aum_kes,market_share,rank,aum_as_of,trustee,custodian,auditor")
+    .select("id,name,type,brand_color,logo_url,website,phone,whatsapp,email,verified,manager,aum_kes,market_share,rank,aum_as_of,trustee,custodian,auditor")
     .eq("id", id).maybeSingle();
   if (!c) notFound();
 
@@ -100,6 +100,45 @@ export default async function CompanyDetail({ params }: { params: Promise<{ id: 
           <Stat label="Funds" value={String(funds.length)} />
         </div>
       </header>
+
+      {/* AUM-by-fund-type donut — visual summary of the funds below */}
+      <AumDonut funds={funds} />
+
+      {/* contact channels — company-level, published to the app fund-detail Contact section */}
+      <form action={updateContact} className="mt-4 rounded-xl border border-line bg-panel p-4">
+        <input type="hidden" name="id" value={c.id} />
+        <div className="mb-3 flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-sm font-medium text-ink">Contact</h2>
+            <p className="mt-0.5 text-xs text-faint">
+              Official website, phone, WhatsApp &amp; email. Published to the app fund-detail Contact section; the app hides any channel left blank.
+            </p>
+          </div>
+          <button className="shrink-0 rounded-md border border-gold/50 bg-gold/10 px-4 py-1.5 text-sm font-medium text-gold hover:bg-gold/20">Save</button>
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <label className="flex flex-col gap-1">
+            <span className="text-[10px] uppercase tracking-wider text-faint">Website</span>
+            <input name="website" defaultValue={c.website ?? ""} placeholder="https://…"
+              className="rounded-md border border-line bg-panel2 px-3 py-1.5 text-sm text-ink outline-none placeholder:text-faint focus:border-gold/60" />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[10px] uppercase tracking-wider text-faint">Phone</span>
+            <input name="phone" defaultValue={c.phone ?? ""} placeholder="+254 7…"
+              className="rounded-md border border-line bg-panel2 px-3 py-1.5 text-sm text-ink outline-none placeholder:text-faint focus:border-gold/60" />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[10px] uppercase tracking-wider text-faint">WhatsApp</span>
+            <input name="whatsapp" defaultValue={c.whatsapp ?? ""} placeholder="+254 7…"
+              className="rounded-md border border-line bg-panel2 px-3 py-1.5 text-sm text-ink outline-none placeholder:text-faint focus:border-gold/60" />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[10px] uppercase tracking-wider text-faint">Email</span>
+            <input name="email" defaultValue={c.email ?? ""} placeholder="invest@domain.com"
+              className="rounded-md border border-line bg-panel2 px-3 py-1.5 text-sm text-ink outline-none placeholder:text-faint focus:border-gold/60" />
+          </label>
+        </div>
+      </form>
 
       {/* governance / custody — manager-level trust signals for the app detail page */}
       <form action={updateCustody} className="mt-4 rounded-xl border border-line bg-panel p-4">
@@ -219,5 +258,77 @@ function Stat({ label, value }: { label: string; value: string }) {
       <div className="text-[10px] uppercase tracking-wider text-faint">{label}</div>
       <div className="tnum text-sm font-medium text-ink">{value}</div>
     </div>
+  );
+}
+
+// AUM-by-fund-type donut for this company, drawn as inline SVG (no chart lib,
+// no glyphs). Only funds with a positive aum_kes count; hidden when the company
+// has no AUM data so it never shows an empty or fabricated ring.
+const FT_COLOR: Record<string, string> = {
+  mmf: "var(--gold)",
+  fixed_income: "var(--blue)",
+  equity: "var(--violet)",
+  balanced: "var(--teal)",
+  special: "var(--ok)",
+};
+
+function AumDonut({ funds }: { funds: Fund[] }) {
+  const byType = new Map<string, number>();
+  for (const f of funds) {
+    if (f.aum_kes && f.aum_kes > 0) {
+      const k = f.fund_type ?? f.category ?? "other";
+      byType.set(k, (byType.get(k) ?? 0) + f.aum_kes);
+    }
+  }
+  const total = [...byType.values()].reduce((a, b) => a + b, 0);
+  if (total <= 0) return null;
+
+  const segs = [...byType.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([k, v]) => ({ k, v, pct: v / total }));
+
+  let acc = 0;
+  const arcs = segs.map((s) => {
+    const arc = { ...s, off: acc };
+    acc += s.pct * 100;
+    return arc;
+  });
+
+  return (
+    <section className="mt-4 rounded-xl border border-line bg-panel p-4">
+      <h2 className="mb-3 text-sm font-medium text-ink">AUM by fund type</h2>
+      <div className="flex items-center gap-6">
+        <svg width={120} height={120} viewBox="0 0 120 120" className="shrink-0">
+          <g transform="rotate(-90 60 60)">
+            {arcs.map((a) => (
+              <circle
+                key={a.k}
+                cx={60}
+                cy={60}
+                r={44}
+                fill="none"
+                stroke={FT_COLOR[a.k] ?? "var(--muted)"}
+                strokeWidth={16}
+                pathLength={100}
+                strokeDasharray={`${a.pct * 100} 100`}
+                strokeDashoffset={-a.off}
+              />
+            ))}
+          </g>
+          <text x={60} y={57} textAnchor="middle" style={{ fontSize: 9, fill: "var(--faint)", letterSpacing: "0.06em" }}>AUM</text>
+          <text x={60} y={72} textAnchor="middle" style={{ fontSize: 12, fontWeight: 600, fill: "var(--text)", fontFamily: "var(--mono)" }}>{kesShort(total)}</text>
+        </svg>
+        <div className="flex flex-col gap-2">
+          {segs.map((s) => (
+            <div key={s.k} className="flex items-center gap-2 text-xs">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: FT_COLOR[s.k] ?? "var(--muted)" }} />
+              <span className="text-mute">{FT_LABEL[s.k] ?? LEGACY_LABEL[s.k] ?? s.k}</span>
+              <span className="tnum ml-6 text-ink">{Math.round(s.pct * 100)}%</span>
+              <span className="tnum text-faint">{kesShort(s.v)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
