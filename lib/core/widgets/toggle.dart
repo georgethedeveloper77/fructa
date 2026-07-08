@@ -5,8 +5,8 @@ import '../theme.dart';
 /// v5 `.tog`. 40×24 pill toggle. Off = `s3` fill / `line2` border / faint
 /// thumb; on = `accentSoft` fill / `accent` border / accent thumb slid right.
 /// Accent-driven (never hardcoded gold), so it tracks the selected accent.
-class AkibaToggle extends StatelessWidget {
-  const AkibaToggle({super.key, required this.value, required this.onChanged});
+class fructaToggle extends StatelessWidget {
+  const fructaToggle({super.key, required this.value, required this.onChanged});
 
   final bool value;
   final ValueChanged<bool> onChanged;

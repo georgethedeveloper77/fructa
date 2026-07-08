@@ -117,7 +117,7 @@ async function main() {
   }
 
   const res = await fetch(URL, {
-    headers: { "User-Agent": "AkibaBot/0.1 (+https://akiba.app)" },
+    headers: { "User-Agent": "fructaBot/0.1 (+https://fructa.app)" },
   });
   if (!res.ok) {
     console.error(`CMA fetch failed: HTTP ${res.status}`);

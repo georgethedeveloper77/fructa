@@ -5,16 +5,17 @@ import '../../core/format.dart';
 import '../../core/theme.dart';
 import '../../engine/projection_engine.dart';
 
-/// v5 `.projwrap` — flat "If you keep investing" block: mono projected value,
+/// v5 `.projwrap`  flat "If you keep investing" block: mono projected value,
 /// a growth line, a real forward curve (ProjectionEngine.series) and two
 /// sliders that inherit the global v5 slider theme. The disclaimer lives at
 /// the portfolio level, not here.
 class ProjectionCard extends StatefulWidget {
-  const ProjectionCard(
-      {super.key,
-      required this.principal,
-      required this.grossRate,
-      this.currency = 'KES'});
+  const ProjectionCard({
+    super.key,
+    required this.principal,
+    required this.grossRate,
+    this.currency = 'KES',
+  });
 
   final double principal; // current net worth (consolidated)
   final double grossRate; // blended gross annual yield (%)
@@ -32,13 +33,19 @@ class _ProjectionCardState extends State<ProjectionCard> {
   Widget build(BuildContext context) {
     final c = context.c;
     final projected = ProjectionEngine.project(
-      widget.principal, widget.grossRate, _horizon,
-      monthlyTopUp: _topUp, net: true,
+      widget.principal,
+      widget.grossRate,
+      _horizon,
+      monthlyTopUp: _topUp,
+      net: true,
     );
     final growth = projected - widget.principal;
     final series = ProjectionEngine.series(
-      widget.principal, widget.grossRate, _horizon,
-      monthlyTopUp: _topUp, net: true,
+      widget.principal,
+      widget.grossRate,
+      _horizon,
+      monthlyTopUp: _topUp,
+      net: true,
     );
 
     return Padding(
@@ -50,7 +57,7 @@ class _ProjectionCardState extends State<ProjectionCard> {
             money(widget.currency, projected),
             style: TextStyle(
               color: c.text,
-              fontFamily: AkibaFonts.mono,
+              fontFamily: fructaFonts.mono,
               fontSize: 28,
               fontWeight: FontWeight.w600,
               letterSpacing: -1.1,
@@ -64,7 +71,10 @@ class _ProjectionCardState extends State<ProjectionCard> {
                 child: Text(
                   '${money(widget.currency, growth < 0 ? 0 : growth)} growth \u00b7 in $_horizon months',
                   style: TextStyle(
-                      color: c.up, fontFamily: AkibaFonts.mono, fontSize: 12.5),
+                    color: c.up,
+                    fontFamily: fructaFonts.mono,
+                    fontSize: 12.5,
+                  ),
                 ),
               ),
             ],
@@ -100,10 +110,13 @@ class _ProjectionCardState extends State<ProjectionCard> {
   }
 }
 
-/// v5 `.srlbl` — label / mono value over a themed slider.
+/// v5 `.srlbl`  label / mono value over a themed slider.
 class _SliderRow extends StatelessWidget {
-  const _SliderRow(
-      {required this.label, required this.value, required this.slider});
+  const _SliderRow({
+    required this.label,
+    required this.value,
+    required this.slider,
+  });
   final String label;
   final String value;
   final Widget slider;
@@ -118,12 +131,15 @@ class _SliderRow extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(label, style: TextStyle(color: c.muted, fontSize: 11.5)),
-            Text(value,
-                style: TextStyle(
-                    color: c.text,
-                    fontFamily: AkibaFonts.mono,
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w600)),
+            Text(
+              value,
+              style: TextStyle(
+                color: c.text,
+                fontFamily: fructaFonts.mono,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ],
         ),
         SizedBox(height: 34, child: slider),
@@ -142,38 +158,40 @@ class _MiniChart extends StatelessWidget {
     if (series.length < 2) return const SizedBox.shrink();
     final lo = series.reduce((a, b) => a < b ? a : b);
     final hi = series.reduce((a, b) => a > b ? a : b);
-    return LineChart(LineChartData(
-      minX: 0,
-      maxX: (series.length - 1).toDouble(),
-      minY: lo,
-      maxY: hi + (hi - lo) * 0.05,
-      gridData: const FlGridData(show: false),
-      titlesData: const FlTitlesData(show: false),
-      borderData: FlBorderData(show: false),
-      lineTouchData: const LineTouchData(enabled: false),
-      lineBarsData: [
-        LineChartBarData(
-          spots: [
-            for (var i = 0; i < series.length; i++)
-              FlSpot(i.toDouble(), series[i])
-          ],
-          isCurved: true,
-          color: c.accent,
-          barWidth: 2,
-          dotData: const FlDotData(show: false),
-          belowBarData: BarAreaData(
-            show: true,
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                c.accent.withValues(alpha: 0.18),
-                c.accent.withValues(alpha: 0.0),
-              ],
+    return LineChart(
+      LineChartData(
+        minX: 0,
+        maxX: (series.length - 1).toDouble(),
+        minY: lo,
+        maxY: hi + (hi - lo) * 0.05,
+        gridData: const FlGridData(show: false),
+        titlesData: const FlTitlesData(show: false),
+        borderData: FlBorderData(show: false),
+        lineTouchData: const LineTouchData(enabled: false),
+        lineBarsData: [
+          LineChartBarData(
+            spots: [
+              for (var i = 0; i < series.length; i++)
+                FlSpot(i.toDouble(), series[i]),
+            ],
+            isCurved: true,
+            color: c.accent,
+            barWidth: 2,
+            dotData: const FlDotData(show: false),
+            belowBarData: BarAreaData(
+              show: true,
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  c.accent.withValues(alpha: 0.18),
+                  c.accent.withValues(alpha: 0.0),
+                ],
+              ),
             ),
           ),
-        ),
-      ],
-    ));
+        ],
+      ),
+    );
   }
 }

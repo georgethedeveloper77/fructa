@@ -13,7 +13,7 @@ class InsTypeCard extends StatelessWidget {
     required this.onTap,
   });
 
-  /// Material icon shown in the tile (never an emoji — house rule).
+  /// Material icon shown in the tile (never an emoji  house rule).
   final IconData icon;
   final String label;
   final String sub;
@@ -46,17 +46,23 @@ class InsTypeCard extends StatelessWidget {
               ),
               child: Icon(icon, size: 19, color: c.accent),
             ),
-            Text(label,
-                style: TextStyle(
-                    color: c.text,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600)),
+            Text(
+              label,
+              style: TextStyle(
+                color: c.text,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const SizedBox(height: 3),
-            Text(sub,
-                style: TextStyle(
-                    color: c.faint,
-                    fontSize: 10.5,
-                    fontFamily: AkibaFonts.mono)),
+            Text(
+              sub,
+              style: TextStyle(
+                color: c.faint,
+                fontSize: 10.5,
+                fontFamily: fructaFonts.mono,
+              ),
+            ),
           ],
         ),
       ),

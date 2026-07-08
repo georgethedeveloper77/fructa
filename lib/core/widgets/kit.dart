@@ -1,8 +1,8 @@
-/// Akiba v5 shared widget kit.
+/// fructa v5 shared widget kit.
 ///
 /// One import for every screen: `import '../../core/widgets/kit.dart';`
 /// Widgets read `context.c.<token>` so they render correctly in light + dark
-/// and follow the selected accent. Numerics use `AkibaFonts.mono`.
+/// and follow the selected accent. Numerics use `fructaFonts.mono`.
 library;
 
 export 'allocation.dart';

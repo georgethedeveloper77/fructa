@@ -1,4 +1,4 @@
-name: akiba
+name: fructa
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -46,6 +46,12 @@ dependencies:
   cached_network_image: ^3.4.1
   flutter_cache_manager: ^3.4.1
   flutter_launcher_icons: ^0.14.4
+  flutter_secure_storage: ^10.3.1
+  in_app_update: ^5.0.0
+  flutter_local_notifications: ^22.0.1
+  change_app_package_name: ^1.5.0
+  firebase_core: ^4.11.0
+  lottie: ^3.5.1
 
 dev_dependencies:
   flutter_test:
@@ -62,20 +68,20 @@ flutter_launcher_icons:
   android: "ic_launcher"
   ios: true
   remove_alpha_ios: true
-  image_path: "assets/icons/logo.png"
+  image_path: "assets/icons/fructa.png"
   min_sdk_android: 21 # android min sdk min:16, default 21
   web:
     generate: true
-    image_path: "assets/icons/logo.png"
+    image_path: "assets/icons/fructa.png"
     background_color: "#hexcode"
     theme_color: "#hexcode"
   windows:
     generate: true
-    image_path: "assets/icons/logo.png"
+    image_path: "assets/icons/fructa.png"
     icon_size: 48 # min:48, max:256, default: 48
   macos:
     generate: true
-    image_path: "assets/icons/logo.png"
+    image_path: "assets/icons/fructa.png"
 
 
 # For information on the generic Dart part of this file, see the
@@ -91,6 +97,7 @@ flutter:
     - assets/images/
     - assets/json/
     - assets/lang/
+    - assets/lottie/
 
   #   - images/a_dot_ham.jpeg
 

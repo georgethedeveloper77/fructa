@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme.dart';
 import 'markup.dart';
 
-/// v5 `.srow` — icon tile + title/sub + trailing. Pass an [AkibaToggle] (or
+/// v5 `.srow`  icon tile + title/sub + trailing. Pass an [fructaToggle] (or
 /// any widget) as [trailing]; otherwise a chevron shows when [onTap] is set.
 class SettingsRow extends StatelessWidget {
   const SettingsRow({
@@ -16,7 +16,7 @@ class SettingsRow extends StatelessWidget {
     this.showDivider = true,
   });
 
-  /// Material icon shown in the 32px tile (never an emoji — house rule).
+  /// Material icon shown in the 32px tile (never an emoji  house rule).
   final IconData icon;
   final String title;
   final String? sub;
@@ -55,15 +55,17 @@ class SettingsRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(title,
-                      style: TextStyle(
-                          color: c.text,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500)),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: c.text,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                   if (sub != null) ...[
                     const SizedBox(height: 2),
-                    Text(sub!,
-                        style: TextStyle(color: c.muted, fontSize: 11)),
+                    Text(sub!, style: TextStyle(color: c.muted, fontSize: 11)),
                   ],
                 ],
               ),
@@ -80,7 +82,7 @@ class SettingsRow extends StatelessWidget {
   }
 }
 
-/// v5 `.kvrow` — label / mono value with a bottom hairline. Self-contained
+/// v5 `.kvrow`  label / mono value with a bottom hairline. Self-contained
 /// (owns its 20px side padding); set [showDivider] false on the last row.
 class KvRow extends StatelessWidget {
   const KvRow(
@@ -102,8 +104,7 @@ class KvRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
       decoration: BoxDecoration(
-        border:
-            showDivider ? Border(bottom: BorderSide(color: c.line)) : null,
+        border: showDivider ? Border(bottom: BorderSide(color: c.line)) : null,
       ),
       child: Row(
         children: [
@@ -117,7 +118,7 @@ class KvRow extends StatelessWidget {
               textAlign: TextAlign.right,
               style: TextStyle(
                 color: valueColor ?? c.text,
-                fontFamily: AkibaFonts.mono,
+                fontFamily: fructaFonts.mono,
                 fontSize: 13.5,
                 fontWeight: FontWeight.w600,
               ),
@@ -131,7 +132,7 @@ class KvRow extends StatelessWidget {
 
 enum SignalTone { positive, negative, neutral }
 
-/// v5 `.sig` — a tone-coloured tag chip + body copy. `**bold**` spans in
+/// v5 `.sig`  a tone-coloured tag chip + body copy. `**bold**` spans in
 /// [text] render as emphasis (`c.text`, w500), matching v5's inline `<b>`.
 /// Feed from `core/insights/signal_engine.dart` at the call site.
 class SignalRow extends StatelessWidget {
@@ -159,8 +160,7 @@ class SignalRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: BoxDecoration(
-        border:
-            showDivider ? Border(bottom: BorderSide(color: c.line)) : null,
+        border: showDivider ? Border(bottom: BorderSide(color: c.line)) : null,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -176,7 +176,7 @@ class SignalRow extends StatelessWidget {
               tag.toUpperCase(),
               style: TextStyle(
                 color: fg,
-                fontFamily: AkibaFonts.mono,
+                fontFamily: fructaFonts.mono,
                 fontSize: 8.5,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.77,
@@ -189,13 +189,13 @@ class SignalRow extends StatelessWidget {
               TextSpan(
                 children: parseBold(
                   text,
-                  base: TextStyle(
-                      color: c.muted, fontSize: 12.5, height: 1.55),
+                  base: TextStyle(color: c.muted, fontSize: 12.5, height: 1.55),
                   bold: TextStyle(
-                      color: c.text,
-                      fontSize: 12.5,
-                      height: 1.55,
-                      fontWeight: FontWeight.w500),
+                    color: c.text,
+                    fontSize: 12.5,
+                    height: 1.55,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
             ),
@@ -206,7 +206,7 @@ class SignalRow extends StatelessWidget {
   }
 }
 
-/// v5 `.agent` — avatar + name/phone + call & WhatsApp actions. Kept decoupled
+/// v5 `.agent`  avatar + name/phone + call & WhatsApp actions. Kept decoupled
 /// from the Agent model: the Company page maps `Agent` fields into these
 /// primitives (avatar falls back to initials in the accent colour).
 class AgentRow extends StatelessWidget {
@@ -236,8 +236,7 @@ class AgentRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
       decoration: BoxDecoration(
-        border:
-            showDivider ? Border(bottom: BorderSide(color: c.line)) : null,
+        border: showDivider ? Border(bottom: BorderSide(color: c.line)) : null,
       ),
       child: Row(
         children: [
@@ -253,7 +252,7 @@ class AgentRow extends StatelessWidget {
               avatarText ?? _initials(name),
               style: TextStyle(
                 color: av,
-                fontFamily: AkibaFonts.mono,
+                fontFamily: fructaFonts.mono,
                 fontWeight: FontWeight.w600,
                 fontSize: 12,
               ),
@@ -265,17 +264,23 @@ class AgentRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(name,
-                    style: TextStyle(
-                        color: c.text,
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w500)),
+                Text(
+                  name,
+                  style: TextStyle(
+                    color: c.text,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
                 const SizedBox(height: 1),
-                Text(phone,
-                    style: TextStyle(
-                        color: c.muted,
-                        fontSize: 11,
-                        fontFamily: AkibaFonts.mono)),
+                Text(
+                  phone,
+                  style: TextStyle(
+                    color: c.muted,
+                    fontSize: 11,
+                    fontFamily: fructaFonts.mono,
+                  ),
+                ),
               ],
             ),
           ),
@@ -290,8 +295,11 @@ class AgentRow extends StatelessWidget {
   }
 
   static String _initials(String n) {
-    final parts =
-        n.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+    final parts = n
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((p) => p.isNotEmpty)
+        .toList();
     if (parts.isEmpty) return '?';
     if (parts.length == 1) {
       return parts.first.characters.first.toUpperCase();

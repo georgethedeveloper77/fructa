@@ -13,13 +13,13 @@
 //       --pdf CISReportQ1-2026.pdf --period 2026-03-31 --dry --out cma.json
 //
 //   # stage to Supabase (env via --env-file):
-//   deno run -A --env-file=akiba-admin/.env.local \
+//   deno run -A --env-file=fructa-admin/.env.local \
 //       supabase/scripts/import-cma-cis.ts stage \
 //       --pdf CISReportQ1-2026.pdf --period 2026-03-31 \
 //       --source https://www.cmarcp.or.ke/.../CISReportQ1-2026.pdf
 //
 //   # promote reconciled rows onto funds/companies:
-//   deno run -A --env-file=akiba-admin/.env.local \
+//   deno run -A --env-file=fructa-admin/.env.local \
 //       supabase/scripts/import-cma-cis.ts apply --period 2026-03-31
 //
 // Env (either name works): SUPABASE_URL | NEXT_PUBLIC_SUPABASE_URL, and
@@ -243,7 +243,7 @@ function db() {
   if (!url || !key) {
     throw new Error(
       "Set SUPABASE_URL (or NEXT_PUBLIC_SUPABASE_URL) + SUPABASE_SERVICE_ROLE_KEY " +
-      "— or pass --env-file=akiba-admin/.env.local, or use --dry to skip the DB.",
+      "— or pass --env-file=fructa-admin/.env.local, or use --dry to skip the DB.",
     );
   }
   return createClient(url, key, { auth: { persistSession: false } });

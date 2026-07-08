@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive/hive.dart';
+
 import '../../core/format.dart';
 import '../../core/theme.dart';
 import '../../core/widgets/fund_logo.dart';
@@ -43,8 +44,14 @@ class _AlertsPageState extends ConsumerState<AlertsPage> {
           : ListView.separated(
               padding: const EdgeInsets.symmetric(vertical: 8),
               itemCount: alerts.length,
-              separatorBuilder: (_, __) => Divider(height: 1, color: c.line, indent: 20, endIndent: 20),
-              itemBuilder: (context, i) => _AlertRow(alerts[i], byId[alerts[i].fundId]?.name, byId[alerts[i].fundId]?.logoDomain, byId[alerts[i].fundId]?.manager),
+              separatorBuilder: (_, __) =>
+                  Divider(height: 1, color: c.line, indent: 20, endIndent: 20),
+              itemBuilder: (context, i) => _AlertRow(
+                alerts[i],
+                byId[alerts[i].fundId]?.name,
+                byId[alerts[i].fundId]?.logoDomain,
+                byId[alerts[i].fundId]?.manager,
+              ),
             ),
     );
   }
@@ -63,26 +70,51 @@ class _AlertRow extends StatelessWidget {
     final color = a.up ? c.up : c.down;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      child: Row(children: [
-        FundLogo(domain: logoDomain, seed: manager ?? name ?? a.fundId, size: 40),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text.rich(TextSpan(
-              style: TextStyle(color: c.text, fontSize: 14),
+      child: Row(
+        children: [
+          FundLogo(
+            domain: logoDomain,
+            seed: manager ?? name ?? a.fundId,
+            size: 40,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                TextSpan(text: name ?? a.fundId),
-                TextSpan(text: a.up ? ' rate rose to ' : ' rate fell to '),
-                TextSpan(text: '${a.newRate.toStringAsFixed(2)}%', style: TextStyle(color: color, fontWeight: FontWeight.w600)),
+                Text.rich(
+                  TextSpan(
+                    style: TextStyle(color: c.text, fontSize: 14),
+                    children: [
+                      TextSpan(text: name ?? a.fundId),
+                      TextSpan(
+                        text: a.up ? ' rate rose to ' : ' rate fell to ',
+                      ),
+                      TextSpan(
+                        text: '${a.newRate.toStringAsFixed(2)}%',
+                        style: TextStyle(
+                          color: color,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'from ${a.oldRate.toStringAsFixed(2)}% · ${timeAgo(a.at)}',
+                  style: TextStyle(color: c.faint, fontSize: 12),
+                ),
               ],
-            )),
-            const SizedBox(height: 2),
-            Text('from ${a.oldRate.toStringAsFixed(2)}% · ${timeAgo(a.at)}',
-                style: TextStyle(color: c.faint, fontSize: 12)),
-          ]),
-        ),
-        Icon(a.up ? Icons.arrow_upward : Icons.arrow_downward, color: color, size: 18),
-      ]),
+            ),
+          ),
+          Icon(
+            a.up ? Icons.arrow_upward : Icons.arrow_downward,
+            color: color,
+            size: 18,
+          ),
+        ],
+      ),
     );
   }
 }
@@ -94,14 +126,27 @@ class _Empty extends StatelessWidget {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(40),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.notifications_none, color: c.faint, size: 44),
-          const SizedBox(height: 16),
-          Text('No alerts yet', style: TextStyle(color: c.text, fontSize: 16, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 6),
-          Text('Follow a fund from its page and Akiba tells you here when its rate changes.',
-              textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 13, height: 1.5)),
-        ]),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.notifications_none, color: c.faint, size: 44),
+            const SizedBox(height: 16),
+            Text(
+              'No alerts yet',
+              style: TextStyle(
+                color: c.text,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Follow a fund from its page and fructa tells you here when its rate changes.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: c.muted, fontSize: 13, height: 1.5),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -49,7 +49,7 @@ export function industryTableAdapter(sourceUrl: string, currency: "KES" | "USD")
     id: `industry-table-${currency.toLowerCase()}`,
     async fetchRows(): Promise<SourceRow[]> {
       const res = await fetch(sourceUrl, {
-        headers: { "User-Agent": "AkibaBot/0.1 (+https://akiba.app)" },
+        headers: { "User-Agent": "fructaBot/0.1 (+https://fructa.app)" },
       });
       if (!res.ok) throw new Error(`source returned ${res.status}`);
       return parseTable(await res.text(), currency);

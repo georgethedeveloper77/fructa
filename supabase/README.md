@@ -1,6 +1,6 @@
 # supabase — database + scrapers
 
-The Akiba rates API. Postgres tables (auto REST API) + Deno edge-function
+The fructa rates API. Postgres tables (auto REST API) + Deno edge-function
 scrapers, scheduled by pg_cron. Host-agnostic: runs entirely inside Supabase,
 so it doesn't matter where the admin panel is hosted (Firebase, Vercel, …).
 
@@ -39,6 +39,6 @@ curl -X POST "$SUPABASE_URL/functions/v1/scrape-aggregator" \
 
 ## Verify parsing before trusting a source
 ```
-curl -A "AkibaBot/0.1" "<source-url>" > fixture.html
+curl -A "fructaBot/0.1" "<source-url>" > fixture.html
 deno run --allow-read functions/scripts/test-adapter.ts fixture.html
 ```

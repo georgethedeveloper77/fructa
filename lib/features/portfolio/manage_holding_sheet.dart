@@ -57,7 +57,7 @@ class _ManageSheetState extends ConsumerState<_ManageSheet> {
         backgroundColor: c.s1,
         title: Text('Remove holding?', style: TextStyle(color: c.text)),
         content: Text(
-          'This removes ${widget.fund?.name ?? widget.holding.fundId} from your portfolio. Your money isn’t touched — this is just tracking.',
+          'This removes ${widget.fund?.name ?? widget.holding.fundId} from your portfolio. Your money isn’t touched  this is just tracking.',
           style: TextStyle(color: c.muted),
         ),
         actions: [

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hive/hive.dart';
 
+import '../../app/app_root.dart';
 import '../../core/i18n.dart';
 import '../../core/theme.dart';
 import '../../core/widgets/kit.dart';
@@ -14,6 +16,8 @@ import '../compare/compare_controller.dart';
 import '../compare/compare_overlay.dart';
 import '../compare/saved_comparisons_section.dart';
 import '../insure/insure_overlay.dart';
+import '../learn/learn_home_page.dart';
+import '../learn/learn_progress.dart';
 import 'markets_controller.dart';
 import 'search_overlay.dart';
 import 'widgets/best_fund_hero.dart';
@@ -35,6 +39,127 @@ String _eatNow() {
   final hh = t.hour.toString().padLeft(2, '0');
   final mm = t.minute.toString().padLeft(2, '0');
   return '$hh:$mm EAT';
+}
+
+// "Updated …" from the snapshot's real publish time  no more hardcoded "today".
+String _updatedLabel(DateTime? at) {
+  const src = 'CBK, CMA & industry sources';
+  if (at == null) return 'Updated recently \u00b7 $src';
+  final d = DateTime.now().difference(at);
+  final String rel;
+  if (d.inMinutes < 2) {
+    rel = 'just now';
+  } else if (d.inMinutes < 60) {
+    rel = '${d.inMinutes}m ago';
+  } else if (d.inHours < 24) {
+    rel = '${d.inHours}h ago';
+  } else if (d.inDays == 1) {
+    rel = 'yesterday';
+  } else {
+    rel = '${d.inDays}d ago';
+  }
+  return 'Updated $rel \u00b7 $src';
+}
+
+// Learn-persona primer: a one-time nudge atop Markets for users who chose
+// "explain it as I go" at onboarding. Self-hides once they open Learn, finish a
+// lesson, or dismiss it. Persona is the flag persisted during onboarding.
+final _learnPrimerDismissedProvider = NotifierProvider<_PrimerDismiss, bool>(
+  _PrimerDismiss.new,
+);
+
+class _PrimerDismiss extends Notifier<bool> {
+  @override
+  bool build() =>
+      Hive.box('settings').get('learn_primer_dismissed', defaultValue: false)
+          as bool;
+  void dismiss() {
+    Hive.box('settings').put('learn_primer_dismissed', true);
+    state = true;
+  }
+}
+
+class _LearnPrimer extends ConsumerWidget {
+  const _LearnPrimer();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (ref.watch(onboardingPersonaProvider) != 'learn') {
+      return const SizedBox.shrink();
+    }
+    if (ref.watch(_learnPrimerDismissedProvider))
+      return const SizedBox.shrink();
+    if (ref.watch(learnProvider).isEmpty) return const SizedBox.shrink();
+    if (ref.watch(learnProgressProvider).completed.isNotEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final c = context.c;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const LearnHomePage())),
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [c.accent.withValues(alpha: 0.14), c.s2],
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: c.line2),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: c.s3,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(Icons.school_rounded, color: c.accent, size: 22),
+                ),
+                const SizedBox(width: 13),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'New here? Start with a 2-minute primer',
+                        style: TextStyle(
+                          color: c.text,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'What a rate means  then tap any fund to see it live.',
+                        style: TextStyle(color: c.muted, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => ref
+                      .read(_learnPrimerDismissedProvider.notifier)
+                      .dismiss(),
+                  icon: Icon(Icons.close_rounded, color: c.faint, size: 18),
+                  visualDensity: VisualDensity.compact,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class MarketsPage extends ConsumerWidget {
@@ -63,7 +188,7 @@ class MarketsPage extends ConsumerWidget {
         .any((i) => i.hasMotor || i.plans.isNotEmpty);
     // Insurance is a later launch. Even if insurer data lands early, the
     // spotlight stays hidden until an admin flips insurance.launched
-    // (App Store 2.1 — no teasers for unlaunched features).
+    // (App Store 2.1  no teasers for unlaunched features).
     final insuranceLaunched = ref
         .watch(remoteConfigProvider)
         .flag('insurance.launched', false);
@@ -96,7 +221,7 @@ class MarketsPage extends ConsumerWidget {
                     sub: '${all.length} retail funds',
                     live: true,
                     time: _eatNow(),
-                    updated: 'Updated today \u00b7 CBK, CMA & industry sources',
+                    updated: _updatedLabel(ref.watch(snapshotUpdatedProvider)),
                   ),
                 TickerTape(all),
                 Divider(height: 1, color: c.line),
@@ -108,6 +233,8 @@ class MarketsPage extends ConsumerWidget {
                     child: CustomScrollView(
                       physics: const AlwaysScrollableScrollPhysics(),
                       slivers: [
+                        // Learn-persona primer (self-hides otherwise).
+                        const SliverToBoxAdapter(child: _LearnPrimer()),
                         // ── Rates first: the featured fund, then the market
                         // shape by type. Context (inflation, yield curve) is
                         // parked at the foot of the page.
@@ -407,7 +534,7 @@ class _StreamHeader extends SliverPersistentHeaderDelegate {
       old.compareMode != compareMode || old.showCcy != showCcy;
 }
 
-// ── "Show more" — reveals the funds beyond the top 20 (no nested scroll) ────
+// ── "Show more"  reveals the funds beyond the top 20 (no nested scroll) ────
 class _ShowMoreButton extends StatelessWidget {
   const _ShowMoreButton({required this.count, required this.onTap});
   final int count;

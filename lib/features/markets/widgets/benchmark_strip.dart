@@ -5,10 +5,10 @@ import '../../../core/theme.dart';
 import '../../../data/models/remote_config.dart';
 import '../../../data/snapshot_providers.dart';
 
-/// Benchmark context strip — the board's anchor. Inflation · CBR · 91-day
+/// Benchmark context strip  the board's anchor. Inflation · CBR · 91-day
 /// T-bill, read from remote config (config['benchmark.*']) with baked
 /// fallbacks. Flat v5 `.tbrow` style: three cells, left-border dividers, no
-/// card. The 91-day — the risk-free rate every fund must beat — is tinted gold.
+/// card. The 91-day  the risk-free rate every fund must beat  is tinted gold.
 class BenchmarkStrip extends ConsumerWidget {
   const BenchmarkStrip({super.key});
 
@@ -18,11 +18,20 @@ class BenchmarkStrip extends ConsumerWidget {
     final cfg = ref.watch(remoteConfigProvider);
 
     final items = <_Bench>[
-      _Bench('INFLATION', cfg.benchmark('benchmark.inflation'), 6.7,
-          'consumer prices'),
+      _Bench(
+        'INFLATION',
+        cfg.benchmark('benchmark.inflation'),
+        6.7,
+        'consumer prices',
+      ),
       _Bench('CBR', cfg.benchmark('benchmark.cbr'), 8.75, 'policy rate'),
-      _Bench('91-DAY T-BILL', cfg.benchmark('benchmark.tbill_91'), 8.71,
-          'risk-free', accent: true),
+      _Bench(
+        '91-DAY T-BILL',
+        cfg.benchmark('benchmark.tbill_91'),
+        8.71,
+        'risk-free',
+        accent: true,
+      ),
     ];
 
     return Padding(
@@ -47,9 +56,13 @@ class BenchmarkStrip extends ConsumerWidget {
 }
 
 class _Bench {
-  _Bench(this.label, Benchmark? b, double fallback, this.sub,
-      {this.accent = false})
-      : value = b?.rate ?? fallback;
+  _Bench(
+    this.label,
+    Benchmark? b,
+    double fallback,
+    this.sub, {
+    this.accent = false,
+  }) : value = b?.rate ?? fallback;
   final String label;
   final double value;
   final String sub;
@@ -80,7 +93,7 @@ class _Cell extends StatelessWidget {
           '${b.value.toStringAsFixed(2)}%',
           style: TextStyle(
             color: b.accent ? c.accent : c.text,
-            fontFamily: AkibaFonts.mono,
+            fontFamily: fructaFonts.mono,
             fontSize: 19,
             fontWeight: FontWeight.w600,
             fontFeatures: const [FontFeature.tabularFigures()],
@@ -90,7 +103,10 @@ class _Cell extends StatelessWidget {
         Text(
           b.sub,
           style: TextStyle(
-              color: c.faint, fontSize: 9.5, fontFamily: AkibaFonts.mono),
+            color: c.faint,
+            fontSize: 9.5,
+            fontFamily: fructaFonts.mono,
+          ),
         ),
       ],
     );

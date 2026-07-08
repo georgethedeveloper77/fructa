@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:akiba/engine/projection_engine.dart';
+import 'package:fructa/engine/projection_engine.dart';
 
 void main() {
   group('ProjectionEngine', () {

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme.dart';
 import 'markup.dart';
 
-/// v5 `.learncard` — accent radial glow + icon tile + a subline (bold
+/// v5 `.learncard`  accent radial glow + icon tile + a subline (bold
 /// segments in [subtitle] via `**…**` render in the accent, mono). Links to
 /// the D2 Learn hub; pass [onTap] (a stub is fine for now).
 class LearnCard extends StatelessWidget {
@@ -72,11 +72,14 @@ class LearnCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(title,
-                            style: TextStyle(
-                                color: c.text,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600)),
+                        Text(
+                          title,
+                          style: TextStyle(
+                            color: c.text,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                         const SizedBox(height: 3),
                         Text.rich(
                           TextSpan(
@@ -85,7 +88,7 @@ class LearnCard extends StatelessWidget {
                               base: TextStyle(color: c.muted, fontSize: 11),
                               bold: TextStyle(
                                 color: c.accent,
-                                fontFamily: AkibaFonts.mono,
+                                fontFamily: fructaFonts.mono,
                                 fontSize: 11,
                               ),
                             ),

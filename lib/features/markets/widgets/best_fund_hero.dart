@@ -150,7 +150,7 @@ class BestFundHero extends ConsumerWidget {
                             Text(tag,
                                 style: TextStyle(
                                     color: tint,
-                                    fontFamily: AkibaFonts.mono,
+                                    fontFamily: fructaFonts.mono,
                                     fontSize: 10.5,
                                     letterSpacing: 0.5)),
                           ],
@@ -167,7 +167,7 @@ class BestFundHero extends ConsumerWidget {
                         child: Text('BEST RATE',
                             style: TextStyle(
                                 color: c.onAccent,
-                                fontFamily: AkibaFonts.mono,
+                                fontFamily: fructaFonts.mono,
                                 fontSize: 9.5,
                                 letterSpacing: 1,
                                 fontWeight: FontWeight.w600)),
@@ -188,7 +188,7 @@ class BestFundHero extends ConsumerWidget {
                             v.toStringAsFixed(2),
                             style: TextStyle(
                               color: c.text,
-                              fontFamily: AkibaFonts.mono,
+                              fontFamily: fructaFonts.mono,
                               fontSize: 44,
                               height: 1,
                               fontWeight: FontWeight.w600,
@@ -205,7 +205,7 @@ class BestFundHero extends ConsumerWidget {
                           child: Text('% gross',
                               style: TextStyle(
                                   color: c.muted,
-                                  fontFamily: AkibaFonts.mono,
+                                  fontFamily: fructaFonts.mono,
                                   fontSize: 18)),
                         ),
                         if (d != null && d != 0) ...[
@@ -224,7 +224,7 @@ class BestFundHero extends ConsumerWidget {
                                 Text('${d.abs().toStringAsFixed(2)} \u00b7 7d',
                                     style: TextStyle(
                                         color: c.delta(d),
-                                        fontFamily: AkibaFonts.mono,
+                                        fontFamily: fructaFonts.mono,
                                         fontSize: 13,
                                         fontWeight: FontWeight.w600)),
                               ],
@@ -294,7 +294,7 @@ class BestFundHero extends ConsumerWidget {
                             '${benchDelta >= 0 ? '+' : ''}${benchDelta.toStringAsFixed(2)} pts',
                             style: TextStyle(
                                 color: c.delta(benchDelta),
-                                fontFamily: AkibaFonts.mono,
+                                fontFamily: fructaFonts.mono,
                                 fontSize: 10,
                                 fontWeight: FontWeight.w700,
                                 fontFeatures: const [
@@ -314,7 +314,7 @@ class BestFundHero extends ConsumerWidget {
     );
   }
 
-  Widget _vline(AkibaColors c) => Container(
+  Widget _vline(fructaColors c) => Container(
         width: 1,
         height: 30,
         margin: const EdgeInsets.symmetric(horizontal: 14),
@@ -338,7 +338,7 @@ class _TriadCell extends StatelessWidget {
           Text(k,
               style: TextStyle(
                   color: c.faint,
-                  fontFamily: AkibaFonts.mono,
+                  fontFamily: fructaFonts.mono,
                   fontSize: 9.5,
                   letterSpacing: 1,
                   fontWeight: FontWeight.w600)),
@@ -346,7 +346,7 @@ class _TriadCell extends StatelessWidget {
           Text(v,
               style: TextStyle(
                   color: color ?? c.text,
-                  fontFamily: AkibaFonts.mono,
+                  fontFamily: fructaFonts.mono,
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
                   fontFeatures: const [FontFeature.tabularFigures()])),
@@ -380,7 +380,7 @@ class _Lg extends StatelessWidget {
         const SizedBox(width: 5),
         Text(label,
             style: TextStyle(
-                color: c.muted, fontFamily: AkibaFonts.mono, fontSize: 10)),
+                color: c.muted, fontFamily: fructaFonts.mono, fontSize: 10)),
       ],
     );
   }

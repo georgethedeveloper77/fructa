@@ -6,7 +6,7 @@ import '../theme.dart';
 ///
 /// When [live], a clean status tag sits to the RIGHT of the title: a small
 /// pulsing-green dot (a real circle, not a glyph) + `LIVE`, optionally followed
-/// by a muted `· {time}`. The subline stays quiet — the green lives only on the
+/// by a muted `· {time}`. The subline stays quiet  the green lives only on the
 /// dot and the word, so the row reads as one calm unit.
 class DisplayHeader extends StatelessWidget {
   const DisplayHeader({
@@ -44,7 +44,7 @@ class DisplayHeader extends StatelessWidget {
                   title,
                   style: TextStyle(
                     color: c.text,
-                    fontFamily: AkibaFonts.mono,
+                    fontFamily: fructaFonts.mono,
                     fontSize: 34,
                     fontWeight: FontWeight.w600,
                     letterSpacing: -1.2,
@@ -52,10 +52,7 @@ class DisplayHeader extends StatelessWidget {
                   ),
                 ),
               ),
-              if (live) ...[
-                const SizedBox(width: 12),
-                _LiveTag(time: time),
-              ],
+              if (live) ...[const SizedBox(width: 12), _LiveTag(time: time)],
             ],
           ),
         ),
@@ -79,7 +76,7 @@ class DisplayHeader extends StatelessWidget {
                     updated!,
                     style: TextStyle(
                       color: c.faint,
-                      fontFamily: AkibaFonts.mono,
+                      fontFamily: fructaFonts.mono,
                       fontSize: 10.5,
                       letterSpacing: 0.2,
                     ),
@@ -93,7 +90,7 @@ class DisplayHeader extends StatelessWidget {
   }
 }
 
-/// `● LIVE · {time}` — dot is a drawn circle; text is mono, quiet, aligned.
+/// `● LIVE · {time}`  dot is a drawn circle; text is mono, quiet, aligned.
 class _LiveTag extends StatelessWidget {
   const _LiveTag({this.time});
   final String? time;
@@ -114,7 +111,7 @@ class _LiveTag extends StatelessWidget {
           'LIVE',
           style: TextStyle(
             color: c.up,
-            fontFamily: AkibaFonts.mono,
+            fontFamily: fructaFonts.mono,
             fontSize: 11,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.8,
@@ -125,7 +122,7 @@ class _LiveTag extends StatelessWidget {
             ' \u00b7 $time',
             style: TextStyle(
               color: c.muted,
-              fontFamily: AkibaFonts.mono,
+              fontFamily: fructaFonts.mono,
               fontSize: 11,
               letterSpacing: 0.2,
             ),
@@ -156,7 +153,7 @@ class SectionHeader extends StatelessWidget {
               title,
               style: TextStyle(
                 color: c.text,
-                fontFamily: AkibaFonts.mono,
+                fontFamily: fructaFonts.mono,
                 fontSize: 22,
                 fontWeight: FontWeight.w600,
                 letterSpacing: -0.6,

@@ -12,7 +12,7 @@ import '../../data/snapshot_providers.dart';
 
 // One tab per fund type the market actually has. Fixed Income absorbs T-bills
 // and bonds (all fixed-income instruments); Equity is CIS equity funds while
-// Stocks is NSE-listed shares — kept distinct. Currency is a sub-filter under
+// Stocks is NSE-listed shares  kept distinct. Currency is a sub-filter under
 // Money Market, not a top-level tab. Empty tabs auto-hide (see
 // [visibleMarketTabsProvider]).
 enum MarketTab {
@@ -29,48 +29,52 @@ enum MarketTab {
 extension MarketTabX on MarketTab {
   // Display label. category_tabs renders this directly (no i18n key needed).
   String get label => switch (this) {
-        MarketTab.all => 'All',
-        MarketTab.moneyMarket => 'Money Market',
-        MarketTab.fixedIncome => 'Fixed Income',
-        MarketTab.equity => 'Equity',
-        MarketTab.balanced => 'Balanced',
-        MarketTab.special => 'Special',
-        MarketTab.sacco => 'SACCO',
-        MarketTab.stock => 'Stocks',
-      };
+    MarketTab.all => 'All',
+    MarketTab.moneyMarket => 'Money Market',
+    MarketTab.fixedIncome => 'Fixed Income',
+    MarketTab.equity => 'Equity',
+    MarketTab.balanced => 'Balanced',
+    MarketTab.special => 'Special',
+    MarketTab.sacco => 'SACCO',
+    MarketTab.stock => 'Stocks',
+  };
 
   bool matches(Fund f) => switch (this) {
-        MarketTab.all => true,
-        // fund_type is the live classifier; category was retired (nullable) so
-        // matching on it alone would drop every seeded fund. Legacy categories
-        // (tbill/bond/sacco/stock) have no fund_type, so they match on category.
-        MarketTab.moneyMarket => f.fundType == 'mmf',
-        MarketTab.fixedIncome => f.fundType == 'fixed_income' ||
-            f.category == 'tbill' ||
-            f.category == 'bond',
-        MarketTab.equity => f.fundType == 'equity',
-        MarketTab.balanced => f.fundType == 'balanced',
-        MarketTab.special => f.fundType == 'special',
-        MarketTab.sacco => f.category == 'sacco',
-        MarketTab.stock => f.category == 'stock',
-      };
+    MarketTab.all => true,
+    // fund_type is the live classifier; category was retired (nullable) so
+    // matching on it alone would drop every seeded fund. Legacy categories
+    // (tbill/bond/sacco/stock) have no fund_type, so they match on category.
+    MarketTab.moneyMarket => f.fundType == 'mmf',
+    MarketTab.fixedIncome =>
+      f.fundType == 'fixed_income' ||
+          f.category == 'tbill' ||
+          f.category == 'bond',
+    MarketTab.equity => f.fundType == 'equity',
+    MarketTab.balanced => f.fundType == 'balanced',
+    MarketTab.special => f.fundType == 'special',
+    MarketTab.sacco => f.category == 'sacco',
+    MarketTab.stock => f.category == 'stock',
+  };
 }
 
 /// Sort pills. `topMovers` is intentionally absent until C1 lands per-fund
-/// deltas — sorting by momentum with no momentum data would be a lie.
+/// deltas  sorting by momentum with no momentum data would be a lie.
 enum MarketSort { highestYield, lowestMinimum, taxFree }
 
 extension MarketSortX on MarketSort {
   String get label => switch (this) {
-        MarketSort.highestYield => 'Highest yield',
-        MarketSort.lowestMinimum => 'Lowest minimum',
-        MarketSort.taxFree => 'Tax-free',
-      };
+    MarketSort.highestYield => 'Highest yield',
+    MarketSort.lowestMinimum => 'Lowest minimum',
+    MarketSort.taxFree => 'Tax-free',
+  };
 }
 
-final marketTabProvider = StateProvider<MarketTab>((_) => MarketTab.moneyMarket);
-final marketSortProvider =
-    StateProvider<MarketSort>((_) => MarketSort.highestYield);
+final marketTabProvider = StateProvider<MarketTab>(
+  (_) => MarketTab.moneyMarket,
+);
+final marketSortProvider = StateProvider<MarketSort>(
+  (_) => MarketSort.highestYield,
+);
 final marketSearchProvider = StateProvider<String>((_) => '');
 final marketSearchOpenProvider = StateProvider<bool>((_) => false);
 
@@ -80,7 +84,7 @@ final marketSearchOpenProvider = StateProvider<bool>((_) => false);
 const kFundsInitial = 20;
 final showAllFundsProvider = StateProvider<bool>((_) => false);
 
-/// Tabs that actually have something to show — a retail fund with a rate.
+/// Tabs that actually have something to show  a retail fund with a rate.
 /// Hides empty categories (REIT, Balanced, Islamic…) instead of dead ends.
 /// `all` is always present.
 final visibleMarketTabsProvider = Provider<List<MarketTab>>((ref) {
@@ -118,7 +122,7 @@ final moneyMarketCurrenciesProvider = Provider<List<String>>((ref) {
 double _rate(Fund f) => f.currentRate ?? double.negativeInfinity;
 num _min(Fund f) => f.minInvest ?? double.infinity; // nulls sort last
 
-/// Net-of-withholding-tax yield — the honest comparator. Tax-free funds keep
+/// Net-of-withholding-tax yield  the honest comparator. Tax-free funds keep
 /// gross, so they rank on their real advantage. wht comes from remote config.
 double _net(Fund f, double wht) {
   final r = f.currentRate;
@@ -137,7 +141,7 @@ final streamFundsProvider = Provider<AsyncValue<List<Fund>>>((ref) {
   final wht = ref.watch(remoteConfigProvider).whtPct;
 
   return rates.whenData((funds) {
-    // Consumer list shows the retail cut only — the dormant/institutional tail
+    // Consumer list shows the retail cut only  the dormant/institutional tail
     // (tiny AUM, USD-only duplicates) is hidden but still in the data.
     var list = funds.where((f) => f.retail).where(tab.matches);
     // currency sub-filter only applies within Money Market
@@ -146,9 +150,11 @@ final streamFundsProvider = Provider<AsyncValue<List<Fund>>>((ref) {
     }
     if (sort == MarketSort.taxFree) list = list.where((f) => f.taxFree);
     if (q.isNotEmpty) {
-      list = list.where((f) =>
-          f.name.toLowerCase().contains(q) ||
-          f.manager.toLowerCase().contains(q));
+      list = list.where(
+        (f) =>
+            f.name.toLowerCase().contains(q) ||
+            f.manager.toLowerCase().contains(q),
+      );
     }
     final out = list.toList();
     switch (sort) {
@@ -167,16 +173,19 @@ final streamFundsProvider = Provider<AsyncValue<List<Fund>>>((ref) {
 final bestMmfProvider = Provider<Fund?>((ref) {
   final funds = ref.watch(ratesProvider).valueOrNull ?? const [];
   final wht = ref.watch(remoteConfigProvider).whtPct;
-  // Strictly the best retail KES money-market fund — never a bond/equity, so
+  // Strictly the best retail KES money-market fund  never a bond/equity, so
   // the "best MMF" label can't lie. Null hides the hero.
-  final mmf = funds
-      .where((f) =>
-          f.fundType == 'mmf' &&
-          f.currency == 'KES' &&
-          f.retail &&
-          f.currentRate != null)
-      .toList()
-    ..sort((a, b) => _net(b, wht).compareTo(_net(a, wht)));
+  final mmf =
+      funds
+          .where(
+            (f) =>
+                f.fundType == 'mmf' &&
+                f.currency == 'KES' &&
+                f.retail &&
+                f.currentRate != null,
+          )
+          .toList()
+        ..sort((a, b) => _net(b, wht).compareTo(_net(a, wht)));
   return mmf.isEmpty ? null : mmf.first;
 });
 
@@ -190,7 +199,7 @@ final tbillsProvider = Provider<List<Fund>>((ref) {
 
 // ── News (stub) ──────────────────────────────────────────────────────────
 // Populated by snapshot-v2 `market_events` in C1. Until then this returns
-// empty and the News section hides itself — no placeholder content.
+// empty and the News section hides itself  no placeholder content.
 class NewsItem {
   const NewsItem({required this.title, required this.at, this.body});
   final String title;

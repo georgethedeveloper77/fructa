@@ -4,13 +4,13 @@ import '../../../core/theme.dart';
 import '../../../data/models/company.dart';
 import '../../../data/models/fund.dart';
 
-/// "Credentials" — the fund-side trust strip: how long it's operated and who
+/// "Credentials"  the fund-side trust strip: how long it's operated and who
 /// independently holds and audits the assets. Custody is manager-level (read
 /// from the fund's [Company]); age + objective are the fund's own. The
 /// fund-side mirror of the insurer trust signals.
 ///
 /// Renders nothing when none of it is seeded, so an unseeded fund degrades to
-/// the prior detail page. Icon-free by design — mono labels, matching the
+/// the prior detail page. Icon-free by design  mono labels, matching the
 /// page's `_Facts`/`_Stat3` aesthetic (and the no-emoji/no-glyph rule).
 class FundCredentials extends StatelessWidget {
   const FundCredentials(this.fund, this.manager, {super.key});
@@ -19,8 +19,18 @@ class FundCredentials extends StatelessWidget {
   final Company? manager;
 
   static const _months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
 
   /// "Nov 2017 · 8 years" from inceptionDate, or "Nov 2017" under a year, or
@@ -42,7 +52,8 @@ class FundCredentials extends StatelessWidget {
     final rows = <MapEntry<String, String>>[
       if (since != null) MapEntry('OPERATING SINCE', since),
       if (manager?.trustee != null) MapEntry('TRUSTEE', manager!.trustee!),
-      if (manager?.custodian != null) MapEntry('CUSTODIAN', manager!.custodian!),
+      if (manager?.custodian != null)
+        MapEntry('CUSTODIAN', manager!.custodian!),
       if (manager?.auditor != null) MapEntry('AUDITOR', manager!.auditor!),
     ];
     final objective = fund.objective;
@@ -54,13 +65,16 @@ class FundCredentials extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 26, 20, 12),
-          child: Text('CREDENTIALS',
-              style: TextStyle(
-                  color: c.faint,
-                  fontFamily: AkibaFonts.mono,
-                  fontSize: 10.5,
-                  letterSpacing: 1.6,
-                  fontWeight: FontWeight.w600)),
+          child: Text(
+            'CREDENTIALS',
+            style: TextStyle(
+              color: c.faint,
+              fontFamily: fructaFonts.mono,
+              fontSize: 10.5,
+              letterSpacing: 1.6,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -77,10 +91,17 @@ class FundCredentials extends StatelessWidget {
                 if (hasObjective)
                   Padding(
                     padding: EdgeInsets.only(
-                        top: 16, bottom: rows.isEmpty ? 16 : 6),
-                    child: Text(objective,
-                        style: TextStyle(
-                            color: c.muted, fontSize: 13, height: 1.45)),
+                      top: 16,
+                      bottom: rows.isEmpty ? 16 : 6,
+                    ),
+                    child: Text(
+                      objective,
+                      style: TextStyle(
+                        color: c.muted,
+                        fontSize: 13,
+                        height: 1.45,
+                      ),
+                    ),
                   ),
                 for (var i = 0; i < rows.length; i++)
                   _CredRow(
@@ -108,7 +129,9 @@ class _CredRow extends StatelessWidget {
     final c = context.c;
     return Container(
       decoration: divider
-          ? BoxDecoration(border: Border(bottom: BorderSide(color: c.line)))
+          ? BoxDecoration(
+              border: Border(bottom: BorderSide(color: c.line)),
+            )
           : null,
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
@@ -116,20 +139,28 @@ class _CredRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 128,
-            child: Text(k,
-                style: TextStyle(
-                    color: c.faint,
-                    fontFamily: AkibaFonts.mono,
-                    fontSize: 9.5,
-                    letterSpacing: 0.8,
-                    fontWeight: FontWeight.w600)),
+            child: Text(
+              k,
+              style: TextStyle(
+                color: c.faint,
+                fontFamily: fructaFonts.mono,
+                fontSize: 9.5,
+                letterSpacing: 0.8,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(v,
-                textAlign: TextAlign.right,
-                style: TextStyle(
-                    color: c.text, fontSize: 14, fontWeight: FontWeight.w500)),
+            child: Text(
+              v,
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                color: c.text,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
         ],
       ),

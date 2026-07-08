@@ -1,6 +1,6 @@
 import 'package:flutter/painting.dart';
 
-/// Chart **series** colours — the line identities for multi-fund overlays
+/// Chart **series** colours  the line identities for multi-fund overlays
 /// (Compare) and any future multi-series chart.
 ///
 /// These are *data* colours, not theme tokens: like [AssetClass] and category

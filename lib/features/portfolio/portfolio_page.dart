@@ -1,4 +1,5 @@
-import 'package:akiba/data/snapshot_providers.dart';
+import '../../data/snapshot_providers.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -13,13 +14,21 @@ import '../../data/models/fund.dart';
 import '../../data/models/holding.dart';
 import '../../data/providers.dart';
 import '../../engine/accrual_engine.dart';
+import '../../engine/portfolio_math.dart';
 import 'add_holding_page.dart';
 import 'manage_holding_sheet.dart';
 import 'projection_card.dart';
 
 /// v5 `.pg-portfolio` — markets-first portfolio, consolidated in KES.
-/// Hide-balances is the persisted settings pref (V5 handoff): the eye here
-/// and the Settings toggle drive the same value.
+///
+/// Redesign: each holding leads with its manager's real logo + a left
+/// brand-accent bar; values accrue from the date each lot was added (WHT unless
+/// tax-free); USD converts at the snapshot's CBK rate. The hero carries a trend
+/// line built from the accrual trajectory — each holding contributes nothing
+/// before its own purchase date, so the curve is real, not fabricated.
+///
+/// Hide-balances is the persisted settings pref (V5): the eye here and the
+/// Settings toggle drive the same value.
 class PortfolioPage extends ConsumerWidget {
   const PortfolioPage({super.key});
 
@@ -27,7 +36,7 @@ class PortfolioPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final holdings = ref.watch(holdingsProvider);
     final byId = ref.watch(fundsByIdProvider);
-    final fx = ref.watch(usdKesProvider); // KES per USD
+    final fx = ref.watch(usdKesProvider); // KES per USD, or null if unpublished
     final hidden = ref.watch(
       settingsControllerProvider.select((p) => p.hideBalances),
     );
@@ -42,7 +51,7 @@ class PortfolioPage extends ConsumerWidget {
   }
 }
 
-// ── Topbar: ＋ Add · eye · avatar ───────────────────────────────────────────
+// ── Topbar: Add · eye · avatar ──────────────────────────────────────────────
 class _TopBar extends ConsumerWidget {
   const _TopBar();
 
@@ -61,19 +70,26 @@ class _TopBar extends ConsumerWidget {
               context,
             ).push(MaterialPageRoute(builder: (_) => const AddHoldingPage())),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 9),
+              padding: const EdgeInsets.fromLTRB(11, 8, 14, 8),
               decoration: BoxDecoration(
                 color: c.s1,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: c.line2),
               ),
-              child: Text(
-                '\uFF0B Add',
-                style: TextStyle(
-                  color: c.accent,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.add_rounded, color: c.accent, size: 18),
+                  const SizedBox(width: 5),
+                  Text(
+                    'Add',
+                    style: TextStyle(
+                      color: c.accentInk,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -105,7 +121,7 @@ class _TopBar extends ConsumerWidget {
               'G',
               style: TextStyle(
                 color: c.onAccent,
-                fontFamily: AkibaFonts.mono,
+                fontFamily: fructaFonts.mono,
                 fontWeight: FontWeight.w700,
                 fontSize: 14,
               ),
@@ -130,48 +146,86 @@ class _Full extends StatelessWidget {
   final double? fx;
   final bool hidden;
 
-  double _kes(Holding h) =>
-      h.currency == 'USD' ? h.balance * (fx ?? 0) : h.balance;
-
-  double _dailyNet(Fund f, double balance) => f.taxFree
-      ? AccrualEngine.dailyInterest(balance, f.currentRate ?? 0)
-      : AccrualEngine.dailyInterestNet(balance, f.currentRate ?? 0);
+  /// Consolidated KES value of the whole book at [d]. A holding counts only
+  /// once it's actually held (firstLot ≤ d), so pre-purchase days read zero.
+  double _totalAt(DateTime d) {
+    var t = 0.0;
+    for (final h in holdings) {
+      final f = byId[h.fundId];
+      final v = PortfolioMath.value(
+        h,
+        ratePercent: f?.currentRate,
+        taxFree: f?.taxFree ?? false,
+        usdKes: fx,
+        asOf: d,
+      );
+      if (v.firstLot.isAfter(d)) continue;
+      if (v.valueKes != null) t += v.valueKes!;
+    }
+    return t;
+  }
 
   @override
   Widget build(BuildContext context) {
     final c = context.c;
+    final now = DateTime.now();
 
     var totalKes = 0.0;
+    var costKes = 0.0;
     var dailyKes = 0.0;
-    var usdTotal = 0.0;
-    final byCategory = <String, double>{};
     var wSum = 0.0, w = 0.0;
+    var fxMissing = false;
+    final byCategory = <String, double>{};
+    final values = <String, HoldingValue>{};
 
     for (final h in holdings) {
-      final kes = _kes(h);
-      totalKes += kes;
-      if (h.currency == 'USD') usdTotal += h.balance;
       final f = byId[h.fundId];
+      final v = PortfolioMath.value(
+        h,
+        ratePercent: f?.currentRate,
+        taxFree: f?.taxFree ?? false,
+        usdKes: fx,
+        asOf: now,
+      );
+      values[h.fundId] = v;
+
+      if (v.valueKes != null) {
+        totalKes += v.valueKes!;
+        costKes += v.principalKes ?? 0;
+      } else {
+        fxMissing = true;
+      }
+
       final r = f?.currentRate;
       if (f != null && r != null) {
-        // daily earning in the holding's own currency, converted to KES
-        final dailyOwn = _dailyNet(f, h.balance);
-        dailyKes += h.currency == 'USD' ? dailyOwn * (fx ?? 0) : dailyOwn;
-        byCategory[f.category] = (byCategory[f.category] ?? 0) + kes;
-        wSum += r * kes;
-        w += kes;
+        final dailyOwn = f.taxFree
+            ? AccrualEngine.dailyInterest(v.valueNative, r)
+            : AccrualEngine.dailyInterestNet(v.valueNative, r);
+        dailyKes += v.isUsd ? (fx != null ? dailyOwn * fx! : 0.0) : dailyOwn;
+        if (v.valueKes != null) {
+          byCategory[f.category] = (byCategory[f.category] ?? 0) + v.valueKes!;
+          wSum += r * v.valueKes!;
+          w += v.valueKes!;
+        }
       }
     }
 
+    final gainKes = totalKes - costKes;
     final monthlyKes = dailyKes * 365 / 12;
     final yearlyKes = dailyKes * 365;
-    final pct = totalKes > 0 ? monthlyKes / totalKes * 100 : 0.0;
     final blendedGross = w > 0 ? wSum / w : 0.0;
     final providers = holdings
         .map((h) => byId[h.fundId]?.manager)
         .whereType<String>()
         .toSet()
         .length;
+
+    // Hero trend — 31 daily samples of the whole book's accrued KES value.
+    final trend = [
+      for (var i = 30; i >= 0; i--) _totalAt(now.subtract(Duration(days: i))),
+    ];
+    final trendVaries =
+        trend.isNotEmpty && trend.reduce((a, b) => a > b ? a : b) > 0;
 
     String bal(String s) => hidden ? '\u2022\u2022\u2022\u2022' : s;
 
@@ -201,7 +255,7 @@ class _Full extends StatelessWidget {
               '${holdings.length} holdings \u00b7 $providers providers \u00b7 consolidated in KES',
         ),
 
-        // pf-big — count-up total (mono 44)
+        // pf-big — count-up accrued total (mono 44)
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
           child: hidden
@@ -214,40 +268,61 @@ class _Full extends StatelessWidget {
                 ),
         ),
 
-        // pf-dl — monthly net earning (consolidated), incl. USD @ FX note
+        // pf-dl — value earned since the holdings were added (accrued − cost)
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-          child: Text.rich(
-            TextSpan(
-              style: const TextStyle(
-                fontFamily: AkibaFonts.mono,
-                fontSize: 12.5,
-              ),
+          child: gainKes >= 1
+              ? Row(
+                  children: [
+                    Icon(Icons.trending_up_rounded, color: c.up, size: 16),
+                    const SizedBox(width: 5),
+                    Text(
+                      bal(money('KES', gainKes.round())),
+                      style: TextStyle(
+                        color: c.up,
+                        fontFamily: fructaFonts.mono,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text('earned since you added',
+                        style: TextStyle(color: c.muted, fontSize: 11)),
+                  ],
+                )
+              : Text('Tracking your earnings from today',
+                  style: TextStyle(color: c.muted, fontSize: 11.5)),
+        ),
+
+        if (fxMissing)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+            child: Row(
               children: [
-                TextSpan(
-                  text: '\u25b2 ${bal(money('KES', monthlyKes.round()))} ',
-                  style: TextStyle(color: c.up),
-                ),
-                TextSpan(
-                  text:
-                      '(${pct.toStringAsFixed(1)}%) this month${usdTotal > 0 && fx != null ? ' \u00b7 incl. \$${withCommas(usdTotal)} @ ${fx!.toStringAsFixed(2)}' : ''}',
-                  style: TextStyle(
-                    color: c.muted,
-                    fontFamily: AkibaFonts.sans,
-                    fontSize: 11,
+                Icon(Icons.error_outline_rounded, color: c.faint, size: 14),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    "USD value unavailable — today's USD/KES rate isn't set.",
+                    style: TextStyle(color: c.faint, fontSize: 11),
                   ),
                 ),
               ],
             ),
           ),
-        ),
 
-        // pf-chart (110px) — hidden: no portfolio-valuation series exists yet.
-        // Wire a real value series here and it renders (see notes).
+        // pf-chart — accrual trend of the whole book (hidden when masked)
+        if (trendVaries && !hidden)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+            child: SizedBox(height: 56, child: _TrendChart(trend, c.accent)),
+          ),
+
+        // pf run-rate — forward earning at the current blended net yield
         EarnStrip([
-          EarnCell('Earning / day', '+${money('KES', dailyKes.round())}'),
-          EarnCell('/ month', '+${money('KES', monthlyKes.round())}'),
-          EarnCell('/ year', '+${money('KES', yearlyKes.round())}'),
+          EarnCell('Earning / day', '+${bal(money('KES', dailyKes.round()))}'),
+          EarnCell('/ month', '+${bal(money('KES', monthlyKes.round()))}'),
+          EarnCell('/ year', '+${bal(money('KES', yearlyKes.round()))}'),
         ]),
 
         if (slices.isNotEmpty) ...[
@@ -256,9 +331,14 @@ class _Full extends StatelessWidget {
           Legend(slices),
         ],
 
-        const SectionHeader(title: 'Holdings', trailing: 'net earnings shown'),
+        const SectionHeader(title: 'Holdings', trailing: 'accrued value shown'),
         for (final h in holdings)
-          _HoldingRow(holding: h, fund: byId[h.fundId], fx: fx, hidden: hidden),
+          _HoldingRow(
+            holding: h,
+            fund: byId[h.fundId],
+            value: values[h.fundId]!,
+            hidden: hidden,
+          ),
         _AddRow(
           onTap: () => Navigator.of(
             context,
@@ -275,9 +355,10 @@ class _Full extends StatelessWidget {
         ],
 
         Disclaimer(
-          "USD positions earn their own USD yields, converted at today's CBK "
-          'indicative rate for the total. Projection compounds your blended net '
-          'yield monthly \u2014 not a promise.',
+          "Values are estimates: each holding grows daily at the fund's net "
+          "yield from the date you added it. USD positions earn their own USD "
+          "yield and convert at the CBK indicative rate for the total \u2014 "
+          'not a promise, and fructa never holds your money.',
         ),
       ],
     );
@@ -287,7 +368,7 @@ class _Full extends StatelessWidget {
     s,
     style: TextStyle(
       color: context.c.text,
-      fontFamily: AkibaFonts.mono,
+      fontFamily: fructaFonts.mono,
       fontSize: 44,
       fontWeight: FontWeight.w600,
       letterSpacing: -2,
@@ -296,59 +377,126 @@ class _Full extends StatelessWidget {
   );
 }
 
-// ── Holding tile (v5 .tile) ────────────────────────────────────────────────
-class _HoldingRow extends StatelessWidget {
+// ── Hero trend chart ────────────────────────────────────────────────────────
+class _TrendChart extends StatelessWidget {
+  const _TrendChart(this.data, this.color);
+  final List<double> data;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    if (data.length < 2) return const SizedBox.shrink();
+    final lo = data.reduce((a, b) => a < b ? a : b);
+    final hi = data.reduce((a, b) => a > b ? a : b);
+    final span = (hi - lo).abs() < 1e-6 ? 1.0 : (hi - lo);
+    return LineChart(LineChartData(
+      minX: 0,
+      maxX: (data.length - 1).toDouble(),
+      minY: lo - span * 0.08,
+      maxY: hi + span * 0.08,
+      gridData: const FlGridData(show: false),
+      titlesData: const FlTitlesData(show: false),
+      borderData: FlBorderData(show: false),
+      lineTouchData: const LineTouchData(enabled: false),
+      lineBarsData: [
+        LineChartBarData(
+          spots: [
+            for (var i = 0; i < data.length; i++) FlSpot(i.toDouble(), data[i]),
+          ],
+          isCurved: true,
+          curveSmoothness: 0.28,
+          color: color,
+          barWidth: 2,
+          dotData: const FlDotData(show: false),
+          belowBarData: BarAreaData(
+            show: true,
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                color.withValues(alpha: 0.20),
+                color.withValues(alpha: 0.0),
+              ],
+            ),
+          ),
+        ),
+      ],
+    ));
+  }
+}
+
+// ── Holding tile — real logo + brand accent bar ─────────────────────────────
+class _HoldingRow extends ConsumerWidget {
   const _HoldingRow({
     required this.holding,
     required this.fund,
-    required this.fx,
+    required this.value,
     required this.hidden,
   });
 
   final Holding holding;
   final Fund? fund;
-  final double? fx;
+  final HoldingValue value;
   final bool hidden;
 
+  static const _months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final c = context.c;
     final f = fund;
     final name = f?.name ?? holding.fundId;
     final rate = f?.currentRate;
     final ccy = holding.currency;
+    final brand = ref.watch(brandColorProvider(holding.fundId)) ??
+        fundTypeColor(f?.fundType);
+    final logoUrl = ref.watch(logoUrlProvider(holding.fundId));
+    final since =
+        '${_months[value.firstLot.month - 1]} ${value.firstLot.day}';
 
-    String? earn;
-    if (f != null && rate != null) {
-      final daily = f.taxFree
-          ? AccrualEngine.dailyInterest(holding.balance, rate)
-          : AccrualEngine.dailyInterestNet(holding.balance, rate);
-      if (ccy == 'USD') {
-        final kes = fx != null
-            ? ' \u00b7 \u2248${money('KES', (daily * fx!).round())}'
-            : '';
-        earn = '+\$${daily.toStringAsFixed(2)}/day$kes';
-      } else {
-        earn = '+${money('KES', daily.round())}/day';
-      }
-    }
+    final valNative = ccy == 'USD'
+        ? '\$${value.valueNative.toStringAsFixed(2)}'
+        : money('KES', value.valueNative);
+    final balText = hidden ? '\u2022\u2022\u2022\u2022' : valNative;
+
+    final gain = value.gainNative;
+    final showGain = gain >= (ccy == 'USD' ? 0.005 : 1);
+    final gainText = ccy == 'USD'
+        ? '+\$${gain.toStringAsFixed(2)}'
+        : '+${money('KES', gain.round())}';
+    final earnLine = rate == null
+        ? null
+        : (showGain ? '$gainText \u00b7 since $since' : 'Added $since');
 
     final sub = rate != null
-        ? '${rate.toStringAsFixed(2)}% ${f!.taxFree ? 'tax-free' : 'gross'}${ccy == 'USD' ? ' \u00b7 USD' : ''}'
+        ? '${rate.toStringAsFixed(2)}% ${f!.taxFree ? 'tax-free' : 'net'}${ccy == 'USD' ? ' \u00b7 USD' : ''}'
         : 'rate unavailable';
-    final balText = hidden
-        ? '\u2022\u2022\u2022\u2022'
-        : (ccy == 'USD'
-              ? '\$${withCommas(holding.balance)}'
-              : money('KES', holding.balance));
 
     return InkWell(
       onTap: () => showManageHolding(context, holding, f),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: const EdgeInsets.fromLTRB(14, 12, 18, 12),
         child: Row(
           children: [
-            FundLogo(domain: f?.logoDomain, seed: f?.manager ?? name, size: 40),
+            // brand accent bar
+            Container(
+              width: 3,
+              height: 40,
+              margin: const EdgeInsets.only(right: 12),
+              decoration: BoxDecoration(
+                color: brand,
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
+            FundLogo(
+                domain: f?.logoDomain,
+                logoUrl: logoUrl,
+                brandColor: brand,
+                seed: f?.manager ?? name,
+                size: 40),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -356,6 +504,8 @@ class _HoldingRow extends StatelessWidget {
                 children: [
                   Text(
                     name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: c.text,
                       fontSize: 14,
@@ -375,18 +525,18 @@ class _HoldingRow extends StatelessWidget {
                   balText,
                   style: TextStyle(
                     color: c.text,
-                    fontFamily: AkibaFonts.mono,
+                    fontFamily: fructaFonts.mono,
                     fontSize: 13.5,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                if (earn != null) ...[
+                if (earnLine != null) ...[
                   const SizedBox(height: 2),
                   Text(
-                    earn,
+                    hidden ? '\u2022\u2022\u2022\u2022' : earnLine,
                     style: TextStyle(
-                      color: c.up,
-                      fontFamily: AkibaFonts.mono,
+                      color: showGain ? c.up : c.faint,
+                      fontFamily: fructaFonts.mono,
                       fontSize: 10.5,
                     ),
                   ),
@@ -417,15 +567,20 @@ class _AddRow extends StatelessWidget {
           radius: 16,
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 14),
-            child: Center(
-              child: Text(
-                '\uFF0B Add a holding',
-                style: TextStyle(
-                  color: c.muted,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.add_rounded, color: c.muted, size: 18),
+                const SizedBox(width: 6),
+                Text(
+                  'Add a holding',
+                  style: TextStyle(
+                    color: c.muted,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
         ),
@@ -520,7 +675,7 @@ class _Empty extends ConsumerWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          'Add what you already hold and Akiba shows your real balance, daily '
+          'Add what you already hold and fructa shows your real balance, daily '
           'earnings and projections \u2014 all in one place.',
           textAlign: TextAlign.center,
           style: TextStyle(color: c.muted, fontSize: 14, height: 1.5),

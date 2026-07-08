@@ -1,5 +1,3 @@
-import 'dart:ui' show FontFeature;
-
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,14 +8,14 @@ import '../../../data/models/fund.dart';
 import '../../../data/providers.dart';
 import '../../../data/snapshot_providers.dart';
 
-/// "Are MMFs beating inflation?" (v6 `.card`) — external eyebrow over a panel
+/// "Are MMFs beating inflation?" (v6 `.card`)  external eyebrow over a panel
 /// card. Three lines over the trailing window: the average retail MMF (from
 /// each fund's spark), the 91-day T-bill, and inflation (a flat threshold). A
 /// verdict chip states the gap on the honest net comparator; a benchmark row
 /// (inflation / CBR / 91-day) anchors the numbers.
 ///
 /// Parked at the foot of Markets: rates first, context second. Hidden when
-/// there's no MMF spark to average — never a fabricated trend.
+/// there's no MMF spark to average  never a fabricated trend.
 class MarketContextCard extends ConsumerWidget {
   const MarketContextCard({super.key});
 
@@ -40,12 +38,14 @@ class MarketContextCard extends ConsumerWidget {
     final inflation = cfg.inflationPct;
 
     final mmf = funds
-        .where((f) =>
-            f.retail &&
-            f.fundType == 'mmf' &&
-            f.currency == 'KES' &&
-            f.currentRate != null &&
-            f.spark.length >= 2)
+        .where(
+          (f) =>
+              f.retail &&
+              f.fundType == 'mmf' &&
+              f.currency == 'KES' &&
+              f.currentRate != null &&
+              f.spark.length >= 2,
+        )
         .toList();
     if (mmf.isEmpty) return const SizedBox.shrink();
 
@@ -87,13 +87,16 @@ class MarketContextCard extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('MARKET CONTEXT',
-              style: TextStyle(
-                  color: c.faint,
-                  fontFamily: AkibaFonts.mono,
-                  fontSize: 10.5,
-                  letterSpacing: 1.6,
-                  fontWeight: FontWeight.w600)),
+          Text(
+            'MARKET CONTEXT',
+            style: TextStyle(
+              color: c.faint,
+              fontFamily: fructaFonts.mono,
+              fontSize: 10.5,
+              letterSpacing: 1.6,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(16),
@@ -108,25 +111,33 @@ class MarketContextCard extends ConsumerWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: Text('Are MMFs beating inflation?',
-                          style: TextStyle(
-                              color: c.text,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600)),
+                      child: Text(
+                        'Are MMFs beating inflation?',
+                        style: TextStyle(
+                          color: c.text,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: c.deltaSoft(diff),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Text(verdict,
-                          style: TextStyle(
-                              color: c.delta(diff),
-                              fontFamily: AkibaFonts.mono,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600)),
+                      child: Text(
+                        verdict,
+                        style: TextStyle(
+                          color: c.delta(diff),
+                          fontFamily: fructaFonts.mono,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -167,7 +178,11 @@ class MarketContextCard extends ConsumerWidget {
                     _Div(),
                     _Bench(label: 'CBR', value: cfg.cbrPct),
                     _Div(),
-                    _Bench(label: '91-DAY', value: cfg.tbill91Pct, accent: true),
+                    _Bench(
+                      label: '91-DAY',
+                      value: cfg.tbill91Pct,
+                      accent: true,
+                    ),
                   ],
                 ),
               ],
@@ -183,11 +198,11 @@ class _Div extends StatelessWidget {
   const _Div();
   @override
   Widget build(BuildContext context) => Container(
-        width: 1,
-        height: 34,
-        margin: const EdgeInsets.symmetric(horizontal: 12),
-        color: context.c.line,
-      );
+    width: 1,
+    height: 34,
+    margin: const EdgeInsets.symmetric(horizontal: 12),
+    color: context.c.line,
+  );
 }
 
 class _Bench extends StatelessWidget {
@@ -203,20 +218,26 @@ class _Bench extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label,
-              style: TextStyle(
-                  color: c.faint,
-                  fontSize: 9.5,
-                  letterSpacing: 0.6,
-                  fontWeight: FontWeight.w600)),
+          Text(
+            label,
+            style: TextStyle(
+              color: c.faint,
+              fontSize: 9.5,
+              letterSpacing: 0.6,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const SizedBox(height: 4),
-          Text('${value.toStringAsFixed(2)}%',
-              style: TextStyle(
-                  color: accent ? c.accent : c.text,
-                  fontFamily: AkibaFonts.mono,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w600,
-                  fontFeatures: const [FontFeature.tabularFigures()])),
+          Text(
+            '${value.toStringAsFixed(2)}%',
+            style: TextStyle(
+              color: accent ? c.accent : c.text,
+              fontFamily: fructaFonts.mono,
+              fontSize: 17,
+              fontWeight: FontWeight.w600,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
         ],
       ),
     );
@@ -238,12 +259,19 @@ class _Legend extends StatelessWidget {
           width: 14,
           height: 3,
           decoration: BoxDecoration(
-              color: color, borderRadius: BorderRadius.circular(2)),
+            color: color,
+            borderRadius: BorderRadius.circular(2),
+          ),
         ),
         const SizedBox(width: 5),
-        Text(label,
-            style: TextStyle(
-                color: c.muted, fontFamily: AkibaFonts.mono, fontSize: 10)),
+        Text(
+          label,
+          style: TextStyle(
+            color: c.muted,
+            fontFamily: fructaFonts.mono,
+            fontSize: 10,
+          ),
+        ),
       ],
     );
   }
@@ -268,17 +296,18 @@ class _MultiLine extends StatelessWidget {
     final hi = all.reduce((a, b) => a > b ? a : b);
     final pad = ((hi - lo) * 0.25).clamp(0.3, 5.0);
 
-    List<FlSpot> spots(List<double> s) =>
-        [for (var i = 0; i < s.length; i++) FlSpot(i.toDouble(), s[i])];
+    List<FlSpot> spots(List<double> s) => [
+      for (var i = 0; i < s.length; i++) FlSpot(i.toDouble(), s[i]),
+    ];
     LineChartBarData bar(List<double> s, Color col) => LineChartBarData(
-          spots: spots(s),
-          isCurved: true,
-          curveSmoothness: 0.28,
-          color: col,
-          barWidth: 2.2,
-          dotData: const FlDotData(show: false),
-          belowBarData: BarAreaData(show: false),
-        );
+      spots: spots(s),
+      isCurved: true,
+      curveSmoothness: 0.28,
+      color: col,
+      barWidth: 2.2,
+      dotData: const FlDotData(show: false),
+      belowBarData: BarAreaData(show: false),
+    );
 
     return LineChart(
       LineChartData(

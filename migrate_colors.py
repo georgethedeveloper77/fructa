@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-migrate_colors.py — Akiba A1 colour sweep.
+migrate_colors.py — fructa A1 colour sweep.
 
 Rewrites `AppColors.*` references to the token system (`context.c.<token>`) so
 the migrated screens become light/dark + accent aware. Handles the two things a
@@ -383,7 +383,7 @@ def main():
         sys.exit("Run from the repo root (no ./lib found).")
 
     print("=" * 64)
-    print("Akiba colour sweep" + ("  (dry run)" if dry else ""))
+    print("fructa colour sweep" + ("  (dry run)" if dry else ""))
     print("=" * 64)
 
     total = 0

@@ -3,9 +3,10 @@ import 'dart:convert';
 import 'models/agent.dart';
 import 'models/company.dart';
 import 'models/fund_composition.dart';
-import 'models/remote_config.dart';
 import 'models/insurer.dart';
+import 'models/learn.dart';
 import 'models/market_event.dart';
+import 'models/remote_config.dart';
 
 /// Everything in the v2 snapshot beyond `funds` (which keeps flowing through
 /// the existing RatesRepository → ratesProvider path unchanged). Parsed
@@ -21,6 +22,8 @@ class SnapshotExtras {
   final Map<String, double> _deltas; // fundId -> latest rate_change delta
   final Map<String, FundComposition> _composition; // fundId -> breakdown
   final RemoteConfig config; // V6 admin-editable copy/flags
+  final LearnContent learn; // D2 admin-authored learn content
+  final DateTime? generatedAt; // snapshot publish time, for the "Updated" stamp
 
   const SnapshotExtras({
     required this.schema,
@@ -33,8 +36,10 @@ class SnapshotExtras {
     required Map<String, double> deltas,
     Map<String, FundComposition> composition = const {},
     this.config = RemoteConfig.empty,
-  })  : _deltas = deltas,
-        _composition = composition;
+    this.learn = LearnContent.empty,
+    this.generatedAt,
+  }) : _deltas = deltas,
+       _composition = composition;
 
   static const empty = SnapshotExtras(
     schema: 1,
@@ -51,7 +56,7 @@ class SnapshotExtras {
 
   double? deltaFor(String fundId) => _deltas[fundId];
 
-  /// Holdings breakdown for a fund, or null when the snapshot carries none —
+  /// Holdings breakdown for a fund, or null when the snapshot carries none
   /// the Company "What the fund holds" section hides itself on null.
   FundComposition? compositionFor(String fundId) {
     final c = _composition[fundId];
@@ -105,7 +110,7 @@ class SnapshotExtras {
         .map((e) => Insurer.fromJson((e as Map).cast<String, dynamic>()))
         .toList();
 
-    // Composition — sibling array keyed by fund_id (mirrors the deltas
+    // Composition  sibling array keyed by fund_id (mirrors the deltas
     // pattern: fund model & rates path untouched).
     final composition = <String, FundComposition>{};
     for (final c in (m['composition'] as List? ?? const [])) {
@@ -116,8 +121,18 @@ class SnapshotExtras {
       if (!fc.isEmpty) composition[id] = fc;
     }
 
+    final learn = m['learn'] is Map
+        ? LearnContent.fromJson((m['learn'] as Map).cast<String, dynamic>())
+        : LearnContent.empty;
+
+    final generatedAt = DateTime.tryParse(
+      (m['generated_at'] ?? '') as String,
+    )?.toLocal();
+
     return SnapshotExtras(
       schema: 2,
+      learn: learn,
+      generatedAt: generatedAt,
       companies: companies,
       agents: agents,
       fx: fx,

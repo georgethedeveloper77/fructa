@@ -7,6 +7,8 @@ import '../../core/theme.dart';
 import '../../core/widgets/kit.dart';
 import '../../data/providers.dart';
 import '../../data/snapshot_providers.dart';
+import '../backup/backup_ui.dart';
+import '../learn/learn_home_page.dart';
 import 'widgets/appearance_section.dart';
 
 /// v5 `.pg-settings` — flat rows from the kit, no cards. Sections: Learn
@@ -43,9 +45,10 @@ class SettingsPage extends ConsumerWidget {
             LearnCard(
               title: cfg.string('learn.card.title', 'Learn'),
               subtitle: cfg.string('learn.card.subtitle',
-                  'MMFs, gross vs net, why rates move \u00b7 **soon**'),
-              onTap: () =>
-                  _soon(context, 'Learn arrives shortly after launch'),
+                  'MMFs, gross vs net, why rates move'),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const LearnHomePage()),
+              ),
             ),
 
             const SectionHeader(
@@ -55,7 +58,7 @@ class SettingsPage extends ConsumerWidget {
               icon: Icons.notifications_none,
               title: 'Push notifications',
               sub: 'Master switch',
-              trailing: AkibaToggle(
+              trailing: fructaToggle(
                 value: master,
                 onChanged: (v) {
                   ctrl.setMasterAlerts(v);
@@ -70,21 +73,21 @@ class SettingsPage extends ConsumerWidget {
                   icon: Icons.trending_up,
                   title: 'Rate moves',
                   sub: 'Followed funds past \u00b1 0.15 pts',
-                  trailing: AkibaToggle(
+                  trailing: fructaToggle(
                       value: prefs.rateMoves, onChanged: ctrl.setRateMoves),
                 ),
                 SettingsRow(
                   icon: Icons.swap_horiz,
                   title: 'Saved comparisons',
                   sub: 'When the leader flips or the gap moves > 0.25 pts',
-                  trailing: AkibaToggle(
+                  trailing: fructaToggle(
                       value: prefs.savedComparisons,
                       onChanged: ctrl.setSavedComparisons),
                 ),
                 SettingsRow(
                   icon: Icons.paid_outlined,
                   title: 'Coupons & maturities',
-                  trailing: AkibaToggle(
+                  trailing: fructaToggle(
                       value: prefs.couponsMaturities,
                       onChanged: ctrl.setCouponsMaturities),
                 ),
@@ -93,7 +96,7 @@ class SettingsPage extends ConsumerWidget {
                   title: 'Weekly digest',
                   sub: 'Fridays',
                   showDivider: false,
-                  trailing: AkibaToggle(
+                  trailing: fructaToggle(
                       value: prefs.weeklyDigest,
                       onChanged: ctrl.setWeeklyDigest),
                 ),
@@ -111,8 +114,8 @@ class SettingsPage extends ConsumerWidget {
             SettingsRow(
               icon: Icons.lock_outline,
               title: 'Face ID / Touch ID',
-              sub: 'Require unlock to open Akiba',
-              trailing: AkibaToggle(
+              sub: 'Require unlock to open fructa',
+              trailing: fructaToggle(
                 value: lockOn,
                 onChanged: (v) {
                   ref.read(appLockProvider.notifier).state = v;
@@ -124,25 +127,26 @@ class SettingsPage extends ConsumerWidget {
               icon: Icons.visibility_off_outlined,
               title: 'Hide balances',
               sub: 'Mask amounts across the app',
-              trailing: AkibaToggle(
+              trailing: fructaToggle(
                   value: prefs.hideBalances,
                   onChanged: ctrl.setHideBalances),
             ),
             SettingsRow(
-              icon: Icons.file_upload_outlined,
+              icon: Icons.cloud_upload_outlined,
               title: 'Back up portfolio',
-              sub: 'Encrypted \u00b7 survives reinstalls',
-              onTap: () => _soon(context, 'Encrypted backup ships in E'),
+              sub: 'Recovery code \u00b7 restore on any device',
+              onTap: () => showBackupSheet(context, ref),
             ),
             SettingsRow(
               icon: Icons.settings_backup_restore,
               title: 'Restore from backup',
+              sub: 'Enter a code from another phone',
               showDivider: false,
-              onTap: () => _soon(context, 'Restore ships in E'),
+              onTap: () => showRestoreSheet(context, ref),
             ),
 
             const Disclaimer(
-              'akiba \u00b7 v1.0 \u00b7 rates from licensed sources, '
+              'fructa \u00b7 v1.0 \u00b7 rates from licensed sources, '
               'timestamped & traceable',
               center: true,
             ),
@@ -150,12 +154,6 @@ class SettingsPage extends ConsumerWidget {
         ),
       ),
     );
-  }
-
-  void _soon(BuildContext context, String msg) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(msg)));
   }
 }
 

@@ -5,6 +5,9 @@ import type {
   SnapshotEvent,
   SnapshotFx,
   SnapshotInsurer,
+  SnapshotLearn,
+  SnapshotLearnLesson,
+  SnapshotLearnStep,
   SnapshotTemplate,
   SnapshotV2,
 } from "./types.ts";
@@ -172,11 +175,62 @@ export async function publishSnapshot(
       source_url: r.composition_source_url ?? null,
     }));
 
+  // Learn (D2) — units → lessons → steps, nested for the app. Published in the
+  // snapshot so a content edit reaches devices on the next rebuild (like config).
+  const { data: lUnits } = await db
+    .from("learn_units")
+    .select("id,ord,title,subtitle,accent,unlock_after")
+    .eq("active", true)
+    .order("ord", { ascending: true });
+  const { data: lLessons } = await db
+    .from("learn_lessons")
+    .select("id,unit_id,ord,title,xp,fund_id")
+    .eq("active", true)
+    .order("ord", { ascending: true });
+  const { data: lSteps } = await db
+    .from("learn_steps")
+    .select("id,lesson_id,ord,kind,payload")
+    .order("ord", { ascending: true });
+
+  const stepsByLesson = new Map<string, SnapshotLearnStep[]>();
+  for (const s of lSteps ?? []) {
+    const arr = stepsByLesson.get(s.lesson_id) ?? [];
+    arr.push({ id: s.id, kind: s.kind, payload: s.payload });
+    stepsByLesson.set(s.lesson_id, arr);
+  }
+  const lessonsByUnit = new Map<string, SnapshotLearnLesson[]>();
+  for (const l of lLessons ?? []) {
+    const arr = lessonsByUnit.get(l.unit_id) ?? [];
+    arr.push({
+      id: l.id,
+      title: l.title,
+      xp: l.xp,
+      fund_id: l.fund_id ?? null,
+      steps: stepsByLesson.get(l.id) ?? [],
+    });
+    lessonsByUnit.set(l.unit_id, arr);
+  }
+  const learn: SnapshotLearn = {
+    units: (lUnits ?? []).map((u) => ({
+      id: u.id,
+      title: u.title,
+      subtitle: u.subtitle ?? null,
+      accent: u.accent ?? null,
+      unlock_after: u.unlock_after ?? null,
+      lessons: lessonsByUnit.get(u.id) ?? [],
+    })),
+  };
+
   const snapshot:
     & SnapshotV2
-    & { composition: SnapshotComposition[]; config: Record<string, unknown> } = {
+    & {
+      composition: SnapshotComposition[];
+      config: Record<string, unknown>;
+      learn: SnapshotLearn;
+    } = {
     schema: 2,
     as_of: asOf,
+    generated_at: new Date().toISOString(),
     funds: fundsWithSpark as SnapshotV2["funds"],
     insurers: (insurers ?? []) as SnapshotInsurer[],
     companies: (companies ?? []) as SnapshotCompany[],
@@ -186,6 +240,7 @@ export async function publishSnapshot(
     events: (events ?? []) as SnapshotEvent[],
     composition,
     config,
+    learn,
   };
 
   const body = new TextEncoder().encode(JSON.stringify(snapshot));

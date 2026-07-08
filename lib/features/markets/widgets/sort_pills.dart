@@ -7,7 +7,7 @@ import '../markets_controller.dart';
 
 /// Sort pills + the gold ⇄ Compare pill. v5 `.pill`: fully-round (r22), 42px
 /// tall. Selected inverts to the **text** colour (white-on-dark), not the
-/// accent — the accent is reserved for the Compare pill.
+/// accent  the accent is reserved for the Compare pill.
 class SortPills extends ConsumerWidget {
   const SortPills({super.key, this.onCompare});
 
@@ -99,11 +99,14 @@ class _ComparePill extends StatelessWidget {
             children: [
               Icon(Icons.compare_arrows, size: 16, color: c.accent),
               const SizedBox(width: 5),
-              Text(t('markets.sort.compare'),
-                  style: TextStyle(
-                      color: c.accent,
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w600)),
+              Text(
+                t('markets.sort.compare'),
+                style: TextStyle(
+                  color: c.accent,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
           ),
         ),

@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+
 import '../theme.dart';
 
 /// Company logo with a brand-tinted monogram fallback.
@@ -29,10 +30,9 @@ class FundLogo extends StatelessWidget {
     final c = context.c;
     final monogram = _Monogram(seed: seed, size: size, brand: brandColor);
     // Supabase-hosted logo only. Clearbit's logo API was retired, so a bare
-    // domain no longer resolves to an image — fall through to the brand
+    // domain no longer resolves to an image  fall through to the brand
     // monogram instead of firing a request that always 404s.
-    final src =
-        (logoUrl != null && logoUrl!.isNotEmpty) ? logoUrl! : null;
+    final src = (logoUrl != null && logoUrl!.isNotEmpty) ? logoUrl! : null;
     if (src == null) return monogram;
 
     return Container(
@@ -77,9 +77,14 @@ class _Monogram extends StatelessWidget {
         shape: BoxShape.circle,
         color: tint.withValues(alpha: 0.12),
       ),
-      child: Text(letter,
-          style: TextStyle(
-              color: tint, fontSize: size * 0.4, fontWeight: FontWeight.w700)),
+      child: Text(
+        letter,
+        style: TextStyle(
+          color: tint,
+          fontSize: size * 0.4,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
     );
   }
 }

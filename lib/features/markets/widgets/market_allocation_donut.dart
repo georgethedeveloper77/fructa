@@ -1,5 +1,3 @@
-import 'dart:ui' show FontFeature;
-
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,15 +8,15 @@ import '../../../data/models/fund.dart';
 import '../../../data/providers.dart';
 import '../../../data/snapshot_providers.dart';
 
-/// "Market by AUM" donut — the authoritative CIS market split by fund type,
+/// "Market by AUM" donut  the authoritative CIS market split by fund type,
 /// sourced from the CMA quarterly report via remote config
 /// (`market.aum_by_fund_type`) with a baked Q1-2026 fallback, so it always
 /// renders.
 ///
-/// This is the *market* (by assets), not the funds Akiba happens to track. A
+/// This is the *market* (by assets), not the funds fructa happens to track. A
 /// count ring made Money Market read as ~95% because most tracked funds are
 /// MMFs; by AUM the market is ~52% MMF. SACCOs are a separate (SASRA) market
-/// and are intentionally absent from this CIS pie — a coverage line notes how
+/// and are intentionally absent from this CIS pie  a coverage line notes how
 /// many retail funds the app tracks instead.
 const _labels = {
   'mmf': 'Money Market',
@@ -28,7 +26,7 @@ const _labels = {
   'special': 'Special',
 };
 
-/// Slice colour — the central fund-type palette (MMF gold, FI sky, Equity iris,
+/// Slice colour  the central fund-type palette (MMF gold, FI sky, Equity iris,
 /// Balanced ember, Special emerald). No raw hex in the widget.
 Color _typeColor(String k) => fundTypeColors[k] ?? const Color(0xFF9AA2B2);
 
@@ -73,7 +71,7 @@ class _MarketAllocationDonutState extends ConsumerState<MarketAllocationDonut> {
     final totalAum = split.fold<double>(0, (a, b) => a + b.aumKes);
     final tag = cfg.marketAsOf != null ? _asOfTag(cfg.marketAsOf!) : null;
 
-    // Coverage line — how many retail funds the app tracks. Context beneath the
+    // Coverage line  how many retail funds the app tracks. Context beneath the
     // pie, not a slice of it.
     final funds = ref.watch(ratesProvider).valueOrNull ?? const <Fund>[];
     final tracked = funds.where((f) => f.retail).length;
@@ -85,19 +83,25 @@ class _MarketAllocationDonutState extends ConsumerState<MarketAllocationDonut> {
         children: [
           Row(
             children: [
-              Text('MARKET BY AUM',
-                  style: TextStyle(
-                      color: c.faint,
-                      fontFamily: AkibaFonts.mono,
-                      fontSize: 10.5,
-                      letterSpacing: 1.6,
-                      fontWeight: FontWeight.w600)),
+              Text(
+                'MARKET BY AUM',
+                style: TextStyle(
+                  color: c.faint,
+                  fontFamily: fructaFonts.mono,
+                  fontSize: 10.5,
+                  letterSpacing: 1.6,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               const SizedBox(width: 8),
-              Text('CMA${tag != null ? ' \u00b7 $tag' : ''}',
-                  style: TextStyle(
-                      color: c.faint,
-                      fontFamily: AkibaFonts.mono,
-                      fontSize: 10.5)),
+              Text(
+                'CMA${tag != null ? ' \u00b7 $tag' : ''}',
+                style: TextStyle(
+                  color: c.faint,
+                  fontFamily: fructaFonts.mono,
+                  fontSize: 10.5,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -129,8 +133,10 @@ class _MarketAllocationDonutState extends ConsumerState<MarketAllocationDonut> {
                                 setState(() => _touched = -1);
                                 return;
                               }
-                              setState(() => _touched =
-                                  resp!.touchedSection!.touchedSectionIndex);
+                              setState(
+                                () => _touched =
+                                    resp!.touchedSection!.touchedSectionIndex,
+                              );
                             },
                           ),
                           sections: [
@@ -147,18 +153,24 @@ class _MarketAllocationDonutState extends ConsumerState<MarketAllocationDonut> {
                       Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(_compactKes(totalAum),
-                              style: TextStyle(
-                                  color: c.text,
-                                  fontFamily: AkibaFonts.mono,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w700)),
-                          Text('KES AUM',
-                              style: TextStyle(
-                                  color: c.faint,
-                                  fontSize: 8.5,
-                                  letterSpacing: 0.6,
-                                  fontWeight: FontWeight.w600)),
+                          Text(
+                            _compactKes(totalAum),
+                            style: TextStyle(
+                              color: c.text,
+                              fontFamily: fructaFonts.mono,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          Text(
+                            'KES AUM',
+                            style: TextStyle(
+                              color: c.faint,
+                              fontSize: 8.5,
+                              letterSpacing: 0.6,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ],
                       ),
                     ],
@@ -188,9 +200,10 @@ class _MarketAllocationDonutState extends ConsumerState<MarketAllocationDonut> {
             Text(
               'Tracking $tracked retail ${tracked == 1 ? 'fund' : 'funds'}',
               style: TextStyle(
-                  color: c.faint,
-                  fontFamily: AkibaFonts.mono,
-                  fontSize: 10),
+                color: c.faint,
+                fontFamily: fructaFonts.mono,
+                fontSize: 10,
+              ),
             ),
           ],
         ],
@@ -225,7 +238,9 @@ class _LegendRow extends StatelessWidget {
             height: 9,
             margin: const EdgeInsets.only(right: 9),
             decoration: BoxDecoration(
-                color: color, borderRadius: BorderRadius.circular(3)),
+              color: color,
+              borderRadius: BorderRadius.circular(3),
+            ),
           ),
           Expanded(
             child: Text(
@@ -242,7 +257,7 @@ class _LegendRow extends StatelessWidget {
             '${share.toStringAsFixed(share < 10 ? 1 : 0)}%',
             style: TextStyle(
               color: highlight ? c.text : c.muted,
-              fontFamily: AkibaFonts.mono,
+              fontFamily: fructaFonts.mono,
               fontSize: 12,
               fontWeight: FontWeight.w600,
               fontFeatures: const [FontFeature.tabularFigures()],
@@ -253,7 +268,7 @@ class _LegendRow extends StatelessWidget {
             _compactKes(aum),
             style: TextStyle(
               color: c.faint,
-              fontFamily: AkibaFonts.mono,
+              fontFamily: fructaFonts.mono,
               fontSize: 11,
               fontFeatures: const [FontFeature.tabularFigures()],
             ),

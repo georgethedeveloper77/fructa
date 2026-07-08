@@ -20,15 +20,27 @@ class OnboardedController extends Notifier<bool> {
     state = true;
   }
 
-  /// Dev helper — reset onboarding (e.g. from a debug menu).
+  /// Dev helper  reset onboarding (e.g. from a debug menu).
   void reset() {
     ref.read(settingsBoxProvider).put(_key, false);
     state = false;
   }
 }
 
-final onboardedProvider =
-    NotifierProvider<OnboardedController, bool>(OnboardedController.new);
+final onboardedProvider = NotifierProvider<OnboardedController, bool>(
+  OnboardedController.new,
+);
+
+/// The persona chosen during onboarding ('rates' | 'learn'), persisted in the
+/// settings box. Phase 4 (Learn) reads this to pin a primer at the top of
+/// Markets for a 'learn' user; defaults to 'rates'.
+final onboardingPersonaProvider = Provider<String>(
+  (ref) =>
+      ref
+              .read(settingsBoxProvider)
+              .get('onboarding_persona', defaultValue: 'rates')
+          as String,
+);
 
 /// Root gate. Point `MaterialApp.home` at this.
 class AppRoot extends ConsumerWidget {

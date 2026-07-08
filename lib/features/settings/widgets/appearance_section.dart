@@ -4,9 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme.dart';
 import '../../../core/theme_controller.dart';
 
-/// Appearance controls — the payoff of A1. Mode segmented control + accent
+/// Appearance controls  the payoff of A1. Mode segmented control + accent
 /// swatch row, both driving [themeControllerProvider]. Changes animate because
-/// AkibaColors implements lerp.
+/// fructaColors implements lerp.
 class AppearanceSection extends ConsumerWidget {
   const AppearanceSection({super.key});
 
@@ -21,32 +21,38 @@ class AppearanceSection extends ConsumerWidget {
       children: [
         _ModeSegmented(mode: app.mode, onChanged: ctrl.setMode),
         const SizedBox(height: 16),
-        Text('ACCENT',
-            style: TextStyle(
-                fontSize: 11,
-                letterSpacing: 0.8,
-                fontWeight: FontWeight.w600,
-                color: c.faint)),
+        Text(
+          'ACCENT',
+          style: TextStyle(
+            fontSize: 11,
+            letterSpacing: 0.8,
+            fontWeight: FontWeight.w600,
+            color: c.faint,
+          ),
+        ),
         const SizedBox(height: 10),
         Row(
           children: [
-            for (final a in AkibaAccent.values) ...[
+            for (final a in fructaAccent.values) ...[
               _Swatch(
                 accent: a,
                 selected: a == app.accent,
                 onTap: () => ctrl.setAccent(a),
               ),
-              if (a != AkibaAccent.values.last) const SizedBox(width: 12),
+              if (a != fructaAccent.values.last) const SizedBox(width: 12),
             ],
           ],
         ),
         const SizedBox(height: 18),
-        Text('TEXT SIZE',
-            style: TextStyle(
-                fontSize: 11,
-                letterSpacing: 0.8,
-                fontWeight: FontWeight.w600,
-                color: c.faint)),
+        Text(
+          'TEXT SIZE',
+          style: TextStyle(
+            fontSize: 11,
+            letterSpacing: 0.8,
+            fontWeight: FontWeight.w600,
+            color: c.faint,
+          ),
+        ),
         const SizedBox(height: 10),
         _TextSizeSegmented(scale: app.textScale, onChanged: ctrl.setTextScale),
       ],
@@ -96,7 +102,7 @@ class _TextSizeSegmented extends StatelessWidget {
                   child: Text(
                     label,
                     style: TextStyle(
-                      fontFamily: AkibaFonts.mono,
+                      fontFamily: fructaFonts.mono,
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                       color: (scale - mult).abs() < 0.001 ? c.text : c.muted,
@@ -170,7 +176,7 @@ class _Swatch extends StatelessWidget {
     required this.onTap,
   });
 
-  final AkibaAccent accent;
+  final fructaAccent accent;
   final bool selected;
   final VoidCallback onTap;
 

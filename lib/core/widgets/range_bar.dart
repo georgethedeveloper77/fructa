@@ -8,24 +8,24 @@ enum ChartRange { w1, m1, m3, m6, y1 }
 
 extension ChartRangeX on ChartRange {
   String get label => switch (this) {
-        ChartRange.w1 => '1W',
-        ChartRange.m1 => '1M',
-        ChartRange.m3 => '3M',
-        ChartRange.m6 => '6M',
-        ChartRange.y1 => '1Y',
-      };
+    ChartRange.w1 => '1W',
+    ChartRange.m1 => '1M',
+    ChartRange.m3 => '3M',
+    ChartRange.m6 => '6M',
+    ChartRange.y1 => '1Y',
+  };
 
   /// Trailing window in days for slicing a history series.
   int get days => switch (this) {
-        ChartRange.w1 => 7,
-        ChartRange.m1 => 30,
-        ChartRange.m3 => 90,
-        ChartRange.m6 => 180,
-        ChartRange.y1 => 365,
-      };
+    ChartRange.w1 => 7,
+    ChartRange.m1 => 30,
+    ChartRange.m3 => 90,
+    ChartRange.m6 => 180,
+    ChartRange.y1 => 365,
+  };
 }
 
-/// v5 `.rangebar` — 1W·1M·3M·6M·1Y. Selected segment gets an `s2` fill.
+/// v5 `.rangebar`  1W·1M·3M·6M·1Y. Selected segment gets an `s2` fill.
 class RangeBar extends StatelessWidget {
   const RangeBar({
     super.key,
@@ -61,7 +61,7 @@ class RangeBar extends StatelessWidget {
                     r.label,
                     style: TextStyle(
                       color: r == value ? c.text : c.faint,
-                      fontFamily: AkibaFonts.mono,
+                      fontFamily: fructaFonts.mono,
                       fontSize: 11.5,
                       fontWeight: FontWeight.w600,
                     ),

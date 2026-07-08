@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import 'app/app_root.dart';
+import 'app/deep_link.dart';
 import 'app/lock_gate.dart';
 import 'core/i18n.dart';
 import 'core/push.dart';
@@ -19,32 +20,42 @@ Future<void> main() async {
   await L10n.load();
 
   await Push.init();
+  Push.onOpenTarget = handlePushTarget; // route notification taps
+
   final subs = (settings.get('subs', defaultValue: <String>[]) as List)
       .cast<String>()
       .toSet();
   Push.sync(subs);
 
+  // Weekly-digest tag mirrors the persisted preference (default on), so the
+  // server segment is correct from first launch without opening Settings.
+  Push.setDigest(settings.get('pref_weeklyDigest', defaultValue: true) as bool);
+
   runApp(
     ProviderScope(
       // Hand the opened box to the theme controller (and settings prefs).
       overrides: [settingsBoxProvider.overrideWithValue(settings)],
-      child: const AkibaApp(),
+      child: const fructaApp(),
     ),
   );
 }
 
-class AkibaApp extends ConsumerWidget {
-  const AkibaApp({super.key});
+class fructaApp extends ConsumerWidget {
+  const fructaApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = ref.watch(themeControllerProvider);
     return MaterialApp(
-      title: 'Akiba',
+      title: 'Fructa',
       debugShowCheckedModeBanner: false,
+      navigatorKey: rootNavigatorKey, // notification taps push onto this
       themeMode: t.mode, // System / Light / Dark from Settings
-      theme: buildAkibaTheme(brightness: Brightness.light, accent: t.accent),
-      darkTheme: buildAkibaTheme(brightness: Brightness.dark, accent: t.accent),
+      theme: buildfructaTheme(brightness: Brightness.light, accent: t.accent),
+      darkTheme: buildfructaTheme(
+        brightness: Brightness.dark,
+        accent: t.accent,
+      ),
       // Global font-size setting: clamp the OS scale to the user's choice so
       // layouts stay predictable regardless of device accessibility settings.
       builder: (context, child) => MediaQuery.withClampedTextScaling(

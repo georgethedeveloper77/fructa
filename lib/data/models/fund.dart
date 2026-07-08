@@ -2,10 +2,12 @@ class Fund {
   final String id;
   final String name;
   final String manager;
-  final String category; // legacy: mmf_kes | mmf_usd | bond | tbill | sacco | stock
+  final String
+  category; // legacy: mmf_kes | mmf_usd | bond | tbill | sacco | stock
   final String? fundType; // mmf | fixed_income | equity | balanced | special
   final String currency; // KES | USD
-  final String? basis; // yield | nav | none — whether a single rate is meaningful
+  final String?
+  basis; // yield | nav | none  whether a single rate is meaningful
   final bool retail; // consumer-visible cut (~27 MMFs), vs the dormant tail
   final double? currentRate;
   final bool taxFree;
@@ -19,7 +21,7 @@ class Fund {
   final bool verified;
   final bool featured;
 
-  // ── Profile & terms (snapshot 0026) — static fact-sheet fields. All
+  // ── Profile & terms (snapshot 0026)  static fact-sheet fields. All
   // nullable; an unseeded fund reads them as null and the detail page degrades
   // to its prior shape (no credentials strip, no benchmark line, thinner terms).
   final String? inceptionDate; // YYYY-MM-DD
@@ -30,7 +32,7 @@ class Fund {
   final num? topUpMin; // subsequent top-up minimum
   final String? objective; // one-line fund aim
 
-  // ── Trailing performance (snapshot 0027) — latest standing from the
+  // ── Trailing performance (snapshot 0027)  latest standing from the
   // manager's monthly fact sheet. Per-horizon benchmark so vs-benchmark is
   // on-basis. Nullable per horizon: a young fund with no 5Y just shows what it
   // has, and a fund with none seeded hides the performance card entirely.
@@ -45,7 +47,7 @@ class Fund {
   final double? worstMonth; // worst monthly return, trailing 12 mo, %
   final String? returnsAsOf; // YYYY-MM-DD, fact-sheet month
 
-  /// C2 — compact sparkline (≤20 trailing points) published inside the
+  /// C2  compact sparkline (≤20 trailing points) published inside the
   /// snapshot, so list tiles don't fetch per-fund history. Empty when the
   /// snapshot predates the field or the fund has <2 history points.
   final List<double> spark;
@@ -91,48 +93,48 @@ class Fund {
   });
 
   factory Fund.fromJson(Map<String, dynamic> j) => Fund(
-        id: j['id'] as String,
-        name: j['name'] as String,
-        manager: (j['manager'] ?? '') as String,
-        // category is legacy + nullable in newer snapshots — never assume non-null.
-        category: (j['category'] ?? '') as String,
-        fundType: j['fund_type'] as String?,
-        currency: j['currency'] as String,
-        basis: j['basis'] as String?,
-        retail: (j['retail'] ?? true) as bool,
-        currentRate: (j['current_rate'] as num?)?.toDouble(),
-        taxFree: (j['tax_free'] ?? false) as bool,
-        minInvest: j['min_invest'] as num?,
-        mgmtFee: j['mgmt_fee'] as num?,
-        siteUrl: j['site_url'] as String?,
-        investUrl: j['invest_url'] as String?,
-        contactUrl: j['contact_url'] as String?,
-        logoDomain: j['logo_domain'] as String?,
-        companyId: j['company_id'] as String?,
-        verified: (j['verified'] ?? false) as bool,
-        featured: (j['featured'] ?? false) as bool,
-        inceptionDate: j['inception_date'] as String?,
-        benchmarkKey: j['benchmark_key'] as String?,
-        expenseRatio: (j['expense_ratio'] as num?)?.toDouble(),
-        redemptionFee: (j['redemption_fee'] as num?)?.toDouble(),
-        lockInMonths: (j['lock_in_months'] as num?)?.toInt(),
-        topUpMin: j['top_up_min'] as num?,
-        objective: j['objective'] as String?,
-        returnYtd: (j['return_ytd'] as num?)?.toDouble(),
-        return1y: (j['return_1y'] as num?)?.toDouble(),
-        return3y: (j['return_3y'] as num?)?.toDouble(),
-        return5y: (j['return_5y'] as num?)?.toDouble(),
-        bench1y: (j['bench_1y'] as num?)?.toDouble(),
-        bench3y: (j['bench_3y'] as num?)?.toDouble(),
-        bench5y: (j['bench_5y'] as num?)?.toDouble(),
-        bestMonth: (j['best_month'] as num?)?.toDouble(),
-        worstMonth: (j['worst_month'] as num?)?.toDouble(),
-        returnsAsOf: j['returns_as_of'] as String?,
-        spark: ((j['spark'] as List?) ?? const [])
-            .whereType<num>()
-            .map((v) => v.toDouble())
-            .toList(),
-      );
+    id: j['id'] as String,
+    name: j['name'] as String,
+    manager: (j['manager'] ?? '') as String,
+    // category is legacy + nullable in newer snapshots  never assume non-null.
+    category: (j['category'] ?? '') as String,
+    fundType: j['fund_type'] as String?,
+    currency: j['currency'] as String,
+    basis: j['basis'] as String?,
+    retail: (j['retail'] ?? true) as bool,
+    currentRate: (j['current_rate'] as num?)?.toDouble(),
+    taxFree: (j['tax_free'] ?? false) as bool,
+    minInvest: j['min_invest'] as num?,
+    mgmtFee: j['mgmt_fee'] as num?,
+    siteUrl: j['site_url'] as String?,
+    investUrl: j['invest_url'] as String?,
+    contactUrl: j['contact_url'] as String?,
+    logoDomain: j['logo_domain'] as String?,
+    companyId: j['company_id'] as String?,
+    verified: (j['verified'] ?? false) as bool,
+    featured: (j['featured'] ?? false) as bool,
+    inceptionDate: j['inception_date'] as String?,
+    benchmarkKey: j['benchmark_key'] as String?,
+    expenseRatio: (j['expense_ratio'] as num?)?.toDouble(),
+    redemptionFee: (j['redemption_fee'] as num?)?.toDouble(),
+    lockInMonths: (j['lock_in_months'] as num?)?.toInt(),
+    topUpMin: j['top_up_min'] as num?,
+    objective: j['objective'] as String?,
+    returnYtd: (j['return_ytd'] as num?)?.toDouble(),
+    return1y: (j['return_1y'] as num?)?.toDouble(),
+    return3y: (j['return_3y'] as num?)?.toDouble(),
+    return5y: (j['return_5y'] as num?)?.toDouble(),
+    bench1y: (j['bench_1y'] as num?)?.toDouble(),
+    bench3y: (j['bench_3y'] as num?)?.toDouble(),
+    bench5y: (j['bench_5y'] as num?)?.toDouble(),
+    bestMonth: (j['best_month'] as num?)?.toDouble(),
+    worstMonth: (j['worst_month'] as num?)?.toDouble(),
+    returnsAsOf: j['returns_as_of'] as String?,
+    spark: ((j['spark'] as List?) ?? const [])
+        .whereType<num>()
+        .map((v) => v.toDouble())
+        .toList(),
+  );
 
   // ── Rate triad ────────────────────────────────────────────────────────────
   // gross = currentRate; net + real are derived, never stored, so a benchmark
@@ -179,7 +181,7 @@ class Fund {
     return y < 0 ? null : y;
   }
 
-  /// No lock-in and no exit fee — the "easy access" case. Only meaningful once
+  /// No lock-in and no exit fee  the "easy access" case. Only meaningful once
   /// at least one liquidity term is seeded (see the detail page's guard).
   bool get freelyRedeemable =>
       (lockInMonths == null || lockInMonths == 0) &&
@@ -187,7 +189,7 @@ class Fund {
 
   // ── Performance helper (0027) ──────────────────────────────────────────────
 
-  /// True when any trailing return or the monthly band is seeded — the
+  /// True when any trailing return or the monthly band is seeded  the
   /// performance card renders only then, never an empty table.
   bool get hasReturns =>
       returnYtd != null ||

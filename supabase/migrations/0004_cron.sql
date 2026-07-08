@@ -11,7 +11,7 @@ create extension if not exists pg_net;
 --   cron_secret  = <same value as the CRON_SECRET edge-function secret>
 
 select cron.schedule(
-  'akiba-scrape-aggregator',
+  'fructa-scrape-aggregator',
   '0 3 * * *',                    -- 03:00 UTC = 06:00 EAT
   $$
   select net.http_post(
@@ -29,4 +29,4 @@ select cron.schedule(
 -- Inspect / manage later:
 --   select * from cron.job;
 --   select * from cron.job_run_details order by start_time desc limit 20;
---   select cron.unschedule('akiba-scrape-aggregator');
+--   select cron.unschedule('fructa-scrape-aggregator');

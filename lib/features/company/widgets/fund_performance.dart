@@ -5,16 +5,16 @@ import 'package:flutter/material.dart';
 import '../../../core/theme.dart';
 import '../../../data/models/fund.dart';
 
-/// "Performance" — trailing annualised returns (YTD/1Y/3Y/5Y) as a dumbbell
+/// "Performance"  trailing annualised returns (YTD/1Y/3Y/5Y) as a dumbbell
 /// chart: fund and benchmark plotted as two connected dots on one shared scale,
 /// so the eye lands on the GAP (fund vs bench) rather than on bar length. The
 /// scale spans the data's own min/max (not a 0 baseline), which is honest for a
-/// position plot and — unlike bars-from-zero — actually separates values that
+/// position plot and  unlike bars-from-zero  actually separates values that
 /// cluster in a tight band. Dots animate out from centre on load; tap a period
 /// to highlight it. Plus the best/worst monthly band beneath.
 ///
 /// Same data the manager's fact sheet publishes (0027); hidden when nothing is
-/// seeded. Icon-free — drawn dots and mono figures, no glyphs.
+/// seeded. Icon-free  drawn dots and mono figures, no glyphs.
 class FundPerformance extends StatefulWidget {
   const FundPerformance(this.fund, {super.key, this.tint});
 
@@ -29,8 +29,18 @@ class _FundPerformanceState extends State<FundPerformance> {
   int _selected = -1;
 
   static const _months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
 
   String? _asOf() {
@@ -55,7 +65,7 @@ class _FundPerformanceState extends State<FundPerformance> {
     final hasBand = fund.bestMonth != null && fund.worstMonth != null;
     if (rows.isEmpty && !hasBand) return const SizedBox.shrink();
 
-    // Shared scale over the data's own range, padded — a position plot, so a
+    // Shared scale over the data's own range, padded  a position plot, so a
     // non-zero baseline is legitimate and it separates clustered values.
     final vals = <double>[];
     for (final r in rows) {
@@ -85,11 +95,12 @@ class _FundPerformanceState extends State<FundPerformance> {
                 ? 'PERFORMANCE \u00b7 AS OF ${asOf.toUpperCase()}'
                 : 'PERFORMANCE',
             style: TextStyle(
-                color: c.faint,
-                fontFamily: AkibaFonts.mono,
-                fontSize: 10.5,
-                letterSpacing: 1.6,
-                fontWeight: FontWeight.w600),
+              color: c.faint,
+              fontFamily: fructaFonts.mono,
+              fontSize: 10.5,
+              letterSpacing: 1.6,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
         Padding(
@@ -159,32 +170,44 @@ class _Legend extends StatelessWidget {
       children: [
         _dot(filled: true, color: brand, ring: brand),
         const SizedBox(width: 6),
-        Text('Fund',
-            style: TextStyle(
-                color: c.muted, fontFamily: AkibaFonts.mono, fontSize: 10)),
+        Text(
+          'Fund',
+          style: TextStyle(
+            color: c.muted,
+            fontFamily: fructaFonts.mono,
+            fontSize: 10,
+          ),
+        ),
         if (hasBench) ...[
           const SizedBox(width: 16),
           _dot(filled: false, color: c.s3, ring: c.muted),
           const SizedBox(width: 6),
-          Text('Benchmark',
-              style: TextStyle(
-                  color: c.muted, fontFamily: AkibaFonts.mono, fontSize: 10)),
+          Text(
+            'Benchmark',
+            style: TextStyle(
+              color: c.muted,
+              fontFamily: fructaFonts.mono,
+              fontSize: 10,
+            ),
+          ),
         ],
       ],
     );
   }
 
-  Widget _dot(
-          {required bool filled, required Color color, required Color ring}) =>
-      Container(
-        width: 10,
-        height: 10,
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-          border: filled ? null : Border.all(color: ring, width: 1.5),
-        ),
-      );
+  Widget _dot({
+    required bool filled,
+    required Color color,
+    required Color ring,
+  }) => Container(
+    width: 10,
+    height: 10,
+    decoration: BoxDecoration(
+      color: color,
+      shape: BoxShape.circle,
+      border: filled ? null : Border.all(color: ring, width: 1.5),
+    ),
+  );
 }
 
 /// One period: header (label + delta), then a shared-scale track with a
@@ -235,22 +258,26 @@ class _Dumbbell extends StatelessWidget {
           children: [
             Row(
               children: [
-                Text(label,
-                    style: TextStyle(
-                        color: c.muted,
-                        fontFamily: AkibaFonts.mono,
-                        fontSize: 11,
-                        letterSpacing: 0.4)),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: c.muted,
+                    fontFamily: fructaFonts.mono,
+                    fontSize: 11,
+                    letterSpacing: 0.4,
+                  ),
+                ),
                 const Spacer(),
                 if (delta != null)
                   Text(
                     '${delta >= 0 ? '+' : ''}${delta.toStringAsFixed(2)} pts vs bench',
                     style: TextStyle(
-                        color: c.delta(delta),
-                        fontFamily: AkibaFonts.mono,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        fontFeatures: const [FontFeature.tabularFigures()]),
+                      color: c.delta(delta),
+                      fontFamily: fructaFonts.mono,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
                   ),
               ],
             ),
@@ -290,8 +317,9 @@ class _Dumbbell extends StatelessWidget {
                                 width: (fx - bx).abs(),
                                 height: 4,
                                 decoration: BoxDecoration(
-                                    color: c.line2,
-                                    borderRadius: BorderRadius.circular(2)),
+                                  color: c.line2,
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
                               ),
                             ),
                           // benchmark value (below)
@@ -305,13 +333,14 @@ class _Dumbbell extends StatelessWidget {
                                   '${benchV!.toStringAsFixed(2)}%',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
-                                      color: c.muted,
-                                      fontFamily: AkibaFonts.mono,
-                                      fontSize: 10.5,
-                                      fontWeight: FontWeight.w500,
-                                      fontFeatures: const [
-                                        FontFeature.tabularFigures()
-                                      ]),
+                                    color: c.muted,
+                                    fontFamily: fructaFonts.mono,
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w500,
+                                    fontFeatures: const [
+                                      FontFeature.tabularFigures(),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
@@ -326,8 +355,10 @@ class _Dumbbell extends StatelessWidget {
                                 decoration: BoxDecoration(
                                   color: c.s3,
                                   shape: BoxShape.circle,
-                                  border:
-                                      Border.all(color: c.muted, width: 1.5),
+                                  border: Border.all(
+                                    color: c.muted,
+                                    width: 1.5,
+                                  ),
                                 ),
                               ),
                             ),
@@ -341,13 +372,14 @@ class _Dumbbell extends StatelessWidget {
                                 '${fundV.toStringAsFixed(2)}%',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
-                                    color: fundColor,
-                                    fontFamily: AkibaFonts.mono,
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.w700,
-                                    fontFeatures: const [
-                                      FontFeature.tabularFigures()
-                                    ]),
+                                  color: fundColor,
+                                  fontFamily: fructaFonts.mono,
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w700,
+                                  fontFeatures: const [
+                                    FontFeature.tabularFigures(),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
@@ -364,10 +396,11 @@ class _Dumbbell extends StatelessWidget {
                                 boxShadow: selected
                                     ? [
                                         BoxShadow(
-                                          color:
-                                              fundColor.withValues(alpha: 0.45),
+                                          color: fundColor.withValues(
+                                            alpha: 0.45,
+                                          ),
                                           blurRadius: 8,
-                                        )
+                                        ),
                                       ]
                                     : null,
                               ),
@@ -388,8 +421,11 @@ class _Dumbbell extends StatelessWidget {
 }
 
 class _MonthBand extends StatelessWidget {
-  const _MonthBand(
-      {required this.worst, required this.best, required this.tint});
+  const _MonthBand({
+    required this.worst,
+    required this.best,
+    required this.tint,
+  });
   final double worst;
   final double best;
   final Color tint;
@@ -400,13 +436,16 @@ class _MonthBand extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('MONTHLY RETURN RANGE \u00b7 TRAILING 12 MO',
-            style: TextStyle(
-                color: c.faint,
-                fontFamily: AkibaFonts.mono,
-                fontSize: 9,
-                letterSpacing: 0.6,
-                fontWeight: FontWeight.w600)),
+        Text(
+          'MONTHLY RETURN RANGE \u00b7 TRAILING 12 MO',
+          style: TextStyle(
+            color: c.faint,
+            fontFamily: fructaFonts.mono,
+            fontSize: 9,
+            letterSpacing: 0.6,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         const SizedBox(height: 10),
         Row(
           children: [
@@ -429,27 +468,39 @@ class _MonthBand extends StatelessWidget {
     );
   }
 
-  Widget _end(BuildContext context, String k, double v, Color valColor,
-      {required bool alignEnd}) {
+  Widget _end(
+    BuildContext context,
+    String k,
+    double v,
+    Color valColor, {
+    required bool alignEnd,
+  }) {
     final c = context.c;
     return Column(
-      crossAxisAlignment:
-          alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      crossAxisAlignment: alignEnd
+          ? CrossAxisAlignment.end
+          : CrossAxisAlignment.start,
       children: [
-        Text(k,
-            style: TextStyle(
-                color: c.faint,
-                fontFamily: AkibaFonts.mono,
-                fontSize: 8.5,
-                letterSpacing: 0.6,
-                fontWeight: FontWeight.w600)),
+        Text(
+          k,
+          style: TextStyle(
+            color: c.faint,
+            fontFamily: fructaFonts.mono,
+            fontSize: 8.5,
+            letterSpacing: 0.6,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         const SizedBox(height: 2),
-        Text('${v.toStringAsFixed(2)}%',
-            style: TextStyle(
-                color: valColor,
-                fontFamily: AkibaFonts.mono,
-                fontSize: 13,
-                fontWeight: FontWeight.w600)),
+        Text(
+          '${v.toStringAsFixed(2)}%',
+          style: TextStyle(
+            color: valColor,
+            fontFamily: fructaFonts.mono,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ],
     );
   }

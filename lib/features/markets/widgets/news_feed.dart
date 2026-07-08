@@ -44,27 +44,32 @@ class _NewsFeedState extends State<NewsFeed> {
           padding: const EdgeInsets.fromLTRB(20, 30, 20, 2),
           child: Row(
             children: [
-              Text('News',
-                  style: TextStyle(
-                      color: c.text,
-                      fontFamily: AkibaFonts.mono,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: -0.6)),
+              Text(
+                'News',
+                style: TextStyle(
+                  color: c.text,
+                  fontFamily: fructaFonts.mono,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -0.6,
+                ),
+              ),
               const SizedBox(width: 9),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
                   color: c.accentSoft,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text('${items.length}',
-                    style: TextStyle(
-                        color: c.accent,
-                        fontFamily: AkibaFonts.mono,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700)),
+                child: Text(
+                  '${items.length}',
+                  style: TextStyle(
+                    color: c.accent,
+                    fontFamily: fructaFonts.mono,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             ],
           ),
@@ -93,13 +98,15 @@ class _NewsFeedState extends State<NewsFeed> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('Show $hidden more',
-                        style: TextStyle(
-                            color: c.accent,
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w600)),
-                    Icon(Icons.keyboard_arrow_down,
-                        size: 16, color: c.accent),
+                    Text(
+                      'Show $hidden more',
+                      style: TextStyle(
+                        color: c.accent,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Icon(Icons.keyboard_arrow_down, size: 16, color: c.accent),
                   ],
                 ),
               ),
@@ -139,17 +146,25 @@ class _Row extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(item.title,
-                    style: TextStyle(
-                        color: c.text,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        height: 1.4)),
+                Text(
+                  item.title,
+                  style: TextStyle(
+                    color: c.text,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    height: 1.4,
+                  ),
+                ),
                 if (item.body != null && item.body!.isNotEmpty) ...[
                   const SizedBox(height: 3),
-                  Text(item.body!,
-                      style: TextStyle(
-                          color: c.muted, fontSize: 11.5, height: 1.5)),
+                  Text(
+                    item.body!,
+                    style: TextStyle(
+                      color: c.muted,
+                      fontSize: 11.5,
+                      height: 1.5,
+                    ),
+                  ),
                 ],
               ],
             ),
@@ -157,11 +172,14 @@ class _Row extends StatelessWidget {
           const SizedBox(width: 10),
           Padding(
             padding: const EdgeInsets.only(top: 2),
-            child: Text(timeAgo(item.at),
-                style: TextStyle(
-                    color: c.faint,
-                    fontFamily: AkibaFonts.mono,
-                    fontSize: 10)),
+            child: Text(
+              timeAgo(item.at),
+              style: TextStyle(
+                color: c.faint,
+                fontFamily: fructaFonts.mono,
+                fontSize: 10,
+              ),
+            ),
           ),
         ],
       ),

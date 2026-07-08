@@ -1,18 +1,16 @@
-import 'dart:ui' show FontFeature;
-
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme.dart';
 import '../../../data/models/fund_composition.dart';
 
-/// "What the fund holds" — a donut of the fund's asset-class split with a
+/// "What the fund holds"  a donut of the fund's asset-class split with a
 /// legend, plus a provenance line (source + as-of quarter). The caller hides
 /// it when there's no composition (compositionProvider returns null), so it
 /// never shows an empty or fabricated split.
 ///
 /// Data is quarterly from the CMA CIS report; the centre shows total AUM.
-/// Ported to the [FundComposition]/[AssetClass] model (the API that shipped —
+/// Ported to the [FundComposition]/[AssetClass] model (the API that shipped
 /// the original was written against a draft `Composition` that never landed).
 class CompositionPie extends StatefulWidget {
   const CompositionPie(this.composition, {super.key});
@@ -37,12 +35,15 @@ class _CompositionPieState extends State<CompositionPie> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('WHAT IT HOLDS',
-              style: TextStyle(
-                  color: c.faint,
-                  fontSize: 11,
-                  letterSpacing: 0.8,
-                  fontWeight: FontWeight.w600)),
+          Text(
+            'WHAT IT HOLDS',
+            style: TextStyle(
+              color: c.faint,
+              fontSize: 11,
+              letterSpacing: 0.8,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const SizedBox(height: 16),
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -66,8 +67,10 @@ class _CompositionPieState extends State<CompositionPie> {
                               setState(() => _touched = -1);
                               return;
                             }
-                            setState(() => _touched =
-                                resp!.touchedSection!.touchedSectionIndex);
+                            setState(
+                              () => _touched =
+                                  resp!.touchedSection!.touchedSectionIndex,
+                            );
                           },
                         ),
                         sections: [
@@ -84,19 +87,25 @@ class _CompositionPieState extends State<CompositionPie> {
                     Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text('AUM',
-                            style: TextStyle(
-                                color: c.faint,
-                                fontSize: 9,
-                                letterSpacing: 0.6,
-                                fontWeight: FontWeight.w600)),
+                        Text(
+                          'AUM',
+                          style: TextStyle(
+                            color: c.faint,
+                            fontSize: 9,
+                            letterSpacing: 0.6,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                         const SizedBox(height: 2),
-                        Text(FundComposition.kesShort(comp.total),
-                            style: TextStyle(
-                                color: c.text,
-                                fontFamily: AkibaFonts.mono,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700)),
+                        Text(
+                          FundComposition.kesShort(comp.total),
+                          style: TextStyle(
+                            color: c.text,
+                            fontFamily: fructaFonts.mono,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -133,16 +142,18 @@ class _CompositionPieState extends State<CompositionPie> {
 
   String _provenance(String asOf) {
     final d = DateTime.tryParse(asOf);
-    final period =
-        d != null ? 'Q${((d.month - 1) ~/ 3) + 1} ${d.year}' : asOf;
+    final period = d != null ? 'Q${((d.month - 1) ~/ 3) + 1} ${d.year}' : asOf;
     return 'Portfolio as of $period \u00b7 source: CMA Collective Investment '
         'Schemes report. Figures are the fund\u2019s own quarterly filing.';
   }
 }
 
 class _LegendRow extends StatelessWidget {
-  const _LegendRow(
-      {required this.cls, required this.pct, required this.highlight});
+  const _LegendRow({
+    required this.cls,
+    required this.pct,
+    required this.highlight,
+  });
   final AssetClass cls;
   final double pct;
   final bool highlight;
@@ -158,8 +169,7 @@ class _LegendRow extends StatelessWidget {
             width: 8,
             height: 8,
             margin: const EdgeInsets.only(right: 8),
-            decoration:
-                BoxDecoration(color: cls.color, shape: BoxShape.circle),
+            decoration: BoxDecoration(color: cls.color, shape: BoxShape.circle),
           ),
           Expanded(
             child: Text(
@@ -176,7 +186,7 @@ class _LegendRow extends StatelessWidget {
             '${pct.toStringAsFixed(pct < 10 ? 1 : 0)}%',
             style: TextStyle(
               color: c.text,
-              fontFamily: AkibaFonts.mono,
+              fontFamily: fructaFonts.mono,
               fontSize: 12,
               fontWeight: FontWeight.w600,
               fontFeatures: const [FontFeature.tabularFigures()],

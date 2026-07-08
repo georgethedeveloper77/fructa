@@ -45,42 +45,42 @@ app.*.map.json
 /android/app/release
 
 # =========================
-# Akiba Admin - Next.js
+# fructa Admin - Next.js
 # =========================
 
 # dependencies
-akiba-admin/node_modules/
+fructa-admin/node_modules/
 
 # local env files - DO NOT COMMIT
-akiba-admin/.env
-akiba-admin/.env.local
-akiba-admin/.env.development.local
-akiba-admin/.env.test.local
-akiba-admin/.env.production.local
+fructa-admin/.env
+fructa-admin/.env.local
+fructa-admin/.env.development.local
+fructa-admin/.env.test.local
+fructa-admin/.env.production.local
 
 # keep example env file
-!akiba-admin/.env.example
+!fructa-admin/.env.example
 
 # Next.js build/cache
-akiba-admin/.next/
-akiba-admin/out/
-akiba-admin/.vercel/
+fructa-admin/.next/
+fructa-admin/out/
+fructa-admin/.vercel/
 
 # logs
-akiba-admin/npm-debug.log*
-akiba-admin/yarn-debug.log*
-akiba-admin/pnpm-debug.log*
-akiba-admin/bun-debug.log*
+fructa-admin/npm-debug.log*
+fructa-admin/yarn-debug.log*
+fructa-admin/pnpm-debug.log*
+fructa-admin/bun-debug.log*
 
 # TypeScript cache
-akiba-admin/*.tsbuildinfo
+fructa-admin/*.tsbuildinfo
 
 # OS/editor
-akiba-admin/.DS_Store
-akiba-admin/.idea/
-akiba-admin/.vscode/
+fructa-admin/.DS_Store
+fructa-admin/.idea/
+fructa-admin/.vscode/
 
-akiba-14e48-firebase-adminsdk-fbsvc-27efda1c8c.json
+fructa-14e48-firebase-adminsdk-fbsvc-27efda1c8c.json
 
 sensitive.md
-akiba-admin/sensitive.md
+fructa-admin/sensitive.md

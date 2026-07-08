@@ -1,5 +1,5 @@
 {
-  "app.name": "Akiba",
+  "app.name": "fructa",
   "nav.markets": "Markets",
   "nav.portfolio": "Portfolio",
   "nav.settings": "Settings",
@@ -82,7 +82,7 @@
   "settings.data.backupSub": "Encrypted export to a file",
   "settings.data.restore": "Restore from backup",
   "settings.data.soon": "Encrypted backup ships in E",
-  "settings.version": "Akiba · v{version}",
+  "settings.version": "fructa · v{version}",
   "alerts.title": "Alerts",
   "alerts.empty": "No alerts yet",
   "alerts.emptyBody": "We'll let you know when a rate you follow moves.",
@@ -153,13 +153,13 @@
   "company.fundTopUp": "Fund / top up",
   "company.officialSite": "Official site",
   "company.signalsFoot": "Generated from rate history & published documents · not investment advice",
-  "company.moneyNote": "Funding and policy binding happen on the provider's platform. Akiba never moves money.",
+  "company.moneyNote": "Funding and policy binding happen on the provider's platform. fructa never moves money.",
   "company.pts7d": "pts · 7d",
   "nav.alerts": "Alerts",
   "company.stat.managerAum": "Manager AUM",
   "company.stat.managerShare": "Manager share",
   "company.stat.ofManagers": "of {n} managers",
   "company.real": "{real}% real",
-  "markets.disclaimer": "Gross effective annual yields as published; net strips 15% withholding tax. Every figure is timestamped and traceable to its source. Akiba never holds your funds."
+  "markets.disclaimer": "Gross effective annual yields as published; net strips 15% withholding tax. Every figure is timestamped and traceable to its source. fructa never holds your funds."
 
 }

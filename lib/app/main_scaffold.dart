@@ -1,38 +1,84 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/theme.dart';
+import '../data/backup_service.dart';
+import '../data/providers.dart';
+import '../features/backup/backup_ui.dart';
 import '../features/markets/markets_page.dart';
 import '../features/portfolio/portfolio_page.dart';
 import '../features/settings/settings_page.dart';
+import 'deep_link.dart';
 
 /// Selected bottom-tab index. Restored from the pre-A1 scaffold so cross-tab
 /// jumps keep working, e.g. Portfolio's empty-state CTA:
 ///   ref.read(selectedTabProvider.notifier).state = 0;  // → Markets
-///
-/// Import this from wherever you jump tabs:
-///   import '../../app/main_scaffold.dart';
 final selectedTabProvider = StateProvider<int>((ref) => 0);
 
-/// Locked v5 navigation: three tabs, no center ＋. Add-holding lives in the
-/// Portfolio topbar; Compare is a mode inside Markets (both arrive in B1/B2).
-class MainScaffold extends ConsumerWidget {
+/// Locked v5 navigation: three tabs, no center add. Add-holding lives in the
+/// Portfolio topbar; Compare is a mode inside Markets.
+///
+/// Stateful so it can, once mounted: (1) offer to restore a cloud backup when
+/// this device is empty, then prompt for a store update (Android); (2) auto-
+/// back-up the portfolio, debounced, on every change; and (3) replay a
+/// notification tap that cold-started the app.
+class MainScaffold extends ConsumerStatefulWidget {
   const MainScaffold({super.key});
 
-  // Non-const so it works whether or not the page widgets are const-eligible.
-  // IndexedStack keeps each tab's state alive across switches.
+  @override
+  ConsumerState<MainScaffold> createState() => _MainScaffoldState();
+}
+
+class _MainScaffoldState extends ConsumerState<MainScaffold> {
   static const _pages = [MarketsPage(), PortfolioPage(), SettingsPage()];
 
+  Timer? _backupDebounce;
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      runLaunchTasks(context, ref);
+      drainPendingTarget(); // replay a cold-start notification tap, if any
+    });
+  }
+
+  @override
+  void dispose() {
+    _backupDebounce?.cancel();
+    super.dispose();
+  }
+
+  void _scheduleBackup() {
+    _backupDebounce?.cancel();
+    _backupDebounce = Timer(const Duration(seconds: 3), () async {
+      try {
+        final at = await ref.read(backupServiceProvider).backup();
+        if (mounted) ref.read(lastBackupProvider.notifier).state = at;
+      } catch (_) {
+        /* offline / transient  the next change retries */
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final c = context.c;
     final index = ref.watch(selectedTabProvider);
 
+    // Auto-backup on any portfolio change (debounced). Empty books aren't
+    // backed up, so a fresh user never creates a code for nothing.
+    ref.listen(holdingsProvider, (prev, next) {
+      if (next.isNotEmpty) _scheduleBackup();
+    });
+
     return Scaffold(
       backgroundColor: c.bg,
-      extendBody: true, // let the blurred nav float over content
+      extendBody: true,
       body: IndexedStack(index: index, children: _pages),
       bottomNavigationBar: _NavBar(
         index: index,

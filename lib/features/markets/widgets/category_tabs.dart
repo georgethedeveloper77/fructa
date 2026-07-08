@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme.dart';
 import '../markets_controller.dart';
 
-/// Category tabs — v5 `.cattab`: rounded-rect (r14, not fully-round), 46px
+/// Category tabs  v5 `.cattab`: rounded-rect (r14, not fully-round), 46px
 /// touch target. Selected inverts to the text colour (near-white on dark /
 /// near-black on light), NOT the accent.
 class CategoryTabs extends ConsumerWidget {

@@ -5,8 +5,8 @@ import '../../core/push.dart';
 import '../../data/models/alert.dart';
 import '../../data/models/fund.dart';
 import '../../data/models/saved_comparison.dart';
-import '../../data/repositories/comparisons_repository.dart';
 import '../../data/providers.dart';
+import '../../data/repositories/comparisons_repository.dart';
 
 const kMaxCompare = 4;
 
@@ -34,8 +34,9 @@ final compareSelectionProvider =
     NotifierProvider<CompareSelection, List<String>>(CompareSelection.new);
 
 // ── Saved comparisons ──────────────────────────────────────────────────────
-final comparisonsRepositoryProvider =
-    Provider((ref) => ComparisonsRepository(Hive.box('settings')));
+final comparisonsRepositoryProvider = Provider(
+  (ref) => ComparisonsRepository(Hive.box('settings')),
+);
 
 class SavedComparisonsNotifier extends Notifier<List<SavedComparison>> {
   ComparisonsRepository get _repo => ref.read(comparisonsRepositoryProvider);
@@ -45,12 +46,13 @@ class SavedComparisonsNotifier extends Notifier<List<SavedComparison>> {
 
   String? _leaderOf(List<String> ids) {
     final byId = ref.read(fundsByIdProvider);
-    final members = ids
-        .map((id) => byId[id])
-        .whereType<Fund>()
-        .where((f) => f.currentRate != null)
-        .toList()
-      ..sort((a, b) => b.currentRate!.compareTo(a.currentRate!));
+    final members =
+        ids
+            .map((id) => byId[id])
+            .whereType<Fund>()
+            .where((f) => f.currentRate != null)
+            .toList()
+          ..sort((a, b) => b.currentRate!.compareTo(a.currentRate!));
     return members.isEmpty ? null : members.first.id;
   }
 
@@ -92,11 +94,12 @@ class SavedComparisonsNotifier extends Notifier<List<SavedComparison>> {
 
 final savedComparisonsProvider =
     NotifierProvider<SavedComparisonsNotifier, List<SavedComparison>>(
-        SavedComparisonsNotifier.new);
+      SavedComparisonsNotifier.new,
+    );
 
 /// On every fresh snapshot, recompute each saved set's leader. If it flipped
 /// and the set has alerts on, raise a local alert. Kept alive by a `ref.watch`
-/// in MarketsPage. Pure on-device — no server state.
+/// in MarketsPage. Pure on-device  no server state.
 final comparisonWatcherProvider = Provider<void>((ref) {
   ref.listen<AsyncValue<List<Fund>>>(ratesProvider, (_, next) {
     final funds = next.valueOrNull;
@@ -107,24 +110,27 @@ final comparisonWatcherProvider = Provider<void>((ref) {
     final alerts = ref.read(alertsProvider.notifier);
 
     for (final s in sets) {
-      final members = s.fundIds
-          .map((id) => byId[id])
-          .whereType<Fund>()
-          .where((f) => f.currentRate != null)
-          .toList()
-        ..sort((a, b) => b.currentRate!.compareTo(a.currentRate!));
+      final members =
+          s.fundIds
+              .map((id) => byId[id])
+              .whereType<Fund>()
+              .where((f) => f.currentRate != null)
+              .toList()
+            ..sort((a, b) => b.currentRate!.compareTo(a.currentRate!));
       if (members.length < 2) continue;
 
       final leader = members.first;
       final flipped = s.leaderId != null && s.leaderId != leader.id;
       if (flipped && s.notify) {
         final old = byId[s.leaderId!];
-        alerts.add(RateAlert(
-          fundId: leader.id,
-          oldRate: old?.currentRate ?? leader.currentRate!,
-          newRate: leader.currentRate!,
-          at: DateTime.now(),
-        ));
+        alerts.add(
+          RateAlert(
+            fundId: leader.id,
+            oldRate: old?.currentRate ?? leader.currentRate!,
+            newRate: leader.currentRate!,
+            at: DateTime.now(),
+          ),
+        );
       }
       if (s.leaderId != leader.id) notifier._setLeader(s.id, leader.id);
     }

@@ -17,7 +17,7 @@ import '../../data/models/holding.dart';
 import '../../data/models/remote_config.dart';
 import '../../data/providers.dart';
 import '../../data/snapshot_providers.dart';
-import '../../engine/accrual_engine.dart';
+import '../../engine/portfolio_math.dart';
 import '../../engine/projection_engine.dart';
 import '../../engine/tax.dart';
 import '../alerts/alerts_page.dart';
@@ -273,7 +273,7 @@ class CompanyPage extends ConsumerWidget {
                               '${fund.manager} \u00b7 ${_typeName(fund)} \u00b7 ${fund.currency}',
                               style: TextStyle(
                                   color: c.muted,
-                                  fontFamily: AkibaFonts.mono,
+                                  fontFamily: fructaFonts.mono,
                                   fontSize: 11)),
                         ],
                       ),
@@ -292,7 +292,7 @@ class CompanyPage extends ConsumerWidget {
                       TextSpan(
                         style: TextStyle(
                           color: c.text,
-                          fontFamily: AkibaFonts.mono,
+                          fontFamily: fructaFonts.mono,
                           fontWeight: FontWeight.w600,
                           height: 1,
                         ),
@@ -332,7 +332,7 @@ class CompanyPage extends ConsumerWidget {
                                 '${d7.abs().toStringAsFixed(2)} ${t('company.pts7d')}',
                                 style: TextStyle(
                                     color: c.delta(d7),
-                                    fontFamily: AkibaFonts.mono,
+                                    fontFamily: fructaFonts.mono,
                                     fontSize: 12.5,
                                     fontWeight: FontWeight.w600)),
                           ],
@@ -385,18 +385,20 @@ class CompanyPage extends ConsumerWidget {
                 child: _card(context, child: RateChart(fund.id, color: tint)),
               ),
 
-              // ── Trailing performance vs benchmark (Bucket B) ───────────
-              if (fund.hasReturns) FundPerformance(fund, tint: tint),
-
-              // ── Project your returns — reuses ProjectionEngine ─────────
-              _ProjectionSection(fund, tint: tint),
-
-              // ── Your position (.pos) — only when held ─────────────────
+              // ── Your position (.pos) — only when held. Sits right after the
+              //    chart, before performance/projection, so a holder sees their
+              //    own money first. ────────────────────────────────────────
               if (held != null) ...[
                 SectionHeader(title: t('company.yourPosition')),
                 _position(context, held, netPct,
                     usdKes: ref.watch(usdKesProvider)),
               ],
+
+              // ── Trailing performance vs benchmark (Bucket B) ───────────
+              if (fund.hasReturns) FundPerformance(fund, tint: tint),
+
+              // ── Project your returns — reuses ProjectionEngine ─────────
+              _ProjectionSection(fund, tint: tint),
 
               // ── Manager · CMA CIS position ─────────────────────────────
               if (manager?.aumKes != null || manager?.marketShare != null) ...[
@@ -498,32 +500,48 @@ class CompanyPage extends ConsumerWidget {
     );
   }
 
-  // ── Position → kit PositionBlock ──────────────────────────────────────
+  // ── Position → kit PositionBlock. Accrues from the holding's own lot dates
+  //    via PortfolioMath, so it reads the SAME grown value as the Portfolio
+  //    tab — not the static entry balance. ───────────────────────────────
+  static const _posMonths = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
+
   Widget _position(BuildContext context, Holding held, double netPct,
       {double? usdKes}) {
     final c = context.c;
-    final rate = fund.currentRate ?? 0;
-    final daily = fund.taxFree
-        ? AccrualEngine.dailyInterest(held.balance, rate)
-        : AccrualEngine.dailyInterestNet(held.balance, rate);
+    final v = PortfolioMath.value(
+      held,
+      ratePercent: fund.currentRate,
+      taxFree: fund.taxFree,
+      usdKes: usdKes,
+      asOf: DateTime.now(),
+    );
+    final since =
+        '${_posMonths[v.firstLot.month - 1]} ${v.firstLot.day}';
     final netLbl = fund.taxFree
         ? t('company.atTaxFree', {'net': netPct.toStringAsFixed(2)})
         : t('company.atNet', {'net': netPct.toStringAsFixed(2)});
 
     if (held.currency == 'USD') {
-      final kesNote = usdKes != null
-          ? '\u2248 ${money('KES', (daily * usdKes).round())} \u00b7 $netLbl'
+      final kesNote = v.valueKes != null
+          ? '\u2248 ${money('KES', v.valueKes!.round())} \u00b7 $netLbl'
           : netLbl;
       return PositionBlock(
-        value: '\$${withCommas(held.balance)}',
-        delta: '+\$${daily.toStringAsFixed(2)}/day',
+        value: '\$${v.valueNative.toStringAsFixed(2)}',
+        delta: v.gainNative >= 0.005
+            ? '+\$${v.gainNative.toStringAsFixed(2)} \u00b7 since $since'
+            : 'Added $since',
         deltaColor: c.up,
         sub: kesNote,
       );
     }
     return PositionBlock(
-      value: money('KES', held.balance),
-      delta: '+${money('KES', daily.round())}/day',
+      value: money('KES', v.valueNative),
+      delta: v.gainNative >= 1
+          ? '+${money('KES', v.gainNative.round())} \u00b7 since $since'
+          : 'Added $since',
       deltaColor: c.up,
       sub: netLbl,
     );
@@ -583,7 +601,7 @@ Widget _eyebrow(BuildContext context, String text) {
     child: Text(text,
         style: TextStyle(
             color: c.faint,
-            fontFamily: AkibaFonts.mono,
+            fontFamily: fructaFonts.mono,
             fontSize: 10.5,
             letterSpacing: 1.6,
             fontWeight: FontWeight.w600)),
@@ -623,7 +641,7 @@ class _RankLine extends StatelessWidget {
                 TextSpan(
                   style: TextStyle(
                       color: c.muted,
-                      fontFamily: AkibaFonts.mono,
+                      fontFamily: fructaFonts.mono,
                       fontSize: 11,
                       height: 1.3),
                   children: [
@@ -684,7 +702,7 @@ class _BenchmarkLine extends StatelessWidget {
                 TextSpan(
                   style: TextStyle(
                       color: c.muted,
-                      fontFamily: AkibaFonts.mono,
+                      fontFamily: fructaFonts.mono,
                       fontSize: 11,
                       height: 1.3),
                   children: [
@@ -725,7 +743,7 @@ class _RiskBand extends StatelessWidget {
   /// Risk ramp at fraction [t] (0 = lowest, 1 = highest): green → gold → red,
   /// all from live theme tokens. Gold midpoint keeps a brand note between the
   /// two clear endpoints.
-  static Color hueAt(AkibaColors c, double t) => t <= 0.5
+  static Color hueAt(fructaColors c, double t) => t <= 0.5
       ? Color.lerp(c.up, c.accent, t / 0.5)!
       : Color.lerp(c.accent, c.down, (t - 0.5) / 0.5)!;
 
@@ -785,7 +803,7 @@ class _RiskBand extends StatelessWidget {
                 Text('RISK PROFILE',
                     style: TextStyle(
                         color: c.faint,
-                        fontFamily: AkibaFonts.mono,
+                        fontFamily: fructaFonts.mono,
                         fontSize: 10.5,
                         letterSpacing: 1.6,
                         fontWeight: FontWeight.w600)),
@@ -793,7 +811,7 @@ class _RiskBand extends StatelessWidget {
                 Text(s.label.toUpperCase(),
                     style: TextStyle(
                         color: labelHue,
-                        fontFamily: AkibaFonts.mono,
+                        fontFamily: fructaFonts.mono,
                         fontSize: 11,
                         letterSpacing: 0.6,
                         fontWeight: FontWeight.w700)),
@@ -822,14 +840,14 @@ class _RiskBand extends StatelessWidget {
                 Text('Lower risk',
                     style: TextStyle(
                         color: c.faint,
-                        fontFamily: AkibaFonts.mono,
+                        fontFamily: fructaFonts.mono,
                         fontSize: 8.5,
                         letterSpacing: 0.4)),
                 const Spacer(),
                 Text('Higher risk',
                     style: TextStyle(
                         color: c.faint,
-                        fontFamily: AkibaFonts.mono,
+                        fontFamily: fructaFonts.mono,
                         fontSize: 8.5,
                         letterSpacing: 0.4)),
               ],
@@ -933,7 +951,7 @@ class _ProjectionSectionState extends State<_ProjectionSection> {
                 Text(kes(projNet),
                     style: TextStyle(
                         color: c.text,
-                        fontFamily: AkibaFonts.mono,
+                        fontFamily: fructaFonts.mono,
                         fontSize: 30,
                         fontWeight: FontWeight.w600,
                         letterSpacing: -1.1)),
@@ -946,7 +964,7 @@ class _ProjectionSectionState extends State<_ProjectionSection> {
                         '${kes(netInterest < 0 ? 0 : netInterest)} net growth \u00b7 over ${_horizonLabel(_months)}',
                         style: TextStyle(
                             color: c.up,
-                            fontFamily: AkibaFonts.mono,
+                            fontFamily: fructaFonts.mono,
                             fontSize: 12.5),
                       ),
                     ),
@@ -1073,7 +1091,7 @@ class _ProjectionSectionState extends State<_ProjectionSection> {
     );
   }
 
-  Widget _amountField(AkibaColors c, String cur, double rate) => Column(
+  Widget _amountField(fructaColors c, String cur, double rate) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -1085,7 +1103,7 @@ class _ProjectionSectionState extends State<_ProjectionSection> {
                 Text('min ${money(cur, widget.fund.minInvest!)}',
                     style: TextStyle(
                         color: c.faint,
-                        fontFamily: AkibaFonts.mono,
+                        fontFamily: fructaFonts.mono,
                         fontSize: 11.5)),
             ],
           ),
@@ -1102,7 +1120,7 @@ class _ProjectionSectionState extends State<_ProjectionSection> {
                 Text(cur,
                     style: TextStyle(
                         color: c.muted,
-                        fontFamily: AkibaFonts.mono,
+                        fontFamily: fructaFonts.mono,
                         fontSize: 13)),
                 const SizedBox(width: 8),
                 Expanded(
@@ -1112,7 +1130,7 @@ class _ProjectionSectionState extends State<_ProjectionSection> {
                     onChanged: (_) => setState(() {}),
                     style: TextStyle(
                         color: c.text,
-                        fontFamily: AkibaFonts.mono,
+                        fontFamily: fructaFonts.mono,
                         fontSize: 20,
                         fontWeight: FontWeight.w600),
                     decoration: InputDecoration(
@@ -1122,7 +1140,7 @@ class _ProjectionSectionState extends State<_ProjectionSection> {
                       border: InputBorder.none,
                       hintText: '0',
                       hintStyle: TextStyle(
-                          color: c.faint, fontFamily: AkibaFonts.mono),
+                          color: c.faint, fontFamily: fructaFonts.mono),
                     ),
                   ),
                 ),
@@ -1130,7 +1148,7 @@ class _ProjectionSectionState extends State<_ProjectionSection> {
                 Text('earning ${rate.toStringAsFixed(2)}%',
                     style: TextStyle(
                         color: c.faint,
-                        fontFamily: AkibaFonts.mono,
+                        fontFamily: fructaFonts.mono,
                         fontSize: 10.5)),
               ],
             ),
@@ -1138,7 +1156,7 @@ class _ProjectionSectionState extends State<_ProjectionSection> {
         ],
       );
 
-  Widget _sliderRow(AkibaColors c,
+  Widget _sliderRow(fructaColors c,
           {required String label,
           required String valueText,
           required Widget slider}) =>
@@ -1152,7 +1170,7 @@ class _ProjectionSectionState extends State<_ProjectionSection> {
               Text(valueText,
                   style: TextStyle(
                       color: c.text,
-                      fontFamily: AkibaFonts.mono,
+                      fontFamily: fructaFonts.mono,
                       fontSize: 11.5,
                       fontWeight: FontWeight.w600)),
             ],
@@ -1210,7 +1228,7 @@ class _LedgerRow extends StatelessWidget {
                   Text(sub!,
                       style: TextStyle(
                           color: c.faint,
-                          fontFamily: AkibaFonts.mono,
+                          fontFamily: fructaFonts.mono,
                           fontSize: 10)),
                 ],
               ],
@@ -1220,7 +1238,7 @@ class _LedgerRow extends StatelessWidget {
           Text(v,
               style: TextStyle(
                   color: total ? acc : (vColor ?? c.text),
-                  fontFamily: AkibaFonts.mono,
+                  fontFamily: fructaFonts.mono,
                   fontSize: total ? 16 : 13.5,
                   fontWeight: total ? FontWeight.w700 : FontWeight.w600)),
         ],
@@ -1331,7 +1349,7 @@ class _TriadCell extends StatelessWidget {
           Text(k,
               style: TextStyle(
                   color: c.faint,
-                  fontFamily: AkibaFonts.mono,
+                  fontFamily: fructaFonts.mono,
                   fontSize: 9.5,
                   letterSpacing: 1,
                   fontWeight: FontWeight.w600)),
@@ -1339,7 +1357,7 @@ class _TriadCell extends StatelessWidget {
           Text(v,
               style: TextStyle(
                   color: color ?? c.text,
-                  fontFamily: AkibaFonts.mono,
+                  fontFamily: fructaFonts.mono,
                   fontSize: 16,
                   fontWeight: FontWeight.w500)),
         ],
@@ -1401,7 +1419,7 @@ class _StatCell extends StatelessWidget {
           Text(k,
               style: TextStyle(
                   color: c.faint,
-                  fontFamily: AkibaFonts.mono,
+                  fontFamily: fructaFonts.mono,
                   fontSize: 9.5,
                   letterSpacing: 0.8,
                   fontWeight: FontWeight.w600)),
@@ -1409,7 +1427,7 @@ class _StatCell extends StatelessWidget {
           Text(v,
               style: TextStyle(
                   color: c.text,
-                  fontFamily: AkibaFonts.mono,
+                  fontFamily: fructaFonts.mono,
                   fontSize: 16,
                   fontWeight: FontWeight.w600)),
         ],
@@ -1444,7 +1462,7 @@ class _Facts extends StatelessWidget {
               Text(f.k,
                   style: TextStyle(
                       color: c.faint,
-                      fontFamily: AkibaFonts.mono,
+                      fontFamily: fructaFonts.mono,
                       fontSize: 9.5,
                       letterSpacing: 0.8,
                       fontWeight: FontWeight.w600)),

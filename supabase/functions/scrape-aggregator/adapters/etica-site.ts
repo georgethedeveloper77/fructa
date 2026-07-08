@@ -23,7 +23,7 @@ export function eticaSiteAdapter(url: string): SourceAdapter {
     id: "etica-site",
     async fetchRows(): Promise<SourceRow[]> {
       const res = await fetch(url, {
-        headers: { "User-Agent": "AkibaBot/0.1 (+https://akiba.app)" },
+        headers: { "User-Agent": "fructaBot/0.1 (+https://fructa.app)" },
       });
       if (!res.ok) throw new Error(`etica HTTP ${res.status}`);
       const html = await res.text();

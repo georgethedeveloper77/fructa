@@ -38,7 +38,7 @@ export function pressMmfAdapter(csvUrl: string): SourceAdapter {
     id: "press-mmf",
     async fetchRows(): Promise<SourceRow[]> {
       const res = await fetch(csvUrl, {
-        headers: { "User-Agent": "AkibaBot/0.1 (+https://akiba.app)" },
+        headers: { "User-Agent": "fructaBot/0.1 (+https://fructa.app)" },
       });
       if (!res.ok) throw new Error(`press-mmf HTTP ${res.status}`);
       const rows = parseCsv(await res.text());

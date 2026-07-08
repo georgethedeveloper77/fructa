@@ -1,5 +1,5 @@
 {
-  "name": "akiba-scrapers",
+  "name": "fructa-scrapers",
   "private": true,
   "type": "module",
   "description": "Browser-based scrapers for JS-gated sources (e.g. CBK). Run on GitHub Actions cron.",

@@ -1,12 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'push.dart';
 import 'theme_controller.dart' show settingsBoxProvider;
 
 /// Notification + security preferences. Persisted in the shared Hive `settings`
 /// box. Per spec, all notification toggles default **ON**; security toggles
-/// default OFF. This is the lightweight A2 store; the pipeline-driven
-/// OneSignal tag sync in D wires these to actual push subscriptions.
+/// default OFF. The weekly-digest toggle mirrors to the OneSignal
+/// `digest_weekly` tag so the server can segment the digest broadcast.
 @immutable
 class SettingsPrefs {
   const SettingsPrefs({
@@ -19,14 +20,14 @@ class SettingsPrefs {
     required this.hideBalances,
   });
 
-  // Notifications — default ON.
+  // Notifications  default ON.
   final bool masterAlerts;
   final bool rateMoves; // ±0.15 pts
   final bool savedComparisons; // leader flip / gap > 0.25
   final bool couponsMaturities;
   final bool weeklyDigest;
 
-  // Security — default OFF.
+  // Security  default OFF.
   final bool biometricLock;
   final bool hideBalances;
 
@@ -85,6 +86,8 @@ class SettingsController extends Notifier<SettingsPrefs> {
   void setMasterAlerts(bool v) {
     state = state.copyWith(masterAlerts: v);
     _put('masterAlerts', v);
+    // Master switch drives the device-level push opt-in/out at OneSignal.
+    Push.setEnabled(v);
   }
 
   void setRateMoves(bool v) {
@@ -105,6 +108,8 @@ class SettingsController extends Notifier<SettingsPrefs> {
   void setWeeklyDigest(bool v) {
     state = state.copyWith(weeklyDigest: v);
     _put('weeklyDigest', v);
+    // Mirror to the server segment so the weekly digest reaches (only) opt-ins.
+    Push.setDigest(v);
   }
 
   void setBiometricLock(bool v) {

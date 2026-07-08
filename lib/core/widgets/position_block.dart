@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme.dart';
 
-/// v5 `.pos` — a big mono [value] with an optional mono [delta] line that can
+/// v5 `.pos`  a big mono [value] with an optional mono [delta] line that can
 /// carry a trailing Inter [sub] (e.g. "(1.3%) this month"). [deltaColor]
 /// defaults to `up`; pass `context.c.delta(x)` for sign-aware colouring.
 class PositionBlock extends StatelessWidget {
@@ -31,7 +31,7 @@ class PositionBlock extends StatelessWidget {
             value,
             style: TextStyle(
               color: c.text,
-              fontFamily: AkibaFonts.mono,
+              fontFamily: fructaFonts.mono,
               fontSize: 27,
               fontWeight: FontWeight.w600,
               letterSpacing: -1,
@@ -44,7 +44,7 @@ class PositionBlock extends StatelessWidget {
                 TextSpan(
                   style: TextStyle(
                     color: deltaColor ?? c.up,
-                    fontFamily: AkibaFonts.mono,
+                    fontFamily: fructaFonts.mono,
                     fontSize: 12,
                   ),
                   children: [
@@ -54,7 +54,7 @@ class PositionBlock extends StatelessWidget {
                         text: '  $sub',
                         style: TextStyle(
                           color: c.muted,
-                          fontFamily: AkibaFonts.sans,
+                          fontFamily: fructaFonts.sans,
                           fontSize: 11,
                         ),
                       ),

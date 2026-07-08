@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:akiba/engine/bond_engine.dart';
+import 'package:fructa/engine/bond_engine.dart';
 
 void main() {
   group('BondEngine coupons', () {
@@ -9,7 +9,10 @@ void main() {
     });
 
     test('taxable coupon loses 15% WHT; IFB coupon is tax-free', () {
-      expect(BondEngine.semiAnnualCouponNet(100000, 13), closeTo(5525, 0.01)); // 6500 * .85
+      expect(
+        BondEngine.semiAnnualCouponNet(100000, 13),
+        closeTo(5525, 0.01),
+      ); // 6500 * .85
       expect(BondEngine.semiAnnualCouponNet(100000, 13, taxFree: true), 6500);
     });
 
@@ -31,7 +34,11 @@ void main() {
 
   group('BondEngine T-bill', () {
     test('91-day bill priced at a discount, accretes to face', () {
-      final r = BondEngine.tbill(faceValue: 100000, annualYieldPercent: 8.5, days: 91);
+      final r = BondEngine.tbill(
+        faceValue: 100000,
+        annualYieldPercent: 8.5,
+        days: 91,
+      );
       expect(r.price, closeTo(97924.55, 0.5));
       expect(r.grossInterest, closeTo(2075.45, 0.5));
       expect(r.netInterest, closeTo(1764.13, 0.5)); // 2075.45 * .85

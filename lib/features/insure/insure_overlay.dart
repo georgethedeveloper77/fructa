@@ -464,7 +464,7 @@ class _InsurerCard extends StatelessWidget {
     );
   }
 
-  Widget _meta(AkibaColors c, String text) => Padding(
+  Widget _meta(fructaColors c, String text) => Padding(
         padding: const EdgeInsets.only(right: 14),
         child: Text(text, style: TextStyle(color: c.faint, fontSize: 12)),
       );

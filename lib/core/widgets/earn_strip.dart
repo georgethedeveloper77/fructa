@@ -8,7 +8,7 @@ class EarnCell {
   final String value;
 }
 
-/// v5 `.earn3` — flat cells split by left hairlines; mono up-green values.
+/// v5 `.earn3`  flat cells split by left hairlines; mono up-green values.
 /// Typically three cells (day / month / year) but any count works.
 class EarnStrip extends StatelessWidget {
   const EarnStrip(this.cells, {super.key});
@@ -49,7 +49,7 @@ class EarnStrip extends StatelessWidget {
                       cells[i].value,
                       style: TextStyle(
                         color: c.up,
-                        fontFamily: AkibaFonts.mono,
+                        fontFamily: fructaFonts.mono,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),

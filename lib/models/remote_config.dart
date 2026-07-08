@@ -8,7 +8,7 @@ class Benchmark {
 
 /// Admin-editable key/value config, published inside the snapshot (`config`).
 /// Every getter takes a baked-in fallback so the app renders correctly with
-/// an old snapshot, an empty table, or a bad value — remote config can only
+/// an old snapshot, an empty table, or a bad value  remote config can only
 /// override copy/flags/benchmarks, never break the UI.
 class RemoteConfig {
   const RemoteConfig(this._values);
@@ -60,7 +60,7 @@ class RemoteConfig {
   double benchmarkRate(String key, double fallback) =>
       benchmark(key)?.rate ?? fallback;
 
-  // Convenience — fallbacks are the live figures at build time (Jun 2026).
+  // Convenience  fallbacks are the live figures at build time (Jun 2026).
   double get inflationPct => benchmarkRate('benchmark.inflation', 6.7);
   double get cbrPct => benchmarkRate('benchmark.cbr', 8.75);
   double get tbill91Pct => benchmarkRate('benchmark.tbill_91', 8.71);

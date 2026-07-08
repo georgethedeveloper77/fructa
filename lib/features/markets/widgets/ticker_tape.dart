@@ -1,5 +1,3 @@
-import 'dart:ui' show FontFeature;
-
 import 'package:flutter/material.dart';
 
 import '../../../core/category_colors.dart';
@@ -8,7 +6,7 @@ import '../../../data/models/fund.dart';
 
 /// Continuously scrolling strip of top rates, brand-tinted per type. Both edges
 /// fade to transparent. Press-and-hold pauses the scroll; a tap toggles a
-/// sticky pause (tap again to resume) — so a thumb resting on it doesn't fight
+/// sticky pause (tap again to resume)  so a thumb resting on it doesn't fight
 /// the animation. Rate colour is always legible (fund-type / category hue,
 /// never the muted-grey fallback).
 class TickerTape extends StatefulWidget {
@@ -28,8 +26,10 @@ class _TickerTapeState extends State<TickerTape>
   @override
   void initState() {
     super.initState();
-    _ctl = AnimationController(vsync: this, duration: const Duration(seconds: 1))
-      ..repeat();
+    _ctl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+    )..repeat();
     _ctl.addListener(_tick);
   }
 
@@ -57,18 +57,21 @@ class _TickerTapeState extends State<TickerTape>
 
   Color _rateColor(BuildContext context, Fund f) {
     final ft = f.fundType;
-    if (ft != null && fundTypeColors.containsKey(ft)) return fundTypeColors[ft]!;
+    if (ft != null && fundTypeColors.containsKey(ft))
+      return fundTypeColors[ft]!;
     return categoryColors[f.category] ?? context.c.text;
   }
 
   @override
   Widget build(BuildContext context) {
     final c = context.c;
-    final top = ([...widget.funds]
-          ..sort((a, b) => (b.currentRate ?? 0).compareTo(a.currentRate ?? 0)))
-        .where((f) => f.currentRate != null)
-        .take(12)
-        .toList();
+    final top =
+        ([...widget.funds]..sort(
+              (a, b) => (b.currentRate ?? 0).compareTo(a.currentRate ?? 0),
+            ))
+            .where((f) => f.currentRate != null)
+            .take(12)
+            .toList();
     if (top.isEmpty) return const SizedBox.shrink();
 
     return SizedBox(
@@ -101,22 +104,27 @@ class _TickerTapeState extends State<TickerTape>
               itemBuilder: (context, i) {
                 final f = top[i % top.length];
                 return Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   child: Row(
                     children: [
-                      Text(f.name.split(' ').first,
-                          style: TextStyle(color: c.muted, fontSize: 12)),
+                      Text(
+                        f.name.split(' ').first,
+                        style: TextStyle(color: c.muted, fontSize: 12),
+                      ),
                       const SizedBox(width: 6),
-                      Text('${f.currentRate!.toStringAsFixed(2)}%',
-                          style: TextStyle(
-                              color: _rateColor(context, f),
-                              fontFamily: AkibaFonts.mono,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              fontFeatures: const [
-                                FontFeature.tabularFigures()
-                              ])),
+                      Text(
+                        '${f.currentRate!.toStringAsFixed(2)}%',
+                        style: TextStyle(
+                          color: _rateColor(context, f),
+                          fontFamily: fructaFonts.mono,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
                     ],
                   ),
                 );

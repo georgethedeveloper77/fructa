@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui' show FontFeature;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,14 +9,14 @@ import '../../../core/widgets/fund_logo.dart';
 import '../../../data/models/fund.dart';
 import '../../../data/snapshot_providers.dart';
 
-/// Directory tile (v6 `.tile`) — a card: panel surface, hairline border, 16px
+/// Directory tile (v6 `.tile`)  a card: panel surface, hairline border, 16px
 /// radius, 14px padding, 10px inter-card gap. Name wraps (no-ellipsis); the
 /// gross rate flashes up/down on refresh. Shows gross + net-of-tax (the honest
 /// comparator); funds that quote no single yield (basis 'none') show an
 /// em-dash, never a fabricated number.
 ///
 /// [rank] is the fund's position in the current filter+sort. It shows as a
-/// small badge on the logo corner that FADES OUT after a couple of seconds —
+/// small badge on the logo corner that FADES OUT after a couple of seconds
 /// long enough to read the ranking, then out of the way for a clean list. It
 /// flashes back briefly whenever the rank changes (re-sort). Top 3 wear gold.
 class FundTile extends ConsumerStatefulWidget {
@@ -132,7 +131,8 @@ class _FundTileState extends ConsumerState<FundTile> {
     final hasRate = f.showsYield && rate != null;
     final net = hasRate ? f.netRate(wht) : null;
 
-    final meta = '${_typeLabel(f)}'
+    final meta =
+        '${_typeLabel(f)}'
         '${f.minInvest != null ? ' \u00b7 min ${f.currency} ${_commas(f.minInvest!)}' : ''}';
 
     return Padding(
@@ -141,9 +141,8 @@ class _FundTileState extends ConsumerState<FundTile> {
         color: widget.selected ? c.accentSoft : c.s1,
         shape: RoundedRectangleBorder(
           side: BorderSide(
-              color: widget.selected
-                  ? c.accent.withValues(alpha: 0.4)
-                  : c.line),
+            color: widget.selected ? c.accent.withValues(alpha: 0.4) : c.line,
+          ),
           borderRadius: BorderRadius.circular(16),
         ),
         clipBehavior: Clip.antiAlias,
@@ -162,11 +161,12 @@ class _FundTileState extends ConsumerState<FundTile> {
                     clipBehavior: Clip.none,
                     children: [
                       FundLogo(
-                          domain: f.logoDomain,
-                          logoUrl: logoUrl,
-                          seed: f.manager,
-                          size: 38,
-                          brandColor: widget.brandColor),
+                        domain: f.logoDomain,
+                        logoUrl: logoUrl,
+                        seed: f.manager,
+                        size: 38,
+                        brandColor: widget.brandColor,
+                      ),
                       if (widget.rank != null)
                         Positioned(
                           left: -5,
@@ -177,18 +177,16 @@ class _FundTileState extends ConsumerState<FundTile> {
                               duration: const Duration(milliseconds: 500),
                               curve: Curves.easeOut,
                               child: Container(
-                                constraints:
-                                    const BoxConstraints(minWidth: 18),
+                                constraints: const BoxConstraints(minWidth: 18),
                                 height: 18,
                                 alignment: Alignment.center,
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 4),
+                                  horizontal: 4,
+                                ),
                                 decoration: BoxDecoration(
-                                  color:
-                                      widget.rank! <= 3 ? c.accent : c.s2,
+                                  color: widget.rank! <= 3 ? c.accent : c.s2,
                                   borderRadius: BorderRadius.circular(6),
-                                  border:
-                                      Border.all(color: c.s1, width: 1.5),
+                                  border: Border.all(color: c.s1, width: 1.5),
                                 ),
                                 child: Text(
                                   '${widget.rank}',
@@ -196,7 +194,7 @@ class _FundTileState extends ConsumerState<FundTile> {
                                     color: widget.rank! <= 3
                                         ? c.onAccent
                                         : c.muted,
-                                    fontFamily: AkibaFonts.mono,
+                                    fontFamily: fructaFonts.mono,
                                     fontSize: 10,
                                     height: 1,
                                     fontWeight: FontWeight.w700,
@@ -218,8 +216,11 @@ class _FundTileState extends ConsumerState<FundTile> {
                               shape: BoxShape.circle,
                               border: Border.all(color: c.s1, width: 2),
                             ),
-                            child: Icon(Icons.check,
-                                size: 10, color: c.onAccent),
+                            child: Icon(
+                              Icons.check,
+                              size: 10,
+                              color: c.onAccent,
+                            ),
                           ),
                         ),
                     ],
@@ -231,12 +232,15 @@ class _FundTileState extends ConsumerState<FundTile> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(f.name,
-                          style: TextStyle(
-                              color: c.text,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              height: 1.3)),
+                      Text(
+                        f.name,
+                        style: TextStyle(
+                          color: c.text,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          height: 1.3,
+                        ),
+                      ),
                       const SizedBox(height: 2),
                       Row(
                         children: [
@@ -244,26 +248,32 @@ class _FundTileState extends ConsumerState<FundTile> {
                             child: Text(
                               meta,
                               style: TextStyle(
-                                  color: c.faint,
-                                  fontFamily: AkibaFonts.mono,
-                                  fontSize: 10.5),
+                                color: c.faint,
+                                fontFamily: fructaFonts.mono,
+                                fontSize: 10.5,
+                              ),
                             ),
                           ),
                           if (f.taxFree) ...[
                             const SizedBox(width: 6),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 1),
+                                horizontal: 6,
+                                vertical: 1,
+                              ),
                               decoration: BoxDecoration(
                                 color: c.upSoft,
                                 borderRadius: BorderRadius.circular(5),
                               ),
-                              child: Text('TAX-FREE',
-                                  style: TextStyle(
-                                      color: c.up,
-                                      fontSize: 9,
-                                      letterSpacing: 0.3,
-                                      fontWeight: FontWeight.w600)),
+                              child: Text(
+                                'TAX-FREE',
+                                style: TextStyle(
+                                  color: c.up,
+                                  fontSize: 9,
+                                  letterSpacing: 0.3,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ),
                           ],
                         ],
@@ -290,7 +300,9 @@ class _FundTileState extends ConsumerState<FundTile> {
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 5, vertical: 2),
+                        horizontal: 5,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: rateBg,
                         borderRadius: BorderRadius.circular(7),
@@ -299,7 +311,7 @@ class _FundTileState extends ConsumerState<FundTile> {
                         hasRate ? '${rate.toStringAsFixed(2)}%' : '\u2014',
                         style: TextStyle(
                           color: hasRate ? c.text : c.faint,
-                          fontFamily: AkibaFonts.mono,
+                          fontFamily: fructaFonts.mono,
                           fontSize: 19,
                           fontWeight: FontWeight.w600,
                           fontFeatures: const [FontFeature.tabularFigures()],
@@ -312,7 +324,7 @@ class _FundTileState extends ConsumerState<FundTile> {
                         '${net.toStringAsFixed(2)}% net',
                         style: TextStyle(
                           color: c.muted,
-                          fontFamily: AkibaFonts.mono,
+                          fontFamily: fructaFonts.mono,
                           fontSize: 11,
                           fontFeatures: const [FontFeature.tabularFigures()],
                         ),
@@ -324,9 +336,7 @@ class _FundTileState extends ConsumerState<FundTile> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            d > 0
-                                ? Icons.arrow_drop_up
-                                : Icons.arrow_drop_down,
+                            d > 0 ? Icons.arrow_drop_up : Icons.arrow_drop_down,
                             size: 14,
                             color: c.delta(d),
                           ),
@@ -334,11 +344,11 @@ class _FundTileState extends ConsumerState<FundTile> {
                             d.abs().toStringAsFixed(2),
                             style: TextStyle(
                               color: c.delta(d),
-                              fontFamily: AkibaFonts.mono,
+                              fontFamily: fructaFonts.mono,
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
                               fontFeatures: const [
-                                FontFeature.tabularFigures()
+                                FontFeature.tabularFigures(),
                               ],
                             ),
                           ),
@@ -383,8 +393,9 @@ class _TileSpark extends CustomPainter {
     canvas.drawPath(
       path,
       Paint()
-        ..color = (points.last >= points.first ? up : down)
-            .withValues(alpha: 0.9)
+        ..color = (points.last >= points.first ? up : down).withValues(
+          alpha: 0.9,
+        )
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.5
         ..strokeCap = StrokeCap.round

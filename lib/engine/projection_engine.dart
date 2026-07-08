@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+
 import 'tax.dart';
 
 /// Monthly-compounded projections for the portfolio slider and growth chart.
@@ -26,7 +27,9 @@ class ProjectionEngine {
     final m = _effMonthly(annualRatePercent, net);
     final growth = math.pow(1 + m, months).toDouble();
     final fvPrincipal = principal * growth;
-    final fvContrib = m == 0 ? monthlyTopUp * months : monthlyTopUp * (growth - 1) / m;
+    final fvContrib = m == 0
+        ? monthlyTopUp * months
+        : monthlyTopUp * (growth - 1) / m;
     return fvPrincipal + fvContrib;
   }
 
@@ -62,7 +65,7 @@ class ProjectionEngine {
     if (m <= 0 && monthlyTopUp <= 0) return null;
     var v = principal;
     var months = 0;
-    const cap = 1200; // 100 years — safety valve
+    const cap = 1200; // 100 years  safety valve
     while (v < target && months < cap) {
       v = v * (1 + m) + monthlyTopUp;
       months++;

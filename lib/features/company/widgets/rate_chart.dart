@@ -13,7 +13,7 @@ import '../../../data/providers.dart';
 /// in `RateChart(fundId, color: tint)`.
 ///
 /// Until the user picks a range, the chart auto-selects the SMALLEST range
-/// that contains at least 2 points — with sparse history (e.g. monthly marks)
+/// that contains at least 2 points  with sparse history (e.g. monthly marks)
 /// a fixed 1W default would open on "Not enough data" even though a perfectly
 /// good 3M line exists. A user tap always wins from then on.
 class RateChart extends ConsumerStatefulWidget {
@@ -74,8 +74,10 @@ class _RateChartState extends ConsumerState<RateChart> {
       error: (e, _) => SizedBox(
         height: 180,
         child: Center(
-          child: Text('Couldn\u2019t load history.',
-              style: TextStyle(color: c.muted)),
+          child: Text(
+            'Couldn\u2019t load history.',
+            style: TextStyle(color: c.muted),
+          ),
         ),
       ),
       data: (all) {
@@ -133,10 +135,10 @@ class _Chart extends StatelessWidget {
     final labelStyle = TextStyle(
       color: c.faint,
       fontSize: 10,
-      fontFamily: AkibaFonts.mono,
+      fontFamily: fructaFonts.mono,
     );
 
-    // Minimal v5 aesthetic: no axes, no grid, no border — just the brand line
+    // Minimal v5 aesthetic: no axes, no grid, no border  just the brand line
     // and gradient fill, with min/max pinned to the right edge.
     return Stack(
       children: [
@@ -154,8 +156,7 @@ class _Chart extends StatelessWidget {
                 touchTooltipData: LineTouchTooltipData(
                   getTooltipColor: (_) => c.s2,
                   getTooltipItems: (touched) => touched.map((s) {
-                    final p =
-                        points[s.x.round().clamp(0, points.length - 1)];
+                    final p = points[s.x.round().clamp(0, points.length - 1)];
                     return LineTooltipItem(
                       '${p.asOf}\n${p.rate.toStringAsFixed(2)}%',
                       TextStyle(

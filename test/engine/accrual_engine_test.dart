@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:akiba/engine/accrual_engine.dart';
+import 'package:fructa/engine/accrual_engine.dart';
 
 void main() {
   group('AccrualEngine', () {

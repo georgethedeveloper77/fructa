@@ -1,0 +1,38 @@
+# =========================
+# fructa Admin - Next.js
+# =========================
+
+# dependencies
+fructa-admin/node_modules/
+
+# local env files - DO NOT COMMIT
+fructa-admin/.env
+fructa-admin/.env.local
+fructa-admin/.env.development.local
+fructa-admin/.env.test.local
+fructa-admin/.env.production.local
+
+# keep example env file
+!fructa-admin/.env.example
+
+# Next.js build/cache
+fructa-admin/.next/
+fructa-admin/out/
+fructa-admin/.vercel/
+
+# logs
+fructa-admin/npm-debug.log*
+fructa-admin/yarn-debug.log*
+fructa-admin/pnpm-debug.log*
+fructa-admin/bun-debug.log*
+
+# TypeScript cache
+fructa-admin/*.tsbuildinfo
+
+# OS/editor
+fructa-admin/.DS_Store
+fructa-admin/.idea/
+fructa-admin/.vscode/
+
+sensitive.md
+fructa-admin/sensitive.md

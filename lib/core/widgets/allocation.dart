@@ -22,7 +22,7 @@ class AllocSlice {
   final String valueText;
 }
 
-/// v5 `.compbar` — a 10px stacked bar, r6, with a 20px side margin.
+/// v5 `.compbar`  a 10px stacked bar, r6, with a 20px side margin.
 class AllocationBar extends StatelessWidget {
   const AllocationBar(
     this.slices, {
@@ -59,7 +59,7 @@ class AllocationBar extends StatelessWidget {
   }
 }
 
-/// v5 `.leg` — colour dot + label + mono value, hairline-separated rows.
+/// v5 `.leg`  colour dot + label + mono value, hairline-separated rows.
 class Legend extends StatelessWidget {
   const Legend(this.slices, {super.key});
 
@@ -92,14 +92,16 @@ class Legend extends StatelessWidget {
                   ),
                   const SizedBox(width: 9),
                   Expanded(
-                    child: Text(slices[i].label,
-                        style: TextStyle(color: c.muted, fontSize: 12.5)),
+                    child: Text(
+                      slices[i].label,
+                      style: TextStyle(color: c.muted, fontSize: 12.5),
+                    ),
                   ),
                   Text(
                     slices[i].valueText,
                     style: TextStyle(
                       color: c.text,
-                      fontFamily: AkibaFonts.mono,
+                      fontFamily: fructaFonts.mono,
                       fontSize: 12.5,
                       fontWeight: FontWeight.w600,
                     ),

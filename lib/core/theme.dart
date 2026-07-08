@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-/// Akiba design tokens.
+/// fructa design tokens.
 ///
 /// Single source of truth for colour. Ported 1:1 from the locked v5 UI
-/// (`akiba_mobile_v5.html` :root) for dark, with a derived light palette.
+/// (`fructa_mobile_v5.html` :root) for dark, with a derived light palette.
 /// Everything is exposed as a [ThemeExtension] so widgets read tokens via
 /// `context.c.<token>` and get light/dark + accent switching for free.
 ///
@@ -12,42 +12,41 @@ import 'package:flutter/material.dart';
 /// raw hex outside this file except brand colours (which come from data).
 
 // ─────────────────────────────────────────────────────────────────────────
-// Accents — the 5 selectable accents. Each carries the accent colour, the
+// Accents  the 5 selectable accents. Each carries the accent colour, the
 // ink that sits legibly on top of it, and a soft-fill alpha per brightness.
 // All five already exist in the v5 palette, so nothing looks foreign.
 // ─────────────────────────────────────────────────────────────────────────
 
-enum AkibaAccent { gold, sky, emerald, iris, amber }
+enum fructaAccent { gold, sky, emerald, iris, amber }
 
-extension AkibaAccentX on AkibaAccent {
+extension fructaAccentX on fructaAccent {
   String get label => switch (this) {
-        AkibaAccent.gold => 'Gold',
-        AkibaAccent.sky => 'Sky',
-        AkibaAccent.emerald => 'Emerald',
-        AkibaAccent.iris => 'Iris',
-        AkibaAccent.amber => 'Amber',
-      };
+    fructaAccent.gold => 'Gold',
+    fructaAccent.sky => 'Sky',
+    fructaAccent.emerald => 'Emerald',
+    fructaAccent.iris => 'Iris',
+    fructaAccent.amber => 'Amber',
+  };
 
   /// The accent colour itself.
   Color get color => switch (this) {
-        AkibaAccent.gold => const Color(0xFFE7B24C),
-        AkibaAccent.sky => const Color(0xFF4E8FE8),
-        AkibaAccent.emerald => const Color(0xFF2FB5A0),
-        AkibaAccent.iris => const Color(0xFF9A8BF3),
-        AkibaAccent.amber => const Color(0xFFF0B542),
-      };
+    fructaAccent.gold => const Color(0xFFE7B24C),
+    fructaAccent.sky => const Color(0xFF4E8FE8),
+    fructaAccent.emerald => const Color(0xFF2FB5A0),
+    fructaAccent.iris => const Color(0xFF9A8BF3),
+    fructaAccent.amber => const Color(0xFFF0B542),
+  };
 
   /// Ink that sits on top of a filled accent surface (buttons, pills).
   Color get onColor => switch (this) {
-        // Gold/Amber are light enough to need dark ink (matches --gold-ink).
-        AkibaAccent.gold => const Color(0xFF191204),
-        AkibaAccent.amber => const Color(0xFF1A1304),
-        // Mid-tone accents take near-white ink.
-        AkibaAccent.sky ||
-        AkibaAccent.emerald ||
-        AkibaAccent.iris =>
-          const Color(0xFFFFFFFF),
-      };
+    // Gold/Amber are light enough to need dark ink (matches --gold-ink).
+    fructaAccent.gold => const Color(0xFF191204),
+    fructaAccent.amber => const Color(0xFF1A1304),
+    // Mid-tone accents take near-white ink.
+    fructaAccent.sky ||
+    fructaAccent.emerald ||
+    fructaAccent.iris => const Color(0xFFFFFFFF),
+  };
 
   /// Soft translucent fill of the accent (chips, glows). Slightly stronger on
   /// light so it stays visible against white surfaces.
@@ -60,8 +59,8 @@ extension AkibaAccentX on AkibaAccent {
 // ─────────────────────────────────────────────────────────────────────────
 
 @immutable
-class AkibaColors extends ThemeExtension<AkibaColors> {
-  const AkibaColors({
+class fructaColors extends ThemeExtension<fructaColors> {
+  const fructaColors({
     required this.brightness,
     required this.accentKind,
     // surfaces
@@ -89,7 +88,7 @@ class AkibaColors extends ThemeExtension<AkibaColors> {
   });
 
   final Brightness brightness;
-  final AkibaAccent accentKind;
+  final fructaAccent accentKind;
 
   final Color bg;
   final Color s1;
@@ -122,59 +121,59 @@ class AkibaColors extends ThemeExtension<AkibaColors> {
   Color delta(num v) => v > 0 ? up : (v < 0 ? down : muted);
   Color deltaSoft(num v) => v > 0 ? upSoft : (v < 0 ? downSoft : line);
 
-  // ── Dark — ported verbatim from v5 :root ────────────────────────────────
-  factory AkibaColors.dark(AkibaAccent a) => AkibaColors(
-        brightness: Brightness.dark,
-        accentKind: a,
-        bg: const Color(0xFF060709),
-        s1: const Color(0xFF0D0F13),
-        s2: const Color(0xFF13161C),
-        s3: const Color(0xFF1A1E26),
-        line: const Color(0xFF1B1F27),
-        line2: const Color(0xFF282D37),
-        text: const Color(0xFFF3F5F8),
-        muted: const Color(0xFF9AA2B2),
-        faint: const Color(0xFF7A8290),
-        up: const Color(0xFF3DDC97),
-        upSoft: const Color(0x1C3DDC97), // rgba(61,220,151,.11)
-        down: const Color(0xFFFF6B6B),
-        downSoft: const Color(0x1CFF6B6B), // rgba(255,107,107,.11)
-        accent: a.color,
-        onAccent: a.onColor,
-        accentSoft: a.soft(Brightness.dark),
-        accentInk: a.color,
-      );
+  // ── Dark  ported verbatim from v5 :root ────────────────────────────────
+  factory fructaColors.dark(fructaAccent a) => fructaColors(
+    brightness: Brightness.dark,
+    accentKind: a,
+    bg: const Color(0xFF060709),
+    s1: const Color(0xFF0D0F13),
+    s2: const Color(0xFF13161C),
+    s3: const Color(0xFF1A1E26),
+    line: const Color(0xFF1B1F27),
+    line2: const Color(0xFF282D37),
+    text: const Color(0xFFF3F5F8),
+    muted: const Color(0xFF9AA2B2),
+    faint: const Color(0xFF7A8290),
+    up: const Color(0xFF3DDC97),
+    upSoft: const Color(0x1C3DDC97), // rgba(61,220,151,.11)
+    down: const Color(0xFFFF6B6B),
+    downSoft: const Color(0x1CFF6B6B), // rgba(255,107,107,.11)
+    accent: a.color,
+    onAccent: a.onColor,
+    accentSoft: a.soft(Brightness.dark),
+    accentInk: a.color,
+  );
 
-  // ── Light — derived: same cool-neutral character, inverted for legibility ─
-  factory AkibaColors.light(AkibaAccent a) => AkibaColors(
-        brightness: Brightness.light,
-        accentKind: a,
-        bg: const Color(0xFFF4F6FA),
-        s1: const Color(0xFFFFFFFF),
-        s2: const Color(0xFFEEF1F6),
-        s3: const Color(0xFFE4E9F0),
-        line: const Color(0xFFE1E5EC),
-        line2: const Color(0xFFCDD4DE),
-        text: const Color(0xFF0E1116),
-        muted: const Color(0xFF5A6472),
-        faint: const Color(0xFF7C8492),
-        up: const Color(0xFF12A46B), // darker green holds contrast on white
-        upSoft: const Color(0x1F12A46B),
-        down: const Color(0xFFE5484D),
-        downSoft: const Color(0x1FE5484D),
-        accent: a.color,
-        onAccent: a.onColor,
-        accentSoft: a.soft(Brightness.light),
-        accentInk: Color.lerp(a.color, const Color(0xFF0E1116), 0.42)!,
-      );
+  // ── Light  derived: same cool-neutral character, inverted for legibility ─
+  factory fructaColors.light(fructaAccent a) => fructaColors(
+    brightness: Brightness.light,
+    accentKind: a,
+    bg: const Color(0xFFF4F6FA),
+    s1: const Color(0xFFFFFFFF),
+    s2: const Color(0xFFEEF1F6),
+    s3: const Color(0xFFE4E9F0),
+    line: const Color(0xFFE1E5EC),
+    line2: const Color(0xFFCDD4DE),
+    text: const Color(0xFF0E1116),
+    muted: const Color(0xFF5A6472),
+    faint: const Color(0xFF7C8492),
+    up: const Color(0xFF12A46B), // darker green holds contrast on white
+    upSoft: const Color(0x1F12A46B),
+    down: const Color(0xFFE5484D),
+    downSoft: const Color(0x1FE5484D),
+    accent: a.color,
+    onAccent: a.onColor,
+    accentSoft: a.soft(Brightness.light),
+    accentInk: Color.lerp(a.color, const Color(0xFF0E1116), 0.42)!,
+  );
 
-  factory AkibaColors.resolve(Brightness b, AkibaAccent a) =>
-      b == Brightness.dark ? AkibaColors.dark(a) : AkibaColors.light(a);
+  factory fructaColors.resolve(Brightness b, fructaAccent a) =>
+      b == Brightness.dark ? fructaColors.dark(a) : fructaColors.light(a);
 
   @override
-  AkibaColors copyWith({
+  fructaColors copyWith({
     Brightness? brightness,
-    AkibaAccent? accentKind,
+    fructaAccent? accentKind,
     Color? bg,
     Color? s1,
     Color? s2,
@@ -193,7 +192,7 @@ class AkibaColors extends ThemeExtension<AkibaColors> {
     Color? accentSoft,
     Color? accentInk,
   }) {
-    return AkibaColors(
+    return fructaColors(
       brightness: brightness ?? this.brightness,
       accentKind: accentKind ?? this.accentKind,
       bg: bg ?? this.bg,
@@ -217,10 +216,10 @@ class AkibaColors extends ThemeExtension<AkibaColors> {
   }
 
   @override
-  AkibaColors lerp(ThemeExtension<AkibaColors>? other, double t) {
-    if (other is! AkibaColors) return this;
+  fructaColors lerp(ThemeExtension<fructaColors>? other, double t) {
+    if (other is! fructaColors) return this;
     Color c(Color a, Color b) => Color.lerp(a, b, t)!;
-    return AkibaColors(
+    return fructaColors(
       // discrete fields snap at the midpoint
       brightness: t < 0.5 ? brightness : other.brightness,
       accentKind: t < 0.5 ? accentKind : other.accentKind,
@@ -251,22 +250,22 @@ class AkibaColors extends ThemeExtension<AkibaColors> {
 // keep these names in sync.
 // ─────────────────────────────────────────────────────────────────────────
 
-abstract final class AkibaFonts {
+abstract final class fructaFonts {
   static const sans = 'Inter';
   static const mono = 'SpaceGrotesk'; // tabular-figure face for rates/money
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// ThemeData builder — attaches the tokens as an extension and wires the
+// ThemeData builder  attaches the tokens as an extension and wires the
 // Material ColorScheme + common component defaults off the same tokens so
 // stock widgets (SnackBar, Switch, dividers…) inherit the look.
 // ─────────────────────────────────────────────────────────────────────────
 
-ThemeData buildAkibaTheme({
+ThemeData buildfructaTheme({
   required Brightness brightness,
-  required AkibaAccent accent,
+  required fructaAccent accent,
 }) {
-  final c = AkibaColors.resolve(brightness, accent);
+  final c = fructaColors.resolve(brightness, accent);
 
   final scheme = ColorScheme(
     brightness: brightness,
@@ -290,7 +289,7 @@ ThemeData buildAkibaTheme({
     scaffoldBackgroundColor: c.bg,
     canvasColor: c.bg,
     dividerColor: c.line,
-    fontFamily: AkibaFonts.sans,
+    fontFamily: fructaFonts.sans,
     splashFactory: NoSplash.splashFactory,
     extensions: [c],
     textTheme: _textTheme(c),
@@ -327,15 +326,15 @@ ThemeData buildAkibaTheme({
       overlayColor: c.accentSoft,
       overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
       trackShape: const RoundedRectSliderTrackShape(),
-      thumbShape: _AkibaSliderThumb(ring: c.bg, core: c.accent),
+      thumbShape: _fructaSliderThumb(ring: c.bg, core: c.accent),
     ),
   );
 }
 
-/// A 19px thumb: an [core]-filled disc inside a 3px [ring] border — matches
+/// A 19px thumb: an [core]-filled disc inside a 3px [ring] border  matches
 /// v5's `.slider::-webkit-slider-thumb{...;border:3px solid var(--bg)}`.
-class _AkibaSliderThumb extends SliderComponentShape {
-  const _AkibaSliderThumb({required this.ring, required this.core});
+class _fructaSliderThumb extends SliderComponentShape {
+  const _fructaSliderThumb({required this.ring, required this.core});
 
   final Color ring;
   final Color core;
@@ -365,10 +364,10 @@ class _AkibaSliderThumb extends SliderComponentShape {
   }
 }
 
-TextTheme _textTheme(AkibaColors c) {
-  final base = TextStyle(color: c.text, fontFamily: AkibaFonts.sans);
+TextTheme _textTheme(fructaColors c) {
+  final base = TextStyle(color: c.text, fontFamily: fructaFonts.sans);
   return TextTheme(
-    displayLarge: base.copyWith(fontFamily: AkibaFonts.mono),
+    displayLarge: base.copyWith(fontFamily: fructaFonts.mono),
     headlineSmall: base.copyWith(fontWeight: FontWeight.w600),
     titleMedium: base.copyWith(fontWeight: FontWeight.w600),
     bodyLarge: base,
@@ -380,14 +379,14 @@ TextTheme _textTheme(AkibaColors c) {
 /// Ergonomic access: `context.c.up`, `context.c.accent`, …
 ///
 /// Falls back to the dark tokens if the theme wasn't built with
-/// [buildAkibaTheme] (e.g. a Cupertino subtree, or before main.dart is wired).
-/// This prevents a null-crash — but if you're seeing dark colours in light
+/// [buildfructaTheme] (e.g. a Cupertino subtree, or before main.dart is wired).
+/// This prevents a null-crash  but if you're seeing dark colours in light
 /// mode, it means the extension is missing: build MaterialApp.theme/darkTheme
-/// with buildAkibaTheme() so switching actually works.
-extension AkibaColorsContext on BuildContext {
-  AkibaColors get c =>
-      Theme.of(this).extension<AkibaColors>() ??
-      AkibaColors.dark(AkibaAccent.gold);
+/// with buildfructaTheme() so switching actually works.
+extension fructaColorsContext on BuildContext {
+  fructaColors get c =>
+      Theme.of(this).extension<fructaColors>() ??
+      fructaColors.dark(fructaAccent.gold);
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -395,7 +394,7 @@ extension AkibaColorsContext on BuildContext {
 //
 // Phase 0–5 screens reference the old `AppColors.*`. That class was removed in
 // the A1 rewrite; these const values re-expose exactly the members the code
-// uses, mapped to the v5 **dark** tokens above — so old screens compile and
+// uses, mapped to the v5 **dark** tokens above  so old screens compile and
 // look identical. They're static const, which also restores const widgets that
 // used them.
 //

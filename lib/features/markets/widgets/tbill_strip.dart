@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 
 import '../../../core/theme.dart';
@@ -61,9 +60,11 @@ class _Cell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.c;
-    final tenor = RegExp(r'(\d+)\s*-?\s*day', caseSensitive: false)
-            .firstMatch(fund.name)
-            ?.group(0) ??
+    final tenor =
+        RegExp(
+          r'(\d+)\s*-?\s*day',
+          caseSensitive: false,
+        ).firstMatch(fund.name)?.group(0) ??
         fund.name;
 
     return GestureDetector(
@@ -88,7 +89,7 @@ class _Cell extends StatelessWidget {
                 : '\u2014',
             style: TextStyle(
               color: isTop ? c.accent : c.text,
-              fontFamily: AkibaFonts.mono,
+              fontFamily: fructaFonts.mono,
               fontSize: 19,
               fontWeight: FontWeight.w600,
               fontFeatures: const [FontFeature.tabularFigures()],
@@ -98,7 +99,10 @@ class _Cell extends StatelessWidget {
           Text(
             'last auction',
             style: TextStyle(
-                color: c.faint, fontSize: 9.5, fontFamily: AkibaFonts.mono),
+              color: c.faint,
+              fontSize: 9.5,
+              fontFamily: fructaFonts.mono,
+            ),
           ),
         ],
       ),

@@ -136,6 +136,7 @@ export interface SnapshotEvent {
 export interface SnapshotV2 {
   schema: 2;
   as_of: string;
+  generated_at: string;
   funds: SnapshotFund[];
   insurers: SnapshotInsurer[];
   companies: SnapshotCompany[];
@@ -143,4 +144,37 @@ export interface SnapshotV2 {
   fx: SnapshotFx[];
   insight_templates: SnapshotTemplate[];
   events: SnapshotEvent[];
+}
+
+// ── Learn (D2) ──────────────────────────────────────────────────────────────
+// units → lessons → steps, nested. A step's `payload` shape depends on `kind`
+// (explainer | interactive | quiz) and is parsed app-side. A lesson's optional
+// `fund_id` is resolved to the LIVE rate in-app for the "live term" badge and
+// "See it live", so content never hard-codes a stale number.
+
+export interface SnapshotLearnStep {
+  id: string;
+  kind: string;
+  payload: unknown;
+}
+
+export interface SnapshotLearnLesson {
+  id: string;
+  title: string;
+  xp: number;
+  fund_id: string | null;
+  steps: SnapshotLearnStep[];
+}
+
+export interface SnapshotLearnUnit {
+  id: string;
+  title: string;
+  subtitle: string | null;
+  accent: string | null;
+  unlock_after: string | null;
+  lessons: SnapshotLearnLesson[];
+}
+
+export interface SnapshotLearn {
+  units: SnapshotLearnUnit[];
 }

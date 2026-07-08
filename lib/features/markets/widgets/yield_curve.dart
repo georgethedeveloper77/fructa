@@ -1,5 +1,3 @@
-import 'dart:ui' show FontFeature;
-
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme.dart';
 import '../../../data/snapshot_providers.dart';
 
-/// Government yield curve — the 91/182/364-day T-bill as a 3-point line, read
+/// Government yield curve  the 91/182/364-day T-bill as a 3-point line, read
 /// from the published benchmarks (`benchmark.tbill_91/182/364`) which carry
 /// baked fallbacks, so this always renders. Sits with the market context at
 /// the foot of Markets: government context, not a fund rate the user is
@@ -33,18 +31,24 @@ class YieldCurve extends ConsumerWidget {
         children: [
           Row(
             children: [
-              Text('GOVERNMENT YIELD CURVE',
-                  style: TextStyle(
-                      color: c.faint,
-                      fontSize: 11,
-                      letterSpacing: 0.8,
-                      fontWeight: FontWeight.w600)),
+              Text(
+                'GOVERNMENT YIELD CURVE',
+                style: TextStyle(
+                  color: c.faint,
+                  fontSize: 11,
+                  letterSpacing: 0.8,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               const Spacer(),
-              Text('T-bills \u00b7 last auction',
-                  style: TextStyle(
-                      color: c.faint,
-                      fontSize: 10.5,
-                      fontFamily: AkibaFonts.mono)),
+              Text(
+                'T-bills \u00b7 last auction',
+                style: TextStyle(
+                  color: c.faint,
+                  fontSize: 10.5,
+                  fontFamily: fructaFonts.mono,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -60,11 +64,14 @@ class YieldCurve extends ConsumerWidget {
                 borderData: FlBorderData(show: false),
                 titlesData: FlTitlesData(
                   leftTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false)),
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
                   topTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false)),
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
                   rightTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false)),
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
@@ -75,11 +82,14 @@ class YieldCurve extends ConsumerWidget {
                         if (i < 0 || i > 2) return const SizedBox.shrink();
                         return Padding(
                           padding: const EdgeInsets.only(top: 6),
-                          child: Text(labels[i],
-                              style: TextStyle(
-                                  color: c.faint,
-                                  fontFamily: AkibaFonts.mono,
-                                  fontSize: 10)),
+                          child: Text(
+                            labels[i],
+                            style: TextStyle(
+                              color: c.faint,
+                              fontFamily: fructaFonts.mono,
+                              fontSize: 10,
+                            ),
+                          ),
                         );
                       },
                     ),
@@ -98,8 +108,7 @@ class YieldCurve extends ConsumerWidget {
                     barWidth: 2.4,
                     dotData: FlDotData(
                       show: true,
-                      getDotPainter: (spot, pct, bar, i) =>
-                          FlDotCirclePainter(
+                      getDotPainter: (spot, pct, bar, i) => FlDotCirclePainter(
                         radius: 4,
                         color: c.bg,
                         strokeWidth: 2,
@@ -130,21 +139,25 @@ class YieldCurve extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(labels[i],
-                          style: TextStyle(
-                              color: c.faint,
-                              fontSize: 9.5,
-                              fontFamily: AkibaFonts.mono)),
+                      Text(
+                        labels[i],
+                        style: TextStyle(
+                          color: c.faint,
+                          fontSize: 9.5,
+                          fontFamily: fructaFonts.mono,
+                        ),
+                      ),
                       const SizedBox(height: 2),
-                      Text('${pts[i].toStringAsFixed(2)}%',
-                          style: TextStyle(
-                              color: c.accent,
-                              fontFamily: AkibaFonts.mono,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              fontFeatures: const [
-                                FontFeature.tabularFigures()
-                              ])),
+                      Text(
+                        '${pts[i].toStringAsFixed(2)}%',
+                        style: TextStyle(
+                          color: c.accent,
+                          fontFamily: fructaFonts.mono,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -152,8 +165,10 @@ class YieldCurve extends ConsumerWidget {
           ),
           if (asOf != null) ...[
             const SizedBox(height: 8),
-            Text('Last auction $asOf \u00b7 source: CBK',
-                style: TextStyle(color: c.faint, fontSize: 9.5)),
+            Text(
+              'Last auction $asOf \u00b7 source: CBK',
+              style: TextStyle(color: c.faint, fontSize: 9.5),
+            ),
           ],
         ],
       ),

@@ -7,7 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// once at startup and exposes a global `t(...)`. No extra dependencies, and it
 /// works outside the widget tree (engines, providers) as well as inside.
 ///
-/// Convention going forward: **no bare UI string literals** — every visible
+/// Convention going forward: **no bare UI string literals**  every visible
 /// string is `t('some.key')`, with the English copy in assets/lang/en.json.
 ///
 /// Interpolation: `t('markets.fundCount', {'n': '12'})` against

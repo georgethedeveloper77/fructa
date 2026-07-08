@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:local_auth/local_auth.dart';
+
 import '../core/theme.dart';
 import '../data/providers.dart';
 
@@ -13,7 +14,8 @@ class LockGate extends ConsumerStatefulWidget {
   ConsumerState<LockGate> createState() => _LockGateState();
 }
 
-class _LockGateState extends ConsumerState<LockGate> with WidgetsBindingObserver {
+class _LockGateState extends ConsumerState<LockGate>
+    with WidgetsBindingObserver {
   final _auth = LocalAuthentication();
   bool _locked = false;
   bool _busy = false;
@@ -50,9 +52,7 @@ class _LockGateState extends ConsumerState<LockGate> with WidgetsBindingObserver
     if (_busy) return;
     _busy = true;
     try {
-      final ok = await _auth.authenticate(
-        localizedReason: 'Unlock Akiba',
-      );
+      final ok = await _auth.authenticate(localizedReason: 'Unlock fructa');
       if (ok && mounted) setState(() => _locked = false);
     } catch (_) {
       // stay locked; the user can tap Unlock to retry
@@ -63,10 +63,13 @@ class _LockGateState extends ConsumerState<LockGate> with WidgetsBindingObserver
 
   @override
   Widget build(BuildContext context) {
-    return Stack(children: [
-      widget.child,
-      if (_locked) Positioned.fill(child: _LockScreen(onUnlock: _authenticate)),
-    ]);
+    return Stack(
+      children: [
+        widget.child,
+        if (_locked)
+          Positioned.fill(child: _LockScreen(onUnlock: _authenticate)),
+      ],
+    );
   }
 }
 
@@ -81,20 +84,48 @@ class _LockScreen extends StatelessWidget {
       color: c.bg,
       child: SafeArea(
         child: Center(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Text.rich(TextSpan(children: [
-              TextSpan(text: 'akiba', style: TextStyle(color: c.text, fontSize: 28, fontWeight: FontWeight.bold)),
-              TextSpan(text: ' .', style: TextStyle(color: c.accent, fontSize: 28, fontWeight: FontWeight.bold)),
-            ])),
-            const SizedBox(height: 28),
-            Icon(Icons.lock_outline, color: c.faint, size: 40),
-            const SizedBox(height: 24),
-            FilledButton(
-              onPressed: onUnlock,
-              style: FilledButton.styleFrom(backgroundColor: c.accent, foregroundColor: Colors.black, padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14)),
-              child: const Text('Unlock'),
-            ),
-          ]),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(
+                      text: 'fructa',
+                      style: TextStyle(
+                        color: c.text,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    TextSpan(
+                      text: ' .',
+                      style: TextStyle(
+                        color: c.accent,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 28),
+              Icon(Icons.lock_outline, color: c.faint, size: 40),
+              const SizedBox(height: 24),
+              FilledButton(
+                onPressed: onUnlock,
+                style: FilledButton.styleFrom(
+                  backgroundColor: c.accent,
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 14,
+                  ),
+                ),
+                child: const Text('Unlock'),
+              ),
+            ],
+          ),
         ),
       ),
     );

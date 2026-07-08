@@ -6,7 +6,7 @@ class Benchmark {
   final String? source;
 }
 
-/// One fund-type slice of the CMA market split — AUM and its share of the
+/// One fund-type slice of the CMA market split  AUM and its share of the
 /// whole CIS market. Published under `market.aum_by_fund_type`.
 class MarketFundType {
   const MarketFundType(this.type, this.aumKes, this.share);
@@ -17,7 +17,7 @@ class MarketFundType {
 
 /// Admin-editable key/value config, published inside the snapshot (`config`).
 /// Every getter takes a baked-in fallback so the app renders correctly with
-/// an old snapshot, an empty table, or a bad value — remote config can only
+/// an old snapshot, an empty table, or a bad value  remote config can only
 /// override copy/flags/benchmarks, never break the UI.
 class RemoteConfig {
   const RemoteConfig(this._values);
@@ -69,7 +69,7 @@ class RemoteConfig {
   double benchmarkRate(String key, double fallback) =>
       benchmark(key)?.rate ?? fallback;
 
-  // Convenience — fallbacks are the live figures at build time (Jun 2026).
+  // Convenience  fallbacks are the live figures at build time (Jun 2026).
   double get inflationPct => benchmarkRate('benchmark.inflation', 6.7);
   double get cbrPct => benchmarkRate('benchmark.cbr', 8.75);
   double get tbill91Pct => benchmarkRate('benchmark.tbill_91', 8.71);
@@ -82,7 +82,7 @@ class RemoteConfig {
   //   {"as_of":"2026-03-31","source":"CMA CIS Q1 2026","total_kes":…,
   //    "types":[{"type":"mmf","aum_kes":…,"share":51.9}, …]}
   //
-  // Authoritative market split by AUM. This is the *market* — the funds Akiba
+  // Authoritative market split by AUM. This is the *market*  the funds fructa
   // tracks are a subset, so a count of them would misstate it (MMF reads ~95%
   // by count but is ~52% by AUM). Baked Q1-2026 fallback so the donut always
   // renders; SACCOs are a separate (SASRA) market and are not in this CIS set.
@@ -103,11 +103,13 @@ class RemoteConfig {
       final out = <MarketFundType>[];
       for (final e in (v['types'] as List)) {
         if (e is Map && e['type'] is String && e['share'] is num) {
-          out.add(MarketFundType(
-            e['type'] as String,
-            (e['aum_kes'] as num?)?.toDouble() ?? 0,
-            (e['share'] as num).toDouble(),
-          ));
+          out.add(
+            MarketFundType(
+              e['type'] as String,
+              (e['aum_kes'] as num?)?.toDouble() ?? 0,
+              (e['share'] as num).toDouble(),
+            ),
+          );
         }
       }
       if (out.isNotEmpty) {
