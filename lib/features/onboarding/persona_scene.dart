@@ -25,7 +25,9 @@ class _PersonaSceneState extends ConsumerState<PersonaScene>
   )..forward();
 
   Animation<double> _at(double b, double e) => CurvedAnimation(
-      parent: _intro, curve: Interval(b, e, curve: Curves.easeOutCubic));
+    parent: _intro,
+    curve: Interval(b, e, curve: Curves.easeOutCubic),
+  );
 
   @override
   void dispose() {
@@ -34,16 +36,16 @@ class _PersonaSceneState extends ConsumerState<PersonaScene>
   }
 
   Widget _rise(Animation<double> a, Widget child) => AnimatedBuilder(
-        animation: a,
-        builder: (_, __) => Opacity(
-          opacity: a.value.clamp(0.0, 1.0),
-          child: Transform.translate(
-            offset: Offset(0, (1 - a.value) * 18),
-            child: child,
-          ),
-        ),
+    animation: a,
+    builder: (_, __) => Opacity(
+      opacity: a.value.clamp(0.0, 1.0),
+      child: Transform.translate(
+        offset: Offset(0, (1 - a.value) * 18),
         child: child,
-      );
+      ),
+    ),
+    child: child,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -66,30 +68,41 @@ class _PersonaSceneState extends ConsumerState<PersonaScene>
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('A QUICK FORK',
-                        style: TextStyle(
-                            color: c.faint,
-                            fontSize: 11,
-                            letterSpacing: 1.6,
-                            fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 10),
                     Text(
-                      cfg.string(
-                          'onboarding.forkTitle', 'Where should we\nstart you?'),
+                      'A QUICK FORK',
                       style: TextStyle(
-                          fontFamily: fructaFonts.mono,
-                          fontSize: 30,
-                          height: 1.12,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -0.6,
-                          color: c.text),
+                        color: c.faint,
+                        fontSize: 11,
+                        letterSpacing: 1.6,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      cfg.string('onboarding.forkSub',
-                          "This only changes where you land — everything's open to you either way."),
-                      style:
-                          TextStyle(color: c.muted, fontSize: 14, height: 1.5),
+                      cfg.string(
+                        'onboarding.forkTitle',
+                        'Where should we\nstart you?',
+                      ),
+                      style: TextStyle(
+                        fontFamily: fructaFonts.mono,
+                        fontSize: 30,
+                        height: 1.12,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.6,
+                        color: c.text,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      cfg.string(
+                        'onboarding.forkSub',
+                        "This only changes where you land, everything's open to you either way.",
+                      ),
+                      style: TextStyle(
+                        color: c.muted,
+                        fontSize: 14,
+                        height: 1.5,
+                      ),
                     ),
                   ],
                 ),
@@ -102,9 +115,13 @@ class _PersonaSceneState extends ConsumerState<PersonaScene>
                   accent: c.accent,
                   ink: c.onAccent,
                   title: cfg.string(
-                      'onboarding.ratesTitle', 'Straight to the rates'),
-                  body: cfg.string('onboarding.ratesBody',
-                      'I know my way around. Open the live market, ranked by yield.'),
+                    'onboarding.ratesTitle',
+                    'Straight to the Rates',
+                  ),
+                  body: cfg.string(
+                    'onboarding.ratesBody',
+                    'I know my way around. Open the live market',
+                  ),
                   onTap: () => widget.onPick('rates'),
                 ),
               ),
@@ -115,11 +132,15 @@ class _PersonaSceneState extends ConsumerState<PersonaScene>
                   icon: Icons.school_rounded,
                   accent: sky.color,
                   ink: sky.onColor,
-                  badge: 'NEW HERE?',
-                  title:
-                      cfg.string('onboarding.learnTitle', 'Explain it as I go'),
-                  body: cfg.string('onboarding.learnBody',
-                      "We'll start you with a 2-minute lesson, then you can tap any rate to see what it means."),
+                  badge: 'new here',
+                  title: cfg.string(
+                    'onboarding.learnTitle',
+                    'Explain it as I go',
+                  ),
+                  body: cfg.string(
+                    'onboarding.learnBody',
+                    "A Quick 2-minute lesson for introduction to MMF",
+                  ),
                   onTap: () => widget.onPick('learn'),
                 ),
               ),
@@ -201,9 +222,10 @@ class _PathCardState extends State<_PathCard> {
                       borderRadius: BorderRadius.circular(15),
                       boxShadow: [
                         BoxShadow(
-                            color: accent.withValues(alpha: 0.28),
-                            blurRadius: 16,
-                            spreadRadius: -2)
+                          color: accent.withValues(alpha: 0.28),
+                          blurRadius: 16,
+                          spreadRadius: -2,
+                        ),
                       ],
                     ),
                     child: Icon(widget.icon, color: widget.ink, size: 27),
@@ -213,21 +235,32 @@ class _PathCardState extends State<_PathCard> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(widget.title,
-                            style: TextStyle(
-                                color: c.text,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700)),
+                        Text(
+                          widget.title,
+                          style: TextStyle(
+                            color: c.text,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                         const SizedBox(height: 5),
-                        Text(widget.body,
-                            style: TextStyle(
-                                color: c.muted, fontSize: 13.5, height: 1.5)),
+                        Text(
+                          widget.body,
+                          style: TextStyle(
+                            color: c.muted,
+                            fontSize: 13.5,
+                            height: 1.5,
+                          ),
+                        ),
                       ],
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Icon(Icons.arrow_forward_ios_rounded,
-                      size: 15, color: accent.withValues(alpha: 0.8)),
+                  Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 15,
+                    color: accent.withValues(alpha: 0.8),
+                  ),
                 ],
               ),
               if (widget.badge != null)
@@ -235,19 +268,24 @@ class _PathCardState extends State<_PathCard> {
                   top: -2,
                   right: -2,
                   child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: accent.withValues(alpha: 0.16),
                       borderRadius: BorderRadius.circular(999),
                       border: Border.all(color: accent.withValues(alpha: 0.4)),
                     ),
-                    child: Text(widget.badge!,
-                        style: TextStyle(
-                            color: accent,
-                            fontSize: 9.5,
-                            letterSpacing: 0.6,
-                            fontWeight: FontWeight.w700)),
+                    child: Text(
+                      widget.badge!,
+                      style: TextStyle(
+                        color: accent,
+                        fontSize: 9.5,
+                        letterSpacing: 0.6,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
                 ),
             ],

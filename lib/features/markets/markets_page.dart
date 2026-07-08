@@ -140,7 +140,7 @@ class _LearnPrimer extends ConsumerWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'What a rate means  then tap any fund to see it live.',
+                        'What a rate means?',
                         style: TextStyle(color: c.muted, fontSize: 12),
                       ),
                     ],
