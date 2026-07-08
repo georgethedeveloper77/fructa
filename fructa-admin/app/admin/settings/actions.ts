@@ -9,6 +9,8 @@ import { republishSnapshot } from "@/lib/publish";
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 
+export type Result = { ok: boolean; error: string | null };
+
 async function upsertKeys(entries: { key: string; value: unknown }[]): Promise<string | null> {
   const now = new Date().toISOString();
   const { error } = await supabaseAdmin()
@@ -19,10 +21,14 @@ async function upsertKeys(entries: { key: string; value: unknown }[]): Promise<s
 
 // Landing reads app_config server-side (force-dynamic), so revalidating the
 // admin page is enough; the public "/" re-reads on its next request.
-function done(err: string | null) {
-  if (err) throw new Error(err);
+function revalidate() {
   revalidatePath("/admin/settings");
   revalidatePath("/");
+}
+
+function done(err: string | null) {
+  if (err) throw new Error(err);
+  revalidate();
 }
 
 export async function saveBrand(fd: FormData) {
@@ -79,13 +85,12 @@ export async function saveStats(fd: FormData) {
 }
 
 // ── Marketing images (Supabase Storage `marketing` bucket) ───────────────────
-// Mirrors uploadCompanyLogo. The public URL is stored in the given app_config
-// key; an empty string clears it (jsonb is NOT NULL, so we store "" not null).
+// Mirrors uploadCompanyLogo, but returns a Result so the UI can show WHY an
+// upload failed (the common one being a missing bucket — run migration 0033).
 const MIME_EXT: Record<string, string> = {
   "image/png": "png",
   "image/jpeg": "jpg",
   "image/webp": "webp",
-  "image/svg+xml": "svg",
 };
 
 const IMAGE_KEYS = new Set([
@@ -95,33 +100,42 @@ const IMAGE_KEYS = new Set([
   "seo.og_image",
 ]);
 
-export async function uploadMarketingImage(fd: FormData) {
+export async function uploadMarketingImage(fd: FormData): Promise<Result> {
   const key = str(fd, "key");
   const file = fd.get("file") as File | null;
-  if (!IMAGE_KEYS.has(key) || !file || file.size === 0) return;
+  if (!IMAGE_KEYS.has(key)) return { ok: false, error: "Unknown image slot." };
+  if (!file || file.size === 0) return { ok: false, error: "No file selected." };
+  if (file.size > 4 * 1024 * 1024) return { ok: false, error: "File is over 4 MB." };
+  const ext = MIME_EXT[file.type];
+  if (!ext) return { ok: false, error: "Use a PNG, JPG or WebP image." };
 
-  const ext = MIME_EXT[file.type] ?? "png";
   const path = `${key.replace(/\./g, "/")}.${ext}`; // landing/feature_rank_image.png
   const bytes = new Uint8Array(await file.arrayBuffer());
 
   const db = supabaseAdmin();
-  const { error } = await db.storage.from("marketing").upload(path, bytes, {
+  const up = await db.storage.from("marketing").upload(path, bytes, {
     upsert: true,
     contentType: file.type,
   });
-  if (error) return;
+  if (up.error) {
+    // e.g. "Bucket not found" when migration 0033 hasn't been pushed.
+    return { ok: false, error: `Storage: ${up.error.message}` };
+  }
 
   const { data } = db.storage.from("marketing").getPublicUrl(path);
   const url = `${data.publicUrl}?v=${Date.now()}`; // cache-bust re-uploads
   const err = await upsertKeys([{ key, value: url }]);
+  if (err) return { ok: false, error: err };
+
   await republishSnapshot();
-  done(err);
+  revalidate();
+  return { ok: true, error: null };
 }
 
-export async function removeMarketingImage(fd: FormData) {
+export async function removeMarketingImage(fd: FormData): Promise<Result> {
   const key = str(fd, "key");
   const url = str(fd, "url");
-  if (!IMAGE_KEYS.has(key)) return;
+  if (!IMAGE_KEYS.has(key)) return { ok: false, error: "Unknown image slot." };
 
   const db = supabaseAdmin();
   const marker = "/object/public/marketing/";
@@ -131,6 +145,9 @@ export async function removeMarketingImage(fd: FormData) {
     await db.storage.from("marketing").remove([path]);
   }
   const err = await upsertKeys([{ key, value: "" }]);
+  if (err) return { ok: false, error: err };
+
   await republishSnapshot();
-  done(err);
+  revalidate();
+  return { ok: true, error: null };
 }

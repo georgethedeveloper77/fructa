@@ -4,13 +4,16 @@ import { NextResponse, type NextRequest } from "next/server";
 // Next.js 16: this file is `proxy.ts` (formerly middleware.ts), named export `proxy`,
 // runs on the Node.js runtime. Kept for redirect UX only — real authorization must
 // also be enforced inside each server action / route (CVE-2025-29927).
+//
+// Login lives at /console (not the guessable /login), and nothing public links to
+// it. The real protection is this gate + the ADMIN_EMAIL allowlist below.
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  // If env is missing, DON'T throw (that is what was 500-ing /login).
+  // If env is missing, DON'T throw (that is what was 500-ing the login page).
   // Let the request through; the pages will surface a clearer error, and the
   // deploy config is the real fix.
   if (!url || !anon) {
@@ -53,12 +56,12 @@ export async function proxy(request: NextRequest) {
   // Gate the admin area.
   if (path.startsWith("/admin") && !allowed) {
     const to = request.nextUrl.clone();
-    to.pathname = "/login";
+    to.pathname = "/console";
     return NextResponse.redirect(to);
   }
 
   // Don't show the login page to someone already signed in.
-  if (path === "/login" && allowed) {
+  if (path === "/console" && allowed) {
     const to = request.nextUrl.clone();
     to.pathname = "/admin";
     return NextResponse.redirect(to);
@@ -68,5 +71,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/login"],
+  matcher: ["/admin/:path*", "/console"],
 };

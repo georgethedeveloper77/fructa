@@ -2,6 +2,7 @@ import { supabaseAdmin } from "@/lib/supabase/server";
 import { DEFAULT_CONTENT } from "@/app/landing/content";
 import { saveBrand, saveSeo, saveLinks, saveCopy, saveStats } from "./actions";
 import { MarketingImageCell } from "./MarketingImageCell";
+import { AccountSection } from "./AccountSection";
 
 export const dynamic = "force-dynamic";
 
@@ -70,23 +71,18 @@ export default async function SettingsPage() {
       <header className="mb-6">
         <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
         <p className="mt-1 text-sm text-mute">
-          Brand, SEO and the public landing page at fructa.africa. Every save republishes the
-          snapshot; the landing re-reads on its next request. Values live in app_config, so they
-          also appear under Remote config.
+          Your account, brand, SEO and the public landing page at fructa.africa. Saves republish the
+          snapshot; the landing re-reads on its next request.
         </p>
       </header>
 
       <div className="space-y-4">
-        {/* BRAND */}
+        <AccountSection />
+
         <Section title="Brand" note="Name and contact used across the site, footer and metadata.">
           <form action={saveBrand} className="space-y-3">
             <Field label="Name" name="name" defaultValue={S("brand.name", D.brand.name)} />
-            <Field
-              label="Footer blurb"
-              name="footer_blurb"
-              defaultValue={S("brand.footer_blurb", D.brand.footerBlurb)}
-              multiline
-            />
+            <Field label="Footer blurb" name="footer_blurb" defaultValue={S("brand.footer_blurb", D.brand.footerBlurb)} multiline />
             <Field label="Contact email" name="contact_email" defaultValue={S("brand.contact_email", D.brand.contactEmail)} />
             <div className="flex justify-end">
               <button className={saveBtn}>Save &amp; republish</button>
@@ -94,7 +90,6 @@ export default async function SettingsPage() {
           </form>
         </Section>
 
-        {/* SEO */}
         <Section title="SEO" note="Title and description for search + social cards. The OG image is below.">
           <form action={saveSeo} className="space-y-3">
             <Field label="Title" name="title" defaultValue={S("seo.title", D.seo.title)} />
@@ -105,7 +100,6 @@ export default async function SettingsPage() {
           </form>
         </Section>
 
-        {/* STORE LINKS */}
         <Section title="App store links" note="Where the Get-the-app buttons point. Auto-detect picks the right one per device.">
           <form action={saveLinks} className="space-y-3">
             <Field label="Google Play URL" name="android_url" defaultValue={S("links.android_url", "")} placeholder="https://play.google.com/store/apps/details?id=…" />
@@ -116,7 +110,6 @@ export default async function SettingsPage() {
           </form>
         </Section>
 
-        {/* LANDING COPY */}
         <Section title="Landing copy" note="Hero and closing call-to-action text.">
           <form action={saveCopy} className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
@@ -135,7 +128,6 @@ export default async function SettingsPage() {
           </form>
         </Section>
 
-        {/* STATS */}
         <Section title="Stat band" note="The four figures above ‘How it works’. Leave a pair blank to drop it.">
           <form action={saveStats} className="space-y-3">
             {[0, 1, 2, 3].map((i) => (
@@ -150,7 +142,6 @@ export default async function SettingsPage() {
           </form>
         </Section>
 
-        {/* IMAGES */}
         <Section title="Images" note="Feature screenshots and the social card. PNG or WebP; the app frames them.">
           <div className="space-y-5">
             <MarketingImageCell configKey="landing.feature_rank_image" url={IMG("landing.feature_rank_image")} hint="Feature 1 — ranked rates screenshot" />

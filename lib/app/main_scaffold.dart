@@ -3,11 +3,13 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hive/hive.dart';
 
 import '../core/theme.dart';
 import '../data/backup_service.dart';
 import '../data/providers.dart';
 import '../features/backup/backup_ui.dart';
+import '../features/learn/learn_home_page.dart';
 import '../features/markets/markets_page.dart';
 import '../features/portfolio/portfolio_page.dart';
 import '../features/settings/settings_page.dart';
@@ -40,11 +42,27 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
-      runLaunchTasks(context, ref);
       drainPendingTarget(); // replay a cold-start notification tap, if any
+      await runLaunchTasks(context, ref);
+      if (mounted) _maybeOpenLearn();
     });
+  }
+
+  /// A completely-new user (chose "I'm new to this" at onboarding) is taken
+  /// straight into Learn the first time they land — once, then never again.
+  /// A pending notification tap or a restore prompt takes precedence above.
+  void _maybeOpenLearn() {
+    final box = Hive.box('settings');
+    final persona = box.get('onboarding_persona', defaultValue: 'rates');
+    final shown = box.get('learn_intro_shown', defaultValue: false) as bool;
+    if (persona == 'learn' && !shown) {
+      box.put('learn_intro_shown', true);
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const LearnHomePage()),
+      );
+    }
   }
 
   @override

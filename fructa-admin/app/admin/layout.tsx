@@ -6,7 +6,7 @@ import { supabaseBrowser } from "@/lib/supabase/auth-browser";
 import {
   IconOverview, IconFunds, IconCompanies, IconInsurers, IconAgents,
   IconSources, IconScrapers, IconImport, IconInsights, IconConfig,
-  IconLearn, IconBell,
+  IconLearn, IconBell, IconPages, IconSettings,
   IconSearch, IconPower, IconRefresh,
 } from "./_icons";
 import type { SVGProps } from "react";
@@ -32,7 +32,12 @@ const DATA: NavItem[] = [
   { href: "/admin/insights", label: "Insights", icon: IconInsights, title: "Insights", crumb: "signal templates" },
 ];
 
-const ALL = [...OPERATE, ...DATA];
+const SITE: NavItem[] = [
+  { href: "/admin/content", label: "Content", icon: IconPages, title: "Content", crumb: "pages & blog" },
+  { href: "/admin/settings", label: "Settings", icon: IconSettings, title: "Settings", crumb: "brand · SEO · landing" },
+];
+
+const ALL = [...OPERATE, ...DATA, ...SITE];
 
 function activeFor(path: string): NavItem {
   // longest-prefix match; "/admin" only matches exactly
@@ -52,7 +57,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   async function signOut() {
     await supabaseBrowser().auth.signOut();
-    window.location.href = "/login";
+    window.location.href = "/console";
   }
 
   const isOn = (n: NavItem) => n.href === current.href;
@@ -81,6 +86,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="nsec">Data</div>
           <nav className="nav">
             {DATA.map((n) => (
+              <Link key={n.href} href={n.href} className={isOn(n) ? "on" : undefined}>
+                <span className="ni"><n.icon size={16} /></span> {n.label}
+              </Link>
+            ))}
+          </nav>
+
+          <div className="nsec">Site</div>
+          <nav className="nav">
+            {SITE.map((n) => (
               <Link key={n.href} href={n.href} className={isOn(n) ? "on" : undefined}>
                 <span className="ni"><n.icon size={16} /></span> {n.label}
               </Link>

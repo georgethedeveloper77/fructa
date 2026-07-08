@@ -1,0 +1,38 @@
+/* Content-page styles. Scoped under .fl; tokens come from landing.css. */
+
+.fl-site-main{max-width:760px;margin:0 auto;padding:56px 24px 40px}
+
+/* article / prose */
+.fl-article{color:var(--fl-ink);font-size:16.5px;line-height:1.7}
+.fl-article h1{font-size:clamp(30px,4vw,40px);line-height:1.1;letter-spacing:-.02em;font-weight:700;margin:0 0 8px}
+.fl-article h2{font-size:24px;line-height:1.2;letter-spacing:-.01em;font-weight:700;margin:36px 0 12px}
+.fl-article h3{font-size:19px;font-weight:600;margin:28px 0 10px}
+.fl-article h4{font-size:16px;font-weight:600;margin:22px 0 8px;color:var(--fl-mute)}
+.fl-article p{margin:0 0 16px;color:var(--fl-mute)}
+.fl-article strong{color:var(--fl-ink);font-weight:600}
+.fl-article a{color:var(--fl-gold-ink);text-decoration:underline;text-underline-offset:2px}
+.fl-article ul,.fl-article ol{margin:0 0 18px;padding-left:22px;color:var(--fl-mute)}
+.fl-article li{margin:6px 0}
+.fl-article blockquote{margin:0 0 18px;padding:8px 16px;border-left:2px solid var(--fl-gold);
+  color:var(--fl-mute);background:var(--fl-panel);border-radius:0 8px 8px 0}
+.fl-article code{font-family:var(--fl-mono),monospace;font-size:.9em;background:var(--fl-panel2);
+  border:1px solid var(--fl-line);border-radius:4px;padding:1px 5px}
+.fl-article hr{border:0;border-top:1px solid var(--fl-line);margin:32px 0}
+
+.fl-eyebrow-date{font-family:var(--fl-mono),monospace;font-size:12px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--fl-faint)}
+.fl-back{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--fl-mute);margin-bottom:26px}
+.fl-back:hover{color:var(--fl-ink)}
+
+/* blog index */
+.fl-blog-head{margin-bottom:36px}
+.fl-blog-head h1{font-size:clamp(30px,4vw,42px);letter-spacing:-.02em;font-weight:700;margin:0}
+.fl-blog-head p{color:var(--fl-mute);font-size:17px;margin:12px 0 0}
+.fl-post-list{display:flex;flex-direction:column;gap:2px}
+.fl-post-card{display:block;border-top:1px solid var(--fl-line);padding:22px 0;transition:.12s}
+.fl-post-card:hover{padding-left:6px}
+.fl-post-card .fl-date{font-family:var(--fl-mono),monospace;font-size:12px;color:var(--fl-faint);letter-spacing:.04em}
+.fl-post-card h2{font-size:21px;font-weight:600;margin:6px 0 6px;color:var(--fl-ink)}
+.fl-post-card p{color:var(--fl-mute);font-size:15px;margin:0}
+.fl-post-cover{width:100%;aspect-ratio:16/8;object-fit:cover;border-radius:14px;border:1px solid var(--fl-line2);margin-bottom:26px}
+.fl-empty{color:var(--fl-faint);font-size:15px;padding:40px 0}

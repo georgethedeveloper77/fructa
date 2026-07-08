@@ -73,17 +73,20 @@ class _ThesisSceneState extends ConsumerState<ThesisScene>
                 children: [
                   const LottieHero(
                     asset: 'assets/lottie/coin.json',
-                    size: 26,
-                    fallback: _Coin(size: 26),
+                    size: 50,
+                    fallback: _Coin(size: 50),
                   ),
                   const SizedBox(width: 9),
-                  Text('fructa',
-                      style: TextStyle(
-                          fontFamily: fructaFonts.mono,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -0.5,
-                          color: c.text)),
+                  Text(
+                    'Welcome to Fructa',
+                    style: TextStyle(
+                      fontFamily: fructaFonts.mono,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.5,
+                      color: c.text,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 16),
@@ -92,16 +95,21 @@ class _ThesisSceneState extends ConsumerState<ThesisScene>
                   Container(
                     width: 7,
                     height: 7,
-                    decoration:
-                        BoxDecoration(color: c.up, shape: BoxShape.circle),
+                    decoration: BoxDecoration(
+                      color: c.up,
+                      shape: BoxShape.circle,
+                    ),
                   ),
                   const SizedBox(width: 7),
-                  Text('LIVE · TODAY',
-                      style: TextStyle(
-                          color: c.up,
-                          fontSize: 11,
-                          letterSpacing: 0.8,
-                          fontWeight: FontWeight.w600)),
+                  Text(
+                    'LIVE · TODAY',
+                    style: TextStyle(
+                      color: c.up,
+                      fontSize: 11,
+                      letterSpacing: 0.8,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 6),
@@ -109,27 +117,32 @@ class _ThesisSceneState extends ConsumerState<ThesisScene>
                 AnimatedBuilder(
                   animation: _num,
                   builder: (_, __) => Text.rich(
-                    TextSpan(children: [
-                      TextSpan(text: (top * _num.value).toStringAsFixed(2)),
-                      TextSpan(
+                    TextSpan(
+                      children: [
+                        TextSpan(text: (top * _num.value).toStringAsFixed(2)),
+                        TextSpan(
                           text: '%',
-                          style: TextStyle(fontSize: 34, color: c.muted)),
-                    ]),
+                          style: TextStyle(fontSize: 34, color: c.muted),
+                        ),
+                      ],
+                    ),
                     style: TextStyle(
-                        fontFamily: fructaFonts.mono,
-                        fontSize: 74,
-                        height: 0.98,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -3,
-                        color: c.text),
+                      fontFamily: fructaFonts.mono,
+                      fontSize: 74,
+                      height: 0.98,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -3,
+                      color: c.text,
+                    ),
                   ),
                 ),
               const SizedBox(height: 6),
               Text(
                 cfg.string(
-                    'onboarding.thesis',
-                    "Kenya's top money-market rate, right now. fructa puts every "
-                    'yield — MMFs, T-bills, bonds, SACCOs — in one place.'),
+                  'onboarding.thesis',
+                  "Kenya's top money-market rate, right now. fructa puts every "
+                      'yield  MMFs, T-bills, bonds, SACCOs in one place.',
+                ),
                 style: TextStyle(color: c.muted, fontSize: 14, height: 1.5),
               ),
               const SizedBox(height: 20),
@@ -139,7 +152,10 @@ class _ThesisSceneState extends ConsumerState<ThesisScene>
                 child: AnimatedBuilder(
                   animation: _draw,
                   builder: (_, __) => CustomPaint(
-                    painter: _CurvePainter(progress: _draw.value, color: c.accent),
+                    painter: _CurvePainter(
+                      progress: _draw.value,
+                      color: c.accent,
+                    ),
                   ),
                 ),
               ),
@@ -153,9 +169,12 @@ class _ThesisSceneState extends ConsumerState<ThesisScene>
                     foregroundColor: c.onAccent,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15)),
+                      borderRadius: BorderRadius.circular(15),
+                    ),
                     textStyle: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.w600),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   child: Text(cfg.string('onboarding.start', 'Get started')),
                 ),
@@ -166,8 +185,9 @@ class _ThesisSceneState extends ConsumerState<ThesisScene>
                   onPressed: widget.onSkip,
                   style: TextButton.styleFrom(foregroundColor: c.faint),
                   child: Text(
-                      cfg.string('onboarding.skip', 'I just want the rates'),
-                      style: const TextStyle(fontSize: 12.5)),
+                    cfg.string('onboarding.skip', 'I just want the rates'),
+                    style: const TextStyle(fontSize: 12.5),
+                  ),
                 ),
               ),
             ],
@@ -196,12 +216,15 @@ class _Coin extends StatelessWidget {
           colors: [Color(0xFFF6D66E), Color(0xFFC99A2E)],
         ),
       ),
-      child: Text('KES',
-          style: TextStyle(
-              fontFamily: fructaFonts.mono,
-              fontSize: size * 0.34,
-              fontWeight: FontWeight.w700,
-              color: const Color(0xFF5A3F0E))),
+      child: Text(
+        'KES',
+        style: TextStyle(
+          fontFamily: fructaFonts.mono,
+          fontSize: size * 0.34,
+          fontWeight: FontWeight.w700,
+          color: const Color(0xFF5A3F0E),
+        ),
+      ),
     );
   }
 }

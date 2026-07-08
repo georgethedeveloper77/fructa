@@ -10,9 +10,8 @@ export function ConfigClient({ rows }: { rows: ConfigRow[] }) {
   const [q, setQ] = useState("");
   const [groupFilter, setGroupFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"key" | "updated">("key");
-  const [creating, setCreating] = useState<string>(""); // predefined key being added
+  const [creating, setCreating] = useState<string>("");
 
-  // group + field resolved once per row
   const resolved = useMemo(
     () => rows.map((r) => ({ row: r, field: fieldFor(r) })),
     [rows],
@@ -57,7 +56,6 @@ export function ConfigClient({ rows }: { rows: ConfigRow[] }) {
     return [...g.entries()].sort((a, b) => groupRank(a[0]) - groupRank(b[0]) || a[0].localeCompare(b[0]));
   }, [filtered, sortBy]);
 
-  // predefined schema keys not yet in the DB — one-click add with a real editor
   const missingKeys = useMemo(() => {
     const have = new Set(rows.map((r) => r.key));
     return Object.keys(CONFIG_SCHEMA).filter((k) => !have.has(k));
@@ -70,8 +68,24 @@ export function ConfigClient({ rows }: { rows: ConfigRow[] }) {
     </div>
   );
 
+  const NavItem = ({ id, label, count }: { id: string; label: string; count: number }) => {
+    const active = groupFilter === id;
+    return (
+      <button
+        onClick={() => setGroupFilter(id)}
+        className={
+          "flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors " +
+          (active ? "bg-panel2 text-ink" : "text-mute hover:bg-panel2/50 hover:text-ink")
+        }
+      >
+        <span className="truncate">{label}</span>
+        <span className={"tnum text-xs " + (active ? "text-gold" : "text-faint")}>{count}</span>
+      </button>
+    );
+  };
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* KPIs */}
       <div className="grid grid-cols-3 gap-3">
         <Kpi label="Keys" value={rows.length} />
@@ -79,108 +93,110 @@ export function ConfigClient({ rows }: { rows: ConfigRow[] }) {
         <Kpi label="Last updated" value={lastUpdated ? new Date(lastUpdated).toLocaleDateString() : "—"} />
       </div>
 
-      {/* toolbar */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative">
-          <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-faint">
-            <IconSearch size={14} />
-          </span>
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search name, key, or description…"
-            className="w-72 rounded-md border border-line bg-panel2 py-1.5 pl-8 pr-3 text-sm text-ink outline-none placeholder:text-faint focus:border-gold/60"
-          />
-        </div>
-        <div className="flex flex-wrap items-center gap-0.5 rounded-lg border border-line bg-panel p-0.5">
-          <button
-            onClick={() => setGroupFilter("all")}
-            className={"rounded-md px-2.5 py-1 text-xs " + (groupFilter === "all" ? "bg-panel2 text-ink" : "text-mute hover:text-ink")}
-          >
-            All
-          </button>
-          {groupCounts.map(([g, c]) => (
-            <button
-              key={g}
-              onClick={() => setGroupFilter(g)}
-              className={"rounded-md px-2.5 py-1 text-xs " + (groupFilter === g ? "bg-panel2 text-ink" : "text-mute hover:text-ink")}
-            >
-              {g} <span className="tnum text-faint">{c}</span>
-            </button>
-          ))}
-        </div>
-        <select
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as "key" | "updated")}
-          className="ml-auto rounded-md border border-line bg-panel2 px-2 py-1.5 text-xs text-mute outline-none focus:border-gold/60"
-        >
-          <option value="key">Sort: name A–Z</option>
-          <option value="updated">Sort: recently updated</option>
-        </select>
-      </div>
-
-      {/* grouped cards */}
-      {groups.map(([group, items]) => (
-        <div key={group} className="space-y-3">
-          <div className="flex items-center gap-2 pt-1">
-            <span className="text-[11px] uppercase tracking-wider text-gold">{group}</span>
-            <span className="tnum text-[11px] text-faint">{items.length}</span>
-            <div className="h-px flex-1 bg-line" />
-          </div>
-          {items.map(({ row, field }) => (
-            <ConfigCard
-              key={row.key}
-              configKey={row.key}
-              field={field}
-              value={row.value}
-              description={row.description}
-              updatedAt={row.updated_at}
-            />
-          ))}
-        </div>
-      ))}
-
-      {filtered.length === 0 && (
-        <p className="rounded-xl border border-line bg-panel px-4 py-10 text-center text-sm text-mute">
-          No keys match. Clear the search or pick a different group.
-        </p>
-      )}
-
-      {/* add a key */}
-      <div className="space-y-3 rounded-xl border border-dashed border-line bg-panel p-4">
-        <p className="text-[11px] uppercase tracking-wider text-faint">Add a key</p>
-
-        {missingKeys.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs text-mute">Predefined:</span>
-            <select
-              value={creating}
-              onChange={(e) => setCreating(e.target.value)}
-              className="rounded-md border border-line bg-panel2 px-2 py-1.5 text-xs text-ink outline-none focus:border-gold/60"
-            >
-              <option value="">Choose a key…</option>
-              {missingKeys.map((k) => (
-                <option key={k} value={k}>
-                  {CONFIG_SCHEMA[k].label} · {k}
-                </option>
+      {/* two-column: vertical group rail + content */}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-[212px_1fr] md:items-start">
+        <aside className="md:sticky md:top-4">
+          <div className="rounded-xl border border-line bg-panel p-2">
+            <NavItem id="all" label="All keys" count={rows.length} />
+            <div className="my-2 h-px bg-line" />
+            <div className="space-y-0.5">
+              {groupCounts.map(([g, c]) => (
+                <NavItem key={g} id={g} label={g} count={c} />
               ))}
+            </div>
+          </div>
+        </aside>
+
+        <div className="min-w-0 space-y-4">
+          {/* toolbar */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative flex-1">
+              <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-faint">
+                <IconSearch size={14} />
+              </span>
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Search name, key, or description…"
+                className="w-full rounded-md border border-line bg-panel2 py-1.5 pl-8 pr-3 text-sm text-ink outline-none placeholder:text-faint focus:border-gold/60"
+              />
+            </div>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as "key" | "updated")}
+              className="rounded-md border border-line bg-panel2 px-2 py-1.5 text-xs text-mute outline-none focus:border-gold/60"
+            >
+              <option value="key">Sort: name A–Z</option>
+              <option value="updated">Sort: recently updated</option>
             </select>
           </div>
-        )}
 
-        {creating && (
-          <ConfigCard
-            key={creating}
-            mode="create"
-            configKey={creating}
-            field={CONFIG_SCHEMA[creating]}
-            value={CONFIG_SCHEMA[creating].seed ?? null}
-            description={null}
-            onDone={() => setCreating("")}
-          />
-        )}
+          {/* grouped cards */}
+          {groups.map(([group, items]) => (
+            <div key={group} className="space-y-3">
+              {groupFilter === "all" && (
+                <div className="flex items-center gap-2 pt-1">
+                  <span className="text-[11px] uppercase tracking-wider text-gold">{group}</span>
+                  <span className="tnum text-[11px] text-faint">{items.length}</span>
+                  <div className="h-px flex-1 bg-line" />
+                </div>
+              )}
+              {items.map(({ row, field }) => (
+                <ConfigCard
+                  key={row.key}
+                  configKey={row.key}
+                  field={field}
+                  value={row.value}
+                  description={row.description}
+                  updatedAt={row.updated_at}
+                />
+              ))}
+            </div>
+          ))}
 
-        <CustomKeyForm />
+          {filtered.length === 0 && (
+            <p className="rounded-xl border border-line bg-panel px-4 py-10 text-center text-sm text-mute">
+              No keys match. Clear the search or pick a different group.
+            </p>
+          )}
+
+          {/* add a key */}
+          <div className="space-y-3 rounded-xl border border-dashed border-line bg-panel p-4">
+            <p className="text-[11px] uppercase tracking-wider text-faint">Add a key</p>
+
+            {missingKeys.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs text-mute">Predefined:</span>
+                <select
+                  value={creating}
+                  onChange={(e) => setCreating(e.target.value)}
+                  className="rounded-md border border-line bg-panel2 px-2 py-1.5 text-xs text-ink outline-none focus:border-gold/60"
+                >
+                  <option value="">Choose a key…</option>
+                  {missingKeys.map((k) => (
+                    <option key={k} value={k}>
+                      {CONFIG_SCHEMA[k].label} · {k}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {creating && (
+              <ConfigCard
+                key={creating}
+                mode="create"
+                configKey={creating}
+                field={CONFIG_SCHEMA[creating]}
+                value={CONFIG_SCHEMA[creating].seed ?? null}
+                description={null}
+                onDone={() => setCreating("")}
+              />
+            )}
+
+            <CustomKeyForm />
+          </div>
+        </div>
       </div>
     </div>
   );
