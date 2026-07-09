@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,16 +21,15 @@ import 'add_holding_page.dart';
 import 'manage_holding_sheet.dart';
 import 'projection_card.dart';
 
-/// v5 `.pg-portfolio` — markets-first portfolio, consolidated in KES.
+/// Portfolio — markets-first, consolidated in KES.
 ///
-/// Redesign: each holding leads with its manager's real logo + a left
-/// brand-accent bar; values accrue from the date each lot was added (WHT unless
-/// tax-free); USD converts at the snapshot's CBK rate. The hero carries a trend
-/// line built from the accrual trajectory — each holding contributes nothing
-/// before its own purchase date, so the curve is real, not fabricated.
-///
-/// Hide-balances is the persisted settings pref (V5): the eye here and the
-/// Settings toggle drive the same value.
+/// Revamp: the old top bar (Add button + avatar) is gone; adding lives inside
+/// the holdings card and the empty state. Hide-balances (the persisted V5 pref,
+/// shared with Settings) now sits on the total it protects. Sections read as
+/// discrete cards — hero, allocation, holdings — for a calmer, terminal-like
+/// hierarchy. Each holding accrues from the date its lot was added (WHT unless
+/// tax-free); USD converts at the snapshot's CBK rate; the hero trend is built
+/// from the real accrual trajectory, so pre-purchase days read zero.
 class PortfolioPage extends ConsumerWidget {
   const PortfolioPage({super.key});
 
@@ -51,89 +52,7 @@ class PortfolioPage extends ConsumerWidget {
   }
 }
 
-// ── Topbar: Add · eye · avatar ──────────────────────────────────────────────
-class _TopBar extends ConsumerWidget {
-  const _TopBar();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final c = context.c;
-    final hidden = ref.watch(
-      settingsControllerProvider.select((p) => p.hideBalances),
-    );
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 10, 12, 0),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () => Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const AddHoldingPage())),
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(11, 8, 14, 8),
-              decoration: BoxDecoration(
-                color: c.s1,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: c.line2),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.add_rounded, color: c.accent, size: 18),
-                  const SizedBox(width: 5),
-                  Text(
-                    'Add',
-                    style: TextStyle(
-                      color: c.accentInk,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const Spacer(),
-          IconButton(
-            onPressed: () => ref
-                .read(settingsControllerProvider.notifier)
-                .setHideBalances(!hidden),
-            icon: Icon(
-              hidden
-                  ? Icons.visibility_off_outlined
-                  : Icons.visibility_outlined,
-              color: c.muted,
-            ),
-          ),
-          Container(
-            width: 36,
-            height: 36,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [c.accent, c.accent.withValues(alpha: 0.7)],
-              ),
-            ),
-            child: Text(
-              'G',
-              style: TextStyle(
-                color: c.onAccent,
-                fontFamily: fructaFonts.mono,
-                fontWeight: FontWeight.w700,
-                fontSize: 14,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Full extends StatelessWidget {
+class _Full extends ConsumerWidget {
   const _Full({
     required this.holdings,
     required this.byId,
@@ -147,7 +66,7 @@ class _Full extends StatelessWidget {
   final bool hidden;
 
   /// Consolidated KES value of the whole book at [d]. A holding counts only
-  /// once it's actually held (firstLot ≤ d), so pre-purchase days read zero.
+  /// once it's actually held (firstLot <= d), so pre-purchase days read zero.
   double _totalAt(DateTime d) {
     var t = 0.0;
     for (final h in holdings) {
@@ -166,7 +85,7 @@ class _Full extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final c = context.c;
     final now = DateTime.now();
 
@@ -246,81 +165,102 @@ class _Full extends StatelessWidget {
             .toList();
 
     return ListView(
-      padding: const EdgeInsets.only(bottom: 100),
+      padding: const EdgeInsets.only(top: 8, bottom: 100),
       children: [
-        const _TopBar(),
         DisplayHeader(
           title: 'Portfolio',
           sub:
               '${holdings.length} holdings \u00b7 $providers providers \u00b7 consolidated in KES',
         ),
+        const SizedBox(height: 6),
 
-        // pf-big — count-up accrued total (mono 44)
+        // ── Hero — total (count-up), gain, trend; eye lives here ──────────
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-          child: hidden
-              ? _bigText(context, 'KES \u2022\u2022\u2022\u2022')
-              : TweenAnimationBuilder<double>(
-                  tween: Tween(begin: 0, end: totalKes),
-                  duration: const Duration(milliseconds: 650),
-                  curve: Curves.easeOutCubic,
-                  builder: (_, v, __) => _bigText(context, money('KES', v)),
-                ),
-        ),
-
-        // pf-dl — value earned since the holdings were added (accrued − cost)
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-          child: gainKes >= 1
-              ? Row(
+          padding: const EdgeInsets.fromLTRB(20, 6, 20, 0),
+          child: _HeroCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Icon(Icons.trending_up_rounded, color: c.up, size: 16),
-                    const SizedBox(width: 5),
                     Text(
-                      bal(money('KES', gainKes.round())),
+                      'TOTAL VALUE',
                       style: TextStyle(
-                        color: c.up,
+                        color: c.muted,
                         fontFamily: fructaFonts.mono,
-                        fontSize: 12.5,
+                        fontSize: 10,
+                        letterSpacing: 1.4,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'earned since you added',
-                      style: TextStyle(color: c.muted, fontSize: 11),
-                    ),
+                    const Spacer(),
+                    _EyeToggle(hidden: hidden),
                   ],
-                )
-              : Text(
-                  'Tracking your earnings from today',
-                  style: TextStyle(color: c.muted, fontSize: 11.5),
                 ),
-        ),
-
-        if (fxMissing)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-            child: Row(
-              children: [
-                Icon(Icons.error_outline_rounded, color: c.faint, size: 14),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    "USD value unavailable — today's USD/KES rate isn't set.",
-                    style: TextStyle(color: c.faint, fontSize: 11),
+                const SizedBox(height: 8),
+                hidden
+                    ? _bigText(context, 'KES \u2022\u2022\u2022\u2022')
+                    : FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: TweenAnimationBuilder<double>(
+                          tween: Tween(begin: 0, end: totalKes),
+                          duration: const Duration(milliseconds: 650),
+                          curve: Curves.easeOutCubic,
+                          builder: (_, v, __) =>
+                              _bigText(context, money('KES', v)),
+                        ),
+                      ),
+                const SizedBox(height: 8),
+                gainKes >= 1
+                    ? Row(
+                        children: [
+                          Icon(Icons.trending_up_rounded, color: c.up, size: 16),
+                          const SizedBox(width: 5),
+                          Text(
+                            bal('+${money('KES', gainKes.round())}'),
+                            style: TextStyle(
+                              color: c.up,
+                              fontFamily: fructaFonts.mono,
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'earned since you added',
+                            style: TextStyle(color: c.muted, fontSize: 11),
+                          ),
+                        ],
+                      )
+                    : Text(
+                        'Tracking your earnings from today',
+                        style: TextStyle(color: c.muted, fontSize: 11.5),
+                      ),
+                if (fxMissing) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(Icons.error_outline_rounded,
+                          color: c.faint, size: 14),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          "USD value unavailable. Today's USD/KES rate isn't set.",
+                          style: TextStyle(color: c.faint, fontSize: 11),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
+                ],
+                if (trendVaries && !hidden) ...[
+                  const SizedBox(height: 14),
+                  SizedBox(height: 58, child: _TrendChart(trend, c.accent)),
+                ],
               ],
             ),
           ),
-
-        // pf-chart — accrual trend of the whole book (hidden when masked)
-        if (trendVaries && !hidden)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
-            child: SizedBox(height: 56, child: _TrendChart(trend, c.accent)),
-          ),
+        ),
 
         // pf run-rate — forward earning at the current blended net yield
         EarnStrip([
@@ -331,22 +271,34 @@ class _Full extends StatelessWidget {
 
         if (slices.isNotEmpty) ...[
           const SectionHeader(title: 'Allocation'),
-          AllocationBar(slices),
-          Legend(slices),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 2, 20, 0),
+            child: _AllocationCard(slices: slices, total: allocTotal),
+          ),
         ],
 
         const SectionHeader(title: 'Holdings', trailing: 'accrued value shown'),
-        for (final h in holdings)
-          _HoldingRow(
-            holding: h,
-            fund: byId[h.fundId],
-            value: values[h.fundId]!,
-            hidden: hidden,
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 2, 16, 0),
+          child: _HoldingsCard(
+            children: [
+              for (var i = 0; i < holdings.length; i++) ...[
+                if (i > 0) Divider(height: 1, thickness: 1, color: c.line),
+                _HoldingRow(
+                  holding: holdings[i],
+                  fund: byId[holdings[i].fundId],
+                  value: values[holdings[i].fundId]!,
+                  hidden: hidden,
+                ),
+              ],
+              Divider(height: 1, thickness: 1, color: c.line),
+              _AddRowInline(
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const AddHoldingPage()),
+                ),
+              ),
+            ],
           ),
-        _AddRow(
-          onTap: () => Navigator.of(
-            context,
-          ).push(MaterialPageRoute(builder: (_) => const AddHoldingPage())),
         ),
 
         if (totalKes > 0 && blendedGross > 0) ...[
@@ -361,8 +313,8 @@ class _Full extends StatelessWidget {
         Disclaimer(
           "Values are estimates: each holding grows daily at the fund's net "
           "yield from the date you added it. USD positions earn their own USD "
-          "yield and convert at the CBK indicative rate for the total \u2014 "
-          'not a promise, and fructa never holds your money.',
+          "yield and convert at the CBK indicative rate for the total. Not a "
+          'promise, and fructa never holds your money.',
         ),
       ],
     );
@@ -373,12 +325,285 @@ class _Full extends StatelessWidget {
     style: TextStyle(
       color: context.c.text,
       fontFamily: fructaFonts.mono,
-      fontSize: 44,
+      fontSize: 42,
       fontWeight: FontWeight.w600,
       letterSpacing: -2,
       height: 1,
     ),
   );
+}
+
+// ── Hero card shell — s2 fill + line2 border + faint accent wash ─────────────
+class _HeroCard extends StatelessWidget {
+  const _HeroCard({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: c.line2),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color.alphaBlend(c.accent.withValues(alpha: 0.06), c.s2),
+            c.s2,
+          ],
+        ),
+      ),
+      child: child,
+    );
+  }
+}
+
+// ── Eye toggle (hide balances) — the only survivor of the old top bar ───────
+class _EyeToggle extends ConsumerWidget {
+  const _EyeToggle({required this.hidden});
+  final bool hidden;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.c;
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: () => ref
+          .read(settingsControllerProvider.notifier)
+          .setHideBalances(!hidden),
+      child: Padding(
+        padding: const EdgeInsets.all(4),
+        child: Icon(
+          hidden ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+          color: c.muted,
+          size: 18,
+        ),
+      ),
+    );
+  }
+}
+
+// ── Holdings card shell ─────────────────────────────────────────────────────
+class _HoldingsCard extends StatelessWidget {
+  const _HoldingsCard({required this.children});
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: c.s2,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: c.line2),
+      ),
+      child: Column(children: children),
+    );
+  }
+}
+
+// ── Allocation — donut + valued legend, boxed for dark-mode contrast ─────────
+class _AllocationCard extends StatelessWidget {
+  const _AllocationCard({required this.slices, required this.total});
+  final List<AllocSlice> slices;
+  final double total;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    // Lift each data colour so it clears the card in either mode.
+    final segs = [
+      for (final s in slices)
+        (weight: s.weight, color: c.brandOnBg(s.color, minContrast: 2.4)),
+    ];
+    final top = slices.first;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+      decoration: BoxDecoration(
+        color: c.s2,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: c.line2),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 96,
+            height: 96,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                CustomPaint(
+                  size: const Size.square(96),
+                  painter: _DonutPainter(
+                    segs: segs,
+                    stroke: 15,
+                    track: c.line,
+                  ),
+                ),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      top.valueText,
+                      style: TextStyle(
+                        color: c.text,
+                        fontFamily: fructaFonts.mono,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    Text(
+                      top.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: c.faint, fontSize: 9),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 18),
+          Expanded(
+            child: Column(
+              children: [
+                for (var i = 0; i < slices.length; i++) ...[
+                  if (i > 0) const SizedBox(height: 10),
+                  _LegendRow(
+                    slice: slices[i],
+                    dot: c.brandOnBg(slices[i].color, minContrast: 2.4),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LegendRow extends StatelessWidget {
+  const _LegendRow({required this.slice, required this.dot});
+  final AllocSlice slice;
+  final Color dot;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    return Row(
+      children: [
+        Container(
+          width: 9,
+          height: 9,
+          decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 9),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                slice.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: c.text,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              Text(
+                money('KES', slice.weight.round()),
+                style: TextStyle(
+                  color: c.faint,
+                  fontFamily: fructaFonts.mono,
+                  fontSize: 10.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          slice.valueText,
+          style: TextStyle(
+            color: c.text,
+            fontFamily: fructaFonts.mono,
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DonutPainter extends CustomPainter {
+  _DonutPainter({
+    required this.segs,
+    required this.stroke,
+    required this.track,
+  });
+
+  final List<({double weight, Color color})> segs;
+  final double stroke;
+  final Color track;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (size.shortestSide - stroke) / 2;
+    final total = segs.fold<double>(0, (a, s) => a + s.weight);
+
+    // Track ring behind everything.
+    canvas.drawCircle(
+      center,
+      radius,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = stroke
+        ..color = track,
+    );
+    if (total <= 0) return;
+
+    final ring = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke;
+
+    // A single slice reads as an unbroken ring (no rounded-cap overlap).
+    if (segs.length == 1) {
+      ring
+        ..color = segs.first.color
+        ..strokeCap = StrokeCap.butt;
+      canvas.drawCircle(center, radius, ring);
+      return;
+    }
+
+    ring.strokeCap = StrokeCap.round;
+    const gap = 0.05; // radians of breathing room between slices
+    final rect = Rect.fromCircle(center: center, radius: radius);
+    var start = -math.pi / 2; // 12 o'clock
+    for (final s in segs) {
+      final frac = s.weight / total;
+      final full = frac * 2 * math.pi;
+      final sweep = full - gap;
+      if (sweep > 0) {
+        canvas.drawArc(rect, start + gap / 2, sweep, false, ring..color = s.color);
+      }
+      start += full;
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DonutPainter old) =>
+      old.segs != segs || old.stroke != stroke || old.track != track;
 }
 
 // ── Hero trend chart ────────────────────────────────────────────────────────
@@ -495,7 +720,7 @@ class _HoldingRow extends ConsumerWidget {
     return InkWell(
       onTap: () => showManageHolding(context, holding, f),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 12, 18, 12),
+        padding: const EdgeInsets.fromLTRB(14, 12, 16, 12),
         child: Row(
           children: [
             // brand accent bar
@@ -568,39 +793,32 @@ class _HoldingRow extends ConsumerWidget {
   }
 }
 
-// ── Dashed add-holding row (v5 .addrow) ─────────────────────────────────────
-class _AddRow extends StatelessWidget {
-  const _AddRow({required this.onTap});
+// ── In-card add row (replaces the standalone dashed box) ────────────────────
+class _AddRowInline extends StatelessWidget {
+  const _AddRowInline({required this.onTap});
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final c = context.c;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-      child: GestureDetector(
-        onTap: onTap,
-        child: DottedBorderBox(
-          color: c.line2,
-          radius: 16,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.add_rounded, color: c.muted, size: 18),
-                const SizedBox(width: 6),
-                Text(
-                  'Add a holding',
-                  style: TextStyle(
-                    color: c.muted,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.add_rounded, color: c.accentInk, size: 18),
+            const SizedBox(width: 6),
+            Text(
+              'Add a holding',
+              style: TextStyle(
+                color: c.accentInk,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -608,6 +826,7 @@ class _AddRow extends StatelessWidget {
 }
 
 /// A rounded dashed border box (Flutter has no built-in dashed border).
+/// Retained as shared kit even though the portfolio list no longer uses it.
 class DottedBorderBox extends StatelessWidget {
   const DottedBorderBox({
     super.key,

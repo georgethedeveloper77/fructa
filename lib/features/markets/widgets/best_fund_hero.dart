@@ -70,6 +70,11 @@ class BestFundHero extends ConsumerWidget {
         '${_typeNames[fund.fundType] ?? fund.category} \u00b7 ${fund.currency}';
     final d = delta;
 
+    // Dark s1 is nearly invisible against bg, so the hero recedes. Lift the
+    // base to s2 in dark and carry a soft brand shadow (below) so the featured
+    // card clearly floats as the focal point. Light mode keeps s1.
+    final base = c.isDark ? c.s2 : c.s1;
+
     // The fund's OWN stated benchmark (0026), replacing the hardcoded 91-day.
     // Falls back to the 91-day so the reference line always renders (matches
     // the prior behaviour, and every MMF was backfilled to tbill_91 anyway).
@@ -96,12 +101,26 @@ class BestFundHero extends ConsumerWidget {
               end: Alignment.bottomRight,
               colors: [
                 Color.alphaBlend(
-                    tint.withValues(alpha: c.isDark ? 0.12 : 0.08), c.s1),
-                c.s1,
+                    tint.withValues(alpha: c.isDark ? 0.20 : 0.08), base),
+                Color.alphaBlend(
+                    tint.withValues(alpha: c.isDark ? 0.05 : 0.0), base),
               ],
             ),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: tint.withValues(alpha: 0.30)),
+            border: Border.all(
+              color: tint.withValues(alpha: c.isDark ? 0.44 : 0.30),
+              width: c.isDark ? 1.2 : 1,
+            ),
+            boxShadow: c.isDark
+                ? [
+                    BoxShadow(
+                      color: tint.withValues(alpha: 0.22),
+                      blurRadius: 30,
+                      spreadRadius: -8,
+                      offset: const Offset(0, 12),
+                    ),
+                  ]
+                : null,
           ),
           clipBehavior: Clip.antiAlias,
           child: Stack(
@@ -117,7 +136,7 @@ class BestFundHero extends ConsumerWidget {
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        tint.withValues(alpha: 0.26),
+                        tint.withValues(alpha: c.isDark ? 0.34 : 0.26),
                         Colors.transparent
                       ],
                     ),

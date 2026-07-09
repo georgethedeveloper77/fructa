@@ -30,8 +30,9 @@ class _ManageSheet extends ConsumerStatefulWidget {
 }
 
 class _ManageSheetState extends ConsumerState<_ManageSheet> {
+  late final int _decimals = widget.holding.currency == 'USD' ? 2 : 0;
   late final TextEditingController _balance = TextEditingController(
-    text: widget.holding.balance.toStringAsFixed(0),
+    text: groupedAmount(widget.holding.balance, decimals: _decimals),
   );
 
   @override
@@ -57,7 +58,7 @@ class _ManageSheetState extends ConsumerState<_ManageSheet> {
         backgroundColor: c.s1,
         title: Text('Remove holding?', style: TextStyle(color: c.text)),
         content: Text(
-          'This removes ${widget.fund?.name ?? widget.holding.fundId} from your portfolio. Your money isn’t touched  this is just tracking.',
+          'This removes ${widget.fund?.name ?? widget.holding.fundId} from your portfolio. Your money is not touched; this is just tracking.',
           style: TextStyle(color: c.muted),
         ),
         actions: [
@@ -127,7 +128,7 @@ class _ManageSheetState extends ConsumerState<_ManageSheet> {
                     ),
                     if (f?.currentRate != null)
                       Text(
-                        '${f!.currentRate!.toStringAsFixed(2)}% · ${f.manager}',
+                        '${f!.currentRate!.toStringAsFixed(2)}% \u00b7 ${f.manager}',
                         style: TextStyle(color: c.faint, fontSize: 12),
                       ),
                   ],
@@ -141,6 +142,7 @@ class _ManageSheetState extends ConsumerState<_ManageSheet> {
           TextField(
             controller: _balance,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [ThousandsInputFormatter(decimals: _decimals)],
             style: TextStyle(color: c.text, fontSize: 20),
             decoration: InputDecoration(
               prefixText: '${h.currency}  ',
@@ -159,7 +161,7 @@ class _ManageSheetState extends ConsumerState<_ManageSheet> {
           ),
           const SizedBox(height: 6),
           Text(
-            'Was ${money(h.currency, h.balance)} · a change is logged as a deposit or withdrawal.',
+            'Was ${money(h.currency, h.balance)} \u00b7 a change is logged as a deposit or withdrawal.',
             style: TextStyle(color: c.faint, fontSize: 11),
           ),
           const SizedBox(height: 20),

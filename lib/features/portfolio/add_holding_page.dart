@@ -21,8 +21,8 @@ import '../../engine/projection_engine.dart';
 /// 2) Fund   — a big search inside the chosen bucket that loads only the top 3
 ///    by rate until you type; every row carries the manager's real logo +
 ///    brand tint + its own sparkline + the live rate.
-/// 3) Balance — amount with a live growth chart: what it becomes in a year,
-///    net of tax, at today's rate.
+/// 3) Balance — amount (thousands-grouped as you type) with a live growth
+///    chart: what it becomes in a year, net of tax, at today's rate.
 ///
 /// Dark-mode contrast: surfaces use `s2`/`s3` (not `s1`) and borders use
 /// `line2`, so cards and rows read against the near-black background.
@@ -365,6 +365,7 @@ class _AddHoldingPageState extends ConsumerState<AddHoldingPage> {
         ref.watch(brandColorProvider(f.id)) ?? fundTypeColor(f.fundType);
     final rate = f.currentRate ?? 0;
     final amt = _amount ?? 0;
+    final decimals = f.currency == 'USD' ? 2 : 0;
 
     final series = amt > 0
         ? ProjectionEngine.series(amt, rate, 12, net: true)
@@ -383,6 +384,7 @@ class _AddHoldingPageState extends ConsumerState<AddHoldingPage> {
         TextField(
           controller: _balance,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: [ThousandsInputFormatter(decimals: decimals)],
           style:
               TextStyle(color: c.text, fontSize: 22, fontFamily: fructaFonts.mono),
           onChanged: (_) => setState(() {}),
@@ -450,7 +452,7 @@ class _AddHoldingPageState extends ConsumerState<AddHoldingPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            'fructa tracks this daily from today. Illustration at today\u2019s rate held flat \u2014 not a promise.',
+            'fructa tracks this daily from today. Illustration at today\u2019s rate held flat. Not a promise.',
             style: TextStyle(color: c.muted, fontSize: 11, height: 1.4),
           ),
         ],
