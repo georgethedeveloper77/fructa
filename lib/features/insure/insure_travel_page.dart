@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/format.dart';
 import '../../core/i18n.dart';
 import '../../core/theme.dart';
 import '../../core/widgets/kit.dart';
@@ -36,15 +37,24 @@ class _InsureTravelPageState extends ConsumerState<InsureTravelPage> {
   void _bumpDays(int d) {
     setState(() {
       final step = d > 0
-          ? (_days >= 30 ? 7 : _days >= 14 ? 3 : 1)
-          : (_days > 30 ? -7 : _days > 14 ? -3 : -1);
+          ? (_days >= 30
+                ? 7
+                : _days >= 14
+                ? 3
+                : 1)
+          : (_days > 30
+                ? -7
+                : _days > 14
+                ? -3
+                : -1);
       _days = (_days + step).clamp(3, 90);
     });
   }
 
   void _bumpPax(int d) => setState(() => _pax = (_pax + d).clamp(1, 6));
 
-  double _price(Insurer i) => i.travelPrice(_region, days: _days, pax: _pax) ?? 0;
+  double _price(Insurer i) =>
+      i.travelPrice(_region, days: _days, pax: _pax) ?? 0;
 
   List<Insurer> _sorted(List<Insurer> travel) {
     final list = travel.where((i) => _price(i) > 0).toList();
@@ -54,7 +64,8 @@ class _InsureTravelPageState extends ConsumerState<InsureTravelPage> {
         list.sort((a, b) => _price(a).compareTo(_price(b)));
       case TravelSort.cover:
         list.sort(
-            (a, b) => coverNum(b.travelCover).compareTo(coverNum(a.travelCover)));
+          (a, b) => coverNum(b.travelCover).compareTo(coverNum(a.travelCover)),
+        );
       case TravelSort.claims:
         list.sort((a, b) => claims(a).compareTo(claims(b)));
     }
@@ -65,8 +76,10 @@ class _InsureTravelPageState extends ConsumerState<InsureTravelPage> {
   Widget build(BuildContext context) {
     final c = context.c;
     final rc = ref.watch(remoteConfigProvider);
-    final travel =
-        ref.watch(insurersProvider).where((i) => i.hasTravel).toList();
+    final travel = ref
+        .watch(insurersProvider)
+        .where((i) => i.hasTravel)
+        .toList();
 
     if (travel.isEmpty) {
       return _shell(
@@ -74,9 +87,11 @@ class _InsureTravelPageState extends ConsumerState<InsureTravelPage> {
         Center(
           child: Padding(
             padding: const EdgeInsets.all(32),
-            child: Text(t('insure.emptyTravel'),
-                textAlign: TextAlign.center,
-                style: TextStyle(color: c.muted)),
+            child: Text(
+              t('insure.emptyTravel'),
+              textAlign: TextAlign.center,
+              style: TextStyle(color: c.muted),
+            ),
           ),
         ),
       );
@@ -125,7 +140,16 @@ class _InsureTravelPageState extends ConsumerState<InsureTravelPage> {
           for (var qi = 0; qi < sorted.length; qi++)
             Stagger(
               index: qi,
-              child: _quoteRow(context, sorted[qi], best),
+              child: _quoteRow(
+                context,
+                sorted[qi],
+                best,
+                sorted.isEmpty
+                    ? 0
+                    : _price(
+                        sorted.reduce((a, b) => _price(a) >= _price(b) ? a : b),
+                      ),
+              ),
             ),
           _TravelFoot(sorted: sorted, region: _region, price: _price),
           Disclaimer(rcText(rc, 'insure.disc.travel')),
@@ -134,60 +158,66 @@ class _InsureTravelPageState extends ConsumerState<InsureTravelPage> {
     );
   }
 
-
-  Widget _quoteRow(BuildContext context, Insurer i, Insurer? best) =>
-      InsureQuoteRow(
-              name: i.name,
-              logoDomain: i.logoDomain,
-              brand: insurerBrand(context, i),
-              stars: i.rating,
-              meta: [
-                if (i.travelCover != null) i.travelCover!,
-                if (i.claimsDays != null)
-                  t('insure.claimsDays', {'d': '${i.claimsDays}'}),
-              ].join('  \u00b7  '),
-              benefits: i.benefits,
-              priceText: kes(_price(i)),
-              subText: t('insure.paxDays', {
-                'pax': _pax > 1 ? '$_pax \u00b7 ' : '',
-                'days': '$_days',
-              }),
-              best: best != null && i.id == best.id,
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => InsurerDetailPage.travel(
-                  i,
-                  region: _region,
-                  days: _days,
-                  pax: _pax,
-                ),
-              )),
-      );
+  Widget _quoteRow(
+    BuildContext context,
+    Insurer i,
+    Insurer? best,
+    double dearest,
+  ) => InsureQuoteRow(
+    name: i.name,
+    logoDomain: i.logoDomain,
+    brand: insurerBrand(context, i),
+    // Travel is priced per traveller per region, not as a percentage of
+    // anything, so there is no rate mechanic to show. The cover ceiling is
+    // the thing that separates these quotes.
+    rateLabel: i.travelCover,
+    meta: i.claimsDays == null
+        ? null
+        : t('insure.claimsDays', {'d': '${i.claimsDays}'}),
+    priceText: withCommas(_price(i).round()),
+    priceUnit: t('insure.paxDays', {
+      'pax': _pax > 1 ? '$_pax \u00b7 ' : '',
+      'days': '$_days',
+    }),
+    barFraction: dearest <= 0 ? null : _price(i) / dearest,
+    best: best != null && i.id == best.id,
+    onTap: () => Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => InsurerDetailPage.travel(
+          i,
+          region: _region,
+          days: _days,
+          pax: _pax,
+        ),
+      ),
+    ),
+  );
 
   Widget _shell(fructaColors c, Widget body) => Scaffold(
-        backgroundColor: c.bg,
-        appBar: AppBar(
-          backgroundColor: c.bg,
-          surfaceTintColor: Colors.transparent,
-          foregroundColor: c.text,
-          elevation: 0,
-          title: Text(
-            t('insure.travel'),
-            style: TextStyle(
-              color: c.text,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              letterSpacing: -0.2,
-            ),
-          ),
-          centerTitle: false,
-          titleSpacing: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => Navigator.of(context).maybePop(),
-          ),
+    backgroundColor: c.bg,
+    appBar: AppBar(
+      backgroundColor: c.bg,
+      surfaceTintColor: Colors.transparent,
+      foregroundColor: c.text,
+      elevation: 0,
+      title: Text(
+        t('insure.travel'),
+        style: TextStyle(
+          color: c.text,
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          letterSpacing: -0.2,
         ),
-        body: body,
-      );
+      ),
+      centerTitle: false,
+      titleSpacing: 0,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back),
+        onPressed: () => Navigator.of(context).maybePop(),
+      ),
+    ),
+    body: body,
+  );
 }
 
 class _TravelBox extends StatelessWidget {
@@ -223,11 +253,14 @@ class _TravelBox extends StatelessWidget {
               borderRadius: BorderRadius.circular(22),
               border: Border.all(color: on ? c.text : c.line),
             ),
-            child: Text(regionLabel(key),
-                style: TextStyle(
-                    color: on ? c.bg : c.muted,
-                    fontSize: 13,
-                    fontWeight: on ? FontWeight.w600 : FontWeight.w500)),
+            child: Text(
+              regionLabel(key),
+              style: TextStyle(
+                color: on ? c.bg : c.muted,
+                fontSize: 13,
+                fontWeight: on ? FontWeight.w600 : FontWeight.w500,
+              ),
+            ),
           ),
         ),
       );
@@ -239,9 +272,9 @@ class _TravelBox extends StatelessWidget {
         children: [
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            child: Row(children: [
-              for (final r in TravelRegions.keys) regionPill(r),
-            ]),
+            child: Row(
+              children: [for (final r in TravelRegions.keys) regionPill(r)],
+            ),
           ),
           _Stepper(
             label: t('insure.tripLength'),
@@ -280,19 +313,19 @@ class _Stepper extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.c;
     Widget btn(IconData icon, VoidCallback onTap) => GestureDetector(
-          onTap: onTap,
-          child: Container(
-            width: 32,
-            height: 32,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: c.s3,
-              borderRadius: BorderRadius.circular(9),
-              border: Border.all(color: c.line2),
-            ),
-            child: Icon(icon, size: 18, color: c.text),
-          ),
-        );
+      onTap: onTap,
+      child: Container(
+        width: 32,
+        height: 32,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: c.s3,
+          borderRadius: BorderRadius.circular(9),
+          border: Border.all(color: c.line2),
+        ),
+        child: Icon(icon, size: 18, color: c.text),
+      ),
+    );
     return Container(
       margin: const EdgeInsets.only(top: 11),
       padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
@@ -307,19 +340,25 @@ class _Stepper extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label,
-                    style: TextStyle(
-                        color: c.faint,
-                        fontSize: 9,
-                        letterSpacing: 0.7,
-                        fontWeight: FontWeight.w600)),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: c.faint,
+                    fontSize: 9,
+                    letterSpacing: 0.7,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text(value,
-                    style: TextStyle(
-                        color: c.text,
-                        fontFamily: fructaFonts.mono,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600)),
+                Text(
+                  value,
+                  style: TextStyle(
+                    color: c.text,
+                    fontFamily: fructaFonts.mono,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ],
             ),
           ),
@@ -332,10 +371,12 @@ class _Stepper extends StatelessWidget {
   }
 }
 
-
 class _TravelFoot extends StatelessWidget {
-  const _TravelFoot(
-      {required this.sorted, required this.region, required this.price});
+  const _TravelFoot({
+    required this.sorted,
+    required this.region,
+    required this.price,
+  });
   final List<Insurer> sorted;
   final String region;
   final double Function(Insurer) price;
@@ -345,12 +386,16 @@ class _TravelFoot extends StatelessWidget {
     final c = context.c;
     if (sorted.isEmpty) return const SizedBox.shrink();
     final cheap = [...sorted]..sort((a, b) => price(a).compareTo(price(b)));
-    final deep = [...sorted]..sort(
-        (a, b) => coverNum(b.travelCover).compareTo(coverNum(a.travelCover)));
+    final deep = [...sorted]
+      ..sort(
+        (a, b) => coverNum(b.travelCover).compareTo(coverNum(a.travelCover)),
+      );
     final parts = <String>[
       if (region == 'sch') t('insure.schengenWarn'),
-      t('insure.travelGapCheap',
-          {'name': cheap.first.name, 'amt': kes(price(cheap.first))}),
+      t('insure.travelGapCheap', {
+        'name': cheap.first.name,
+        'amt': kes(price(cheap.first)),
+      }),
       t('insure.travelGapDeep', {
         'name': deep.first.name,
         'cover': deep.first.travelCover ?? '',
@@ -358,8 +403,10 @@ class _TravelFoot extends StatelessWidget {
     ];
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-      child: Text(parts.join(' '),
-          style: TextStyle(color: c.muted, fontSize: 11.5, height: 1.5)),
+      child: Text(
+        parts.join(' '),
+        style: TextStyle(color: c.muted, fontSize: 11.5, height: 1.5),
+      ),
     );
   }
 }

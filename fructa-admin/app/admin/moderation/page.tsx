@@ -120,7 +120,7 @@ export default async function ModerationPage() {
               <div className="mt-3 flex flex-wrap items-end gap-2">
                 <form action={approveBody}>
                   <input type="hidden" name="id" value={r.id} />
-                  <button className="rounded-md border border-live/50 bg-live/10 px-4 py-1.5 text-sm font-medium text-live hover:bg-live/20">
+                  <button className="rounded-md border border-gold/50 bg-gold/10 px-4 py-1.5 text-sm font-medium text-gold hover:bg-gold/20">
                     Publish
                   </button>
                 </form>

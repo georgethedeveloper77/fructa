@@ -1,6 +1,6 @@
 // Inline SVG icon set (lucide-style, 24×24 stroke, currentColor). Zero
 // dependency; pure functions, so they render in both server and client
-// components. House rule: admin never uses emoji or unicode glyphs as icons —
+// components. House rule: admin never uses emoji or unicode glyphs as icons ,
 // every icon in the console comes from here.
 import type { SVGProps } from "react";
 
@@ -33,6 +33,9 @@ export const IconCompanies = (p: IconProps) => (
 export const IconInsurers = (p: IconProps) => (
   <svg {...base(p)}><path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6l-7-3Z" /></svg>
 );
+export const IconModeration = (p: IconProps) => (
+  <svg {...base(p)}><path d="M4 15V4a1 1 0 0 1 1-1h6l1 2h6a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-6l-1-2H5a1 1 0 0 0-1 1Z" /><path d="M4 22v-7" /></svg>
+);
 export const IconAgents = (p: IconProps) => (
   <svg {...base(p)}><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2 4.2 2 2 0 0 1 4 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.1a2 2 0 0 1 2.1-.5c.9.3 1.9.6 2.8.7a2 2 0 0 1 1.7 2Z" /></svg>
 );
@@ -56,6 +59,12 @@ export const IconLearn = (p: IconProps) => (
 );
 export const IconSettings = (p: IconProps) => (
   <svg {...base(p)}><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" /></svg>
+);
+export const IconStocks = (p: IconProps) => (
+  <svg {...base(p)}><path d="M3 3v18h18" /><rect x="7" y="10" width="3" height="7" rx="1" /><path d="M8.5 7v3M8.5 17v3" /><rect x="14" y="6" width="3" height="6" rx="1" /><path d="M15.5 3v3M15.5 12v3" /></svg>
+);
+export const IconBrokers = (p: IconProps) => (
+  <svg {...base(p)}><rect x="3" y="7" width="18" height="13" rx="2" /><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><path d="M3 12h18" /></svg>
 );
 export const IconPages = (p: IconProps) => (
   <svg {...base(p)}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" /><path d="M14 2v6h6" /><path d="M8 13h8M8 17h5" /></svg>

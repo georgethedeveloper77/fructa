@@ -11,9 +11,19 @@ type InsType = { key: string; label: string; icon: string | null; status: string
 
 const ICONS = ["motor", "travel", "life", "medical", "home", "business", "marine"];
 
+// ONE string literal. Do not split this with `+`.
+//
+// supabase-js parses the select string AT THE TYPE LEVEL to work out the shape
+// of `data`. That only works if the argument has a literal type. TypeScript
+// widens `"a," + "b"` to plain `string`, the parser cannot read `string`, and it
+// falls back to GenericStringError, which is the `{ error: true } & String` the
+// build choked on. The other two selects in this file are written as literals
+// and type fine, which is the tell.
+//
+// So: one line, however long. Readability is not worth a build break, and the
+// same trap is waiting in any other file that assembles a select with `+`.
 const INSURER_COLS =
-  "id,name,company_id,currency,motor_rate,min_premium,excess_pct,excess_min,claims_days,rating,benefits,logo_domain," +
-  "settle_pct,licensed_since,phone,whatsapp,email,paybill,website,brand_color,classes,signals,travel_regions,travel_cover";
+  "id,name,company_id,currency,motor_rate,min_premium,excess_pct,excess_min,claims_days,rating,benefits,logo_domain,settle_pct,licensed_since,phone,whatsapp,email,paybill,website,brand_color,classes,signals,travel_regions,travel_cover";
 
 export default async function InsurersPage() {
   const db = supabaseAdmin();
@@ -24,7 +34,7 @@ export default async function InsurersPage() {
       db.from("insurance_types").select("key,label,icon,status,ord,sub,lottie_url,active").order("ord"),
     ]);
 
-  const rows = (insurers ?? []) as Insurer[];
+  const rows = (insurers ?? []) as unknown as Insurer[];
   const cos = (companies ?? []) as Company[];
   const tps = (types ?? []) as InsType[];
 

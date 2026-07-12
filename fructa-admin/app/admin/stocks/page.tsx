@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { StocksTable, type StockRow } from "./StocksTable";
 import { AddStock } from "./AddStock";
+import { ImportDividends } from "./ImportDividends";
 
 export const dynamic = "force-dynamic";
 
@@ -94,6 +95,8 @@ export default async function StocksPage() {
         </div>
         <AddStock />
       </div>
+
+      <ImportDividends />
 
       <StocksTable rows={rows} />
     </div>

@@ -140,3 +140,141 @@ export async function deleteDividend(formData: FormData) {
   await republishSnapshot();
   refresh(stock_id);
 }
+
+// ── Dividend bulk import ────────────────────────────────────────────────────
+// The stocks equivalent of the funds importer. Dividends are DECLARED, once or
+// twice a year at results season, not quoted continuously, so this is the right
+// shape for the lane: a CSV you run when the announcements land, not a cron.
+//
+// Matched on TICKER, which is exact. No fuzzy name matching (contrast the MMF
+// lane, where sources use casual labels like "Nabo"), so a row either lands on
+// the right company or is reported unmatched. It never guesses.
+//
+// Format: ticker,financial_year,kind,dps_kes[,payment_date][,source_url]
+//   SCOM,2025,final,1.20,2025-08-31,https://...
+//   EQTY,2025,interim,0.50
+
+export type DivImportRow = {
+  ticker: string;
+  financialYear: number | null;
+  kind: string;
+  dpsKes: number | null;
+  paymentDate: string | null;
+  sourceUrl: string | null;
+};
+
+export type DivMatchRow = {
+  stockId: string;
+  stockName: string;
+  ticker: string;
+  financialYear: number;
+  kind: string;
+  dpsFrom: number | null; // existing value for this (stock, year, kind)
+  dpsTo: number;
+  paymentDate: string | null;
+  sourceUrl: string | null;
+};
+
+export type DivPreview = {
+  matched: DivMatchRow[];
+  unmatched: string[];
+  invalid: string[];
+};
+
+const DIV_KINDS_IMPORT = ["interim", "final", "special"];
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+export async function previewDividendImport(
+  rows: DivImportRow[],
+): Promise<DivPreview> {
+  const db = supabaseAdmin();
+
+  const [{ data: stocks }, { data: existing }] = await Promise.all([
+    db.from("stocks").select("id,name,ticker"),
+    db.from("stock_dividends").select("stock_id,financial_year,kind,dps_kes"),
+  ]);
+
+  const byTicker = new Map<string, { id: string; name: string; ticker: string }>();
+  for (const s of stocks ?? []) {
+    byTicker.set(String(s.ticker).trim().toUpperCase(), {
+      id: s.id,
+      name: s.name,
+      ticker: s.ticker,
+    });
+  }
+
+  // (stock, year, kind) -> current dps, so the preview shows a real before/after
+  const prior = new Map<string, number>();
+  for (const d of existing ?? []) {
+    prior.set(`${d.stock_id}|${d.financial_year}|${d.kind}`, Number(d.dps_kes));
+  }
+
+  const matched: DivMatchRow[] = [];
+  const unmatched: string[] = [];
+  const invalid: string[] = [];
+
+  for (const r of rows) {
+    const key = r.ticker.trim().toUpperCase();
+    if (!key) continue;
+
+    // A bad year, kind or amount is called out rather than silently dropped.
+    if (
+      r.financialYear == null ||
+      r.dpsKes == null ||
+      r.dpsKes <= 0 ||
+      !DIV_KINDS_IMPORT.includes(r.kind)
+    ) {
+      invalid.push(`${key}: bad year, kind or amount`);
+      continue;
+    }
+    if (r.paymentDate && !ISO_DATE.test(r.paymentDate)) {
+      invalid.push(`${key}: payment date must be YYYY-MM-DD`);
+      continue;
+    }
+
+    const s = byTicker.get(key);
+    if (!s) {
+      unmatched.push(key);
+      continue;
+    }
+
+    matched.push({
+      stockId: s.id,
+      stockName: s.name,
+      ticker: s.ticker,
+      financialYear: r.financialYear,
+      kind: r.kind,
+      dpsFrom: prior.get(`${s.id}|${r.financialYear}|${r.kind}`) ?? null,
+      dpsTo: r.dpsKes,
+      paymentDate: r.paymentDate,
+      sourceUrl: r.sourceUrl,
+    });
+  }
+
+  return { matched, unmatched, invalid };
+}
+
+export async function applyDividendImport(
+  rows: DivMatchRow[],
+): Promise<{ written: number }> {
+  if (rows.length === 0) return { written: 0 };
+
+  // Upsert on (stock_id, financial_year, kind): re-importing a corrected
+  // announcement fixes the row rather than duplicating it.
+  const payload = rows.map((r) => ({
+    stock_id: r.stockId,
+    financial_year: r.financialYear,
+    kind: r.kind,
+    dps_kes: r.dpsTo,
+    payment_date: r.paymentDate,
+    source_url: r.sourceUrl,
+  }));
+
+  await supabaseAdmin()
+    .from("stock_dividends")
+    .upsert(payload, { onConflict: "stock_id,financial_year,kind" });
+
+  await republishSnapshot();
+  refresh();
+  return { written: payload.length };
+}

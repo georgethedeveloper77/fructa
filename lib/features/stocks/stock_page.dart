@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/i18n.dart';
 import '../../core/theme.dart';
 import '../../core/widgets/cta.dart';
 import '../../core/widgets/fund_logo.dart';
@@ -80,10 +81,7 @@ class StockPage extends ConsumerWidget {
               _howToBuy(context),
               if (brokers.isNotEmpty) _whereToBuy(context, brokers, tint),
               const SizedBox(height: 8),
-              Disclaimer(
-                'Educational information only, not investment advice. Fructa does not hold your money or place trades.',
-                center: true,
-              ),
+              Disclaimer(t('stocks.disclaimer'), center: true),
               const SizedBox(height: 20),
             ],
           ),
@@ -212,7 +210,7 @@ class StockPage extends ConsumerWidget {
                 Padding(
                   padding: const EdgeInsets.only(bottom: 5),
                   child: Text(
-                    'KES per share',
+                    t('stocks.perShare'),
                     style: TextStyle(
                       color: c.muted,
                       fontSize: 16,
@@ -224,7 +222,7 @@ class StockPage extends ConsumerWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'Declared dividend, FY${s.dpsYear}',
+              t('stocks.declaredFy', {'y': '${s.dpsYear}'}),
               style: TextStyle(color: c.faint, fontSize: 13),
             ),
           ],
@@ -266,7 +264,7 @@ class StockPage extends ConsumerWidget {
             const SizedBox(width: 11),
             Expanded(
               child: Text(
-                'Fructa shows company facts and declared dividends, not live prices. For today\u2019s price and to trade, use a licensed broker below.',
+                t('stocks.noPriceDetail'),
                 style: TextStyle(color: c.muted, fontSize: 12.5, height: 1.5),
               ),
             ),
@@ -282,10 +280,12 @@ class StockPage extends ConsumerWidget {
   Widget _statTriad(BuildContext context, Stock s) {
     final c = context.c;
     final cells = <(String, String)>[
-      if (s.divYield != null) ('DIV YIELD', '${s.divYield!.toStringAsFixed(1)}%'),
-      if (s.marketCap != null) ('MARKET CAP', _cap(s.marketCap!)),
+      if (s.divYield != null)
+        (t('stocks.stat.divYield'), '${s.divYield!.toStringAsFixed(1)}%'),
+      if (s.marketCap != null)
+        (t('stocks.stat.marketCap'), _cap(s.marketCap!)),
       if (s.dpsLatest != null)
-        ('DIVIDEND', '${s.dpsLatest!.toStringAsFixed(2)}'),
+        (t('stocks.stat.dividend'), s.dpsLatest!.toStringAsFixed(2)),
     ];
     if (cells.isEmpty) return const SizedBox.shrink();
 
@@ -362,7 +362,7 @@ class StockPage extends ConsumerWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'RISK PROFILE',
+                  t('stocks.risk.label'),
                   style: TextStyle(
                     color: c.muted,
                     fontSize: 12.5,
@@ -371,7 +371,7 @@ class StockPage extends ConsumerWidget {
                   ),
                 ),
                 Text(
-                  'HIGH',
+                  t('stocks.risk.high'),
                   style: TextStyle(
                     color: c.down,
                     fontSize: 14,
@@ -403,18 +403,18 @@ class StockPage extends ConsumerWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Lower risk',
+                  t('stocks.risk.lower'),
                   style: TextStyle(color: c.faint, fontSize: 12.5),
                 ),
                 Text(
-                  'Higher risk',
+                  t('stocks.risk.higher'),
                   style: TextStyle(color: c.faint, fontSize: 12.5),
                 ),
               ],
             ),
             const SizedBox(height: 14),
             Text(
-              'Share prices move every trading day and the value of your holding can fall. Higher risk than a money market fund or a T-bill, where the return is known up front.',
+              t('stocks.risk.body'),
               style: TextStyle(color: c.text, fontSize: 14.5, height: 1.5),
             ),
           ],
@@ -430,7 +430,7 @@ class StockPage extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 8),
-        SectionHeader(title: 'Dividends'),
+        SectionHeader(title: t('stocks.dividends')),
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
           child: Container(
@@ -461,7 +461,7 @@ class StockPage extends ConsumerWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                '${_kindLabel(rows[i].kind)} dividend',
+                                _kindLabel(rows[i].kind),
                                 style: TextStyle(
                                   color: c.text,
                                   fontSize: 14.5,
@@ -471,8 +471,12 @@ class StockPage extends ConsumerWidget {
                               const SizedBox(height: 3),
                               Text(
                                 rows[i].paymentDate != null
-                                    ? 'Paid ${rows[i].paymentDate}'
-                                    : 'FY${rows[i].financialYear}',
+                                    ? t('stocks.dividend.paid', {
+                                        'd': '${rows[i].paymentDate}',
+                                      })
+                                    : t('stocks.dividend.fy', {
+                                        'y': '${rows[i].financialYear}',
+                                      }),
                                 style: TextStyle(color: c.faint, fontSize: 12.5),
                               ),
                             ],
@@ -502,44 +506,29 @@ class StockPage extends ConsumerWidget {
   String _kindLabel(String k) {
     switch (k) {
       case 'interim':
-        return 'Interim';
+        return t('stocks.dividend.interim');
       case 'special':
-        return 'Special';
+        return t('stocks.dividend.special');
       default:
-        return 'Final';
+        return t('stocks.dividend.final');
     }
   }
 
   Widget _howToBuy(BuildContext context) {
     final c = context.c;
-    const steps = <(String, String)>[
-      (
-        'Open a CDS account',
-        'Your electronic share record at the CDSC, opened through a licensed broker with your ID.',
-      ),
-      (
-        'Choose a licensed broker',
-        'Any CMA-licensed stockbroker or investment bank. Verify them on the CMA licensee list.',
-      ),
-      (
-        'Fund your account',
-        'Move money in by bank transfer or M-PESA. You can start with a single share.',
-      ),
-      (
-        'Place a buy order',
-        'A market order buys at the current price. A limit order buys only at a price you set.',
-      ),
-      (
-        'Shares settle to you',
-        'The shares land in your CDS account three business days after the trade.',
-      ),
+    final steps = <(String, String)>[
+      (t('stocks.step.cds.title'), t('stocks.step.cds.body')),
+      (t('stocks.step.broker.title'), t('stocks.step.broker.body')),
+      (t('stocks.step.fund.title'), t('stocks.step.fund.body')),
+      (t('stocks.step.order.title'), t('stocks.step.order.body')),
+      (t('stocks.step.settle.title'), t('stocks.step.settle.body')),
     ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 8),
-        SectionHeader(title: 'How to buy'),
+        SectionHeader(title: t('stocks.howToBuy')),
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
           child: Column(
@@ -611,11 +600,11 @@ class StockPage extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 8),
-        SectionHeader(title: 'Where to buy'),
+        SectionHeader(title: t('stocks.whereToBuy')),
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
           child: Text(
-            'Fructa does not hold your money or place trades. Buy and sell through a CMA-licensed broker.',
+            t('stocks.whereToBuy.sub'),
             style: TextStyle(color: c.muted, fontSize: 13.5, height: 1.5),
           ),
         ),
@@ -674,7 +663,7 @@ class StockPage extends ConsumerWidget {
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
-                          'Trade',
+                          t('stocks.trade'),
                           style: TextStyle(
                             color: c.accent,
                             fontSize: 13,

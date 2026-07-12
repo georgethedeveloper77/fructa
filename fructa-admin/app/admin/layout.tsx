@@ -6,8 +6,8 @@ import { supabaseBrowser } from "@/lib/supabase/auth-browser";
 import {
   IconOverview, IconFunds, IconCompanies, IconInsurers, IconAgents,
   IconSources, IconScrapers, IconImport, IconInsights, IconConfig,
-  IconLearn, IconBell, IconPages, IconSettings, IconArticle,
-  IconSearch, IconPower, IconRefresh,
+  IconLearn, IconBell, IconPages, IconSettings, IconArticle, IconModeration,
+  IconSearch, IconPower, IconRefresh, IconStocks, IconBrokers,
 } from "./_icons";
 import type { SVGProps } from "react";
 
@@ -17,9 +17,12 @@ type NavItem = { href: string; label: string; icon: IconCmp; title: string; crum
 const OPERATE: NavItem[] = [
   { href: "/admin", label: "Overview", icon: IconOverview, title: "Overview", crumb: "rates ops" },
   { href: "/admin/funds", label: "Funds", icon: IconFunds, title: "Funds", crumb: "rate directory" },
+  { href: "/admin/stocks", label: "Stocks", icon: IconStocks, title: "Stocks", crumb: "NSE listings & dividends" },
   { href: "/admin/companies", label: "Companies", icon: IconCompanies, title: "Companies", crumb: "providers & brands" },
   { href: "/admin/insurers", label: "Insurers", icon: IconInsurers, title: "Insurers", crumb: "motor & travel" },
   { href: "/admin/agents", label: "Agents", icon: IconAgents, title: "Agents", crumb: "contacts" },
+  { href: "/admin/brokers", label: "Brokers", icon: IconBrokers, title: "Brokers", crumb: "CMA-licensed stockbrokers" },
+  { href: "/admin/moderation", label: "Moderation", icon: IconModeration, title: "Moderation", crumb: "review queue" },
   { href: "/admin/notifications", label: "Notify", icon: IconBell, title: "Notifications", crumb: "push console" },
 ];
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/i18n.dart';
 import '../../core/theme.dart';
 import '../../core/widgets/fund_logo.dart';
 import '../../data/models/stock.dart';
@@ -30,14 +31,14 @@ enum _Sort { movers, dividend, alpha }
 
 extension on _Sort {
   String get label => switch (this) {
-    _Sort.movers => 'Top movers',
-    _Sort.dividend => 'Highest dividend',
-    _Sort.alpha => 'A to Z',
+    _Sort.movers => t('stocks.sort.movers'),
+    _Sort.dividend => t('stocks.sort.dividend'),
+    _Sort.alpha => t('stocks.sort.alpha'),
   };
 }
 
 class _StocksPageState extends ConsumerState<StocksPage> {
-  String _sector = 'All';
+  String _sector = '';  // empty = the All tab, resolved against i18n at build
   _Sort _sort = _Sort.movers;
 
   @override
@@ -50,7 +51,7 @@ class _StocksPageState extends ConsumerState<StocksPage> {
     // not offered at all rather than offered and dead.
     final sort = (!pricesLive && _sort == _Sort.movers) ? _Sort.dividend : _sort;
 
-    final sectors = <String>['All'];
+    final sectors = <String>[t('stocks.sectorAll')];
     for (final s in stocks) {
       final sec = s.sector;
       if (sec != null && sec.isNotEmpty && !sectors.contains(sec)) {
@@ -59,7 +60,9 @@ class _StocksPageState extends ConsumerState<StocksPage> {
     }
 
     final rows =
-        stocks.where((s) => _sector == 'All' || s.sector == _sector).toList()
+        stocks
+            .where((s) => _sector.isEmpty || s.sector == _sector)
+            .toList()
           ..sort((a, b) => switch (sort) {
             _Sort.movers => _cmpNullableDesc(
               a.changePct,
@@ -83,7 +86,7 @@ class _StocksPageState extends ConsumerState<StocksPage> {
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         title: Text(
-          'Stocks',
+          t('stocks.title'),
           style: TextStyle(
             color: c.text,
             fontSize: 17,
@@ -99,7 +102,7 @@ class _StocksPageState extends ConsumerState<StocksPage> {
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
                   child: Text(
-                    '${stocks.length} listed on the NSE',
+                    t('stocks.listedCount', {'n': '${stocks.length}'}),
                     style: TextStyle(
                       color: c.faint,
                       fontFamily: fructaFonts.mono,
@@ -119,7 +122,9 @@ class _StocksPageState extends ConsumerState<StocksPage> {
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                   child: Text(
-                    '${rows.length} ${rows.length == 1 ? 'stock' : 'stocks'}',
+                    rows.length == 1
+                        ? t('stocks.countOne')
+                        : t('stocks.count', {'n': '${rows.length}'}),
                     style: TextStyle(color: c.faint, fontSize: 11.5),
                   ),
                 ),
@@ -157,7 +162,7 @@ class _StocksPageState extends ConsumerState<StocksPage> {
             Icon(Icons.show_chart, size: 40, color: c.faint),
             const SizedBox(height: 14),
             Text(
-              'No stocks yet',
+              t('stocks.empty.title'),
               style: TextStyle(
                 color: c.text,
                 fontSize: 17,
@@ -166,7 +171,7 @@ class _StocksPageState extends ConsumerState<StocksPage> {
             ),
             const SizedBox(height: 6),
             Text(
-              'Listed companies appear here once they are published.',
+              t('stocks.empty.body'),
               textAlign: TextAlign.center,
               style: TextStyle(color: c.muted, fontSize: 13.5, height: 1.5),
             ),
@@ -196,7 +201,7 @@ class _StocksPageState extends ConsumerState<StocksPage> {
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                'Fructa shows company facts and declared dividends. For live prices and to trade, use a licensed broker.',
+                t('stocks.noPriceList'),
                 style: TextStyle(color: c.muted, fontSize: 12.5, height: 1.45),
               ),
             ),
@@ -218,9 +223,9 @@ class _StocksPageState extends ConsumerState<StocksPage> {
         separatorBuilder: (_, _) => const SizedBox(width: 6),
         itemBuilder: (context, i) {
           final s = sectors[i];
-          final on = s == _sector;
+          final on = s == _sector || (i == 0 && _sector.isEmpty);
           return GestureDetector(
-            onTap: () => setState(() => _sector = s),
+            onTap: () => setState(() => _sector = i == 0 ? '' : s),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 160),
               alignment: Alignment.center,
@@ -525,7 +530,7 @@ class _StockTileState extends ConsumerState<StockTile> {
           ),
           const SizedBox(height: 3),
           Text(
-            'KES / share',
+            t('stocks.perShareShort'),
             style: TextStyle(
               color: c.muted,
               fontFamily: fructaFonts.mono,

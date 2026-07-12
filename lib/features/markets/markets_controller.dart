@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/i18n.dart';
 import '../../data/models/fund.dart';
+import '../../data/models/stock.dart';
 import '../../data/providers.dart';
 import '../../data/snapshot_providers.dart';
 
@@ -100,10 +102,19 @@ bool _isNavType(Fund f) =>
 /// hidden while surfacing Equity/Balanced/Special once their funds go retail.
 final visibleMarketTabsProvider = Provider<List<MarketTab>>((ref) {
   final funds = ref.watch(ratesProvider).valueOrNull ?? const [];
+  // Stocks live in their own table, not in `funds`, so MarketTab.stock can
+  // never be populated by a fund row. Its visibility is driven by the stocks
+  // snapshot instead. (MarketTab.stock.matches() still keys off the legacy
+  // `category == 'stock'`, which no live row carries, and that is fine: it
+  // keeps stocks out of the `all` stream, which is exactly where they must
+  // not appear.)
+  final hasStocks = ref.watch(stocksProvider).isNotEmpty;
   bool hasData(Fund f) => f.currentRate != null || _isNavType(f);
-  bool populated(MarketTab t) =>
-      t == MarketTab.all ||
-      funds.any((f) => f.retail && t.matches(f) && hasData(f));
+  bool populated(MarketTab t) => switch (t) {
+    MarketTab.all => true,
+    MarketTab.stock => hasStocks,
+    _ => funds.any((f) => f.retail && t.matches(f) && hasData(f)),
+  };
   return MarketTab.values.where(populated).toList();
 });
 
@@ -224,4 +235,91 @@ final marketNewsProvider = Provider<List<NewsItem>>((ref) {
   return events
       .map((e) => NewsItem(title: e.headline, at: e.createdAt))
       .toList();
+});
+
+
+// ─────────────────────────────────────────────────────────────────────────
+// Stocks stream. Deliberately a SEPARATE stream from `streamFundsProvider`.
+//
+// A stock is not a Fund and must never be ranked inside the same list as one:
+// a fund yield and a dividend yield are different kinds of number. So the
+// Stocks tab swaps the whole list over rather than merging rows in, and stocks
+// never appear under `all`. Same shape as the Money Market currency sub-filter,
+// but the sub-filter here is sector.
+// ─────────────────────────────────────────────────────────────────────────
+
+enum StockSort { movers, dividend, alpha }
+
+extension StockSortX on StockSort {
+  String get label => switch (this) {
+    StockSort.movers => t('stocks.sort.movers'),
+    StockSort.dividend => t('stocks.sort.dividend'),
+    StockSort.alpha => t('stocks.sort.alpha'),
+  };
+}
+
+/// null = the All sector chip.
+final stockSectorProvider = StateProvider<String?>((_) => null);
+
+/// Dividend-first, because a price needs a licence and may not be there.
+final stockSortProvider = StateProvider<StockSort>((_) => StockSort.dividend);
+
+/// Sectors actually present, alphabetical. One or fewer means the sub-filter
+/// row is not worth showing (mirrors moneyMarketCurrenciesProvider).
+final stockSectorsProvider = Provider<List<String>>((ref) {
+  final set = <String>{};
+  for (final s in ref.watch(stocksProvider)) {
+    final sec = s.sector;
+    if (sec != null && sec.isNotEmpty) set.add(sec);
+  }
+  final list = set.toList()..sort();
+  return list;
+});
+
+/// Ranking by day move needs a licensed price. With no prices published there
+/// is nothing to rank, so the pill is not offered and the sort falls back.
+final effectiveStockSortProvider = Provider<StockSort>((ref) {
+  final sort = ref.watch(stockSortProvider);
+  final live = ref.watch(stockPricesLiveProvider);
+  return (!live && sort == StockSort.movers) ? StockSort.dividend : sort;
+});
+
+/// Nulls sort last in both directions: no dividend recorded is not a dividend
+/// of zero, and no price is not a price of zero.
+int _nullableDesc(double? a, double? b, String an, String bn) {
+  if (a == null && b == null) return an.compareTo(bn);
+  if (a == null) return 1;
+  if (b == null) return -1;
+  final r = b.compareTo(a);
+  return r != 0 ? r : an.compareTo(bn);
+}
+
+final streamStocksProvider = Provider<List<Stock>>((ref) {
+  final sector = ref.watch(stockSectorProvider);
+  final sort = ref.watch(effectiveStockSortProvider);
+  final q = ref.watch(marketSearchProvider).trim().toLowerCase();
+
+  var list = ref.watch(stocksProvider).where(
+    (s) => sector == null || s.sector == sector,
+  );
+  if (q.isNotEmpty) {
+    // Ticker is searchable, so "SCOM" finds Safaricom.
+    list = list.where(
+      (s) =>
+          s.name.toLowerCase().contains(q) ||
+          s.ticker.toLowerCase().contains(q) ||
+          (s.sector ?? '').toLowerCase().contains(q),
+    );
+  }
+
+  final out = list.toList();
+  switch (sort) {
+    case StockSort.movers:
+      out.sort((a, b) => _nullableDesc(a.changePct, b.changePct, a.name, b.name));
+    case StockSort.dividend:
+      out.sort((a, b) => _nullableDesc(a.dpsLatest, b.dpsLatest, a.name, b.name));
+    case StockSort.alpha:
+      out.sort((a, b) => a.name.compareTo(b.name));
+  }
+  return out;
 });

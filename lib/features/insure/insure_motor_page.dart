@@ -184,7 +184,7 @@ class _InsureMotorPageState extends ConsumerState<InsureMotorPage> {
           for (var qi = 0; qi < sorted.length; qi++)
             Stagger(
               index: qi,
-              child: _quoteRow(context, sorted[qi], best, landed),
+              child: _quoteRow(context, sorted[qi], best, landed, landed(exp)),
             ),
           InsureH2(t('insure.whyPriciest')),
           if (gap > 0)
@@ -214,30 +214,51 @@ class _InsureMotorPageState extends ConsumerState<InsureMotorPage> {
   }
 
 
+  /// The rate mechanics line, DERIVED from the quote rather than read off a
+  /// column.
+  ///
+  /// base / value is the effective rate this insurer actually charged for THIS
+  /// car, so it stays true whichever band the value lands in and it cannot
+  /// drift from the price beside it. Reading motor_rate instead would print
+  /// "3.00%" for CIC on a 1M car when the band charged 6.00%, which is the kind
+  /// of quiet lie a rate comparison cannot afford.
+  String _rateLabel(Insurer i) {
+    if (_cover == CoverType.tpo) return t('insure.flatAnnual');
+    final base = _price(i);
+    if (base <= 0 || _value <= 0) return '';
+    final pct = base / _value * 100;
+    return t('insure.pctOfValue', {'pct': pct.toStringAsFixed(2)});
+  }
+
   Widget _quoteRow(
     BuildContext context,
     Insurer i,
     Insurer best,
     double Function(Insurer) landed,
+    double dearest,
   ) =>
       InsureQuoteRow(
-              name: i.name,
-              logoDomain: i.logoDomain,
-              brand: insurerBrand(context, i),
-              stars: i.rating,
-              meta: i.claimsDays == null
-                  ? t('insure.landedNote')
-                  : '${t('insure.claimsDays', {'d': '${i.claimsDays}'})}  \u00b7  ${t('insure.landedNote')}',
-              benefits: i.benefits,
-              priceText: kes(landed(i)),
-              subText: i.excessLabel.isEmpty
-                  ? null
-                  : t('insure.excessShort', {'v': i.excessLabel}),
-              best: i.id == best.id,
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => InsurerDetailPage.motor(i,
-                    value: _value, cls: _cls, cover: _cover),
-              )),
+        name: i.name,
+        logoDomain: i.logoDomain,
+        brand: insurerBrand(context, i),
+        rateLabel: _rateLabel(i),
+        meta: i.excessLabel.isEmpty
+            ? null
+            : t('insure.excessShort', {'v': i.excessLabel}),
+        priceText: withCommas(landed(i).round()),
+        priceUnit: t('insure.perYear'),
+        barFraction: dearest <= 0 ? null : landed(i) / dearest,
+        best: i.id == best.id,
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => InsurerDetailPage.motor(
+              i,
+              value: _value,
+              cls: _cls,
+              cover: _cover,
+            ),
+          ),
+        ),
       );
 
   Widget _shell(fructaColors c, Widget body) => Scaffold(

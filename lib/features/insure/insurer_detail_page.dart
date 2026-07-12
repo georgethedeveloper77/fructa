@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/format.dart';
 import '../../core/i18n.dart';
 import '../../core/theme.dart';
 import '../../core/widgets/kit.dart';
@@ -9,6 +10,7 @@ import '../../data/models/agent.dart';
 import '../../data/models/insurer.dart';
 import '../../data/snapshot_providers.dart';
 import 'insure_common.dart';
+import 'insure_motion.dart';
 import 'insurer_reviews.dart';
 import 'insurer_trust_panel.dart';
 
@@ -77,14 +79,6 @@ class InsurerDetailPage extends ConsumerWidget {
         ? const <Agent>[]
         : ref.watch(agentsForCompanyProvider(i.companyId));
 
-    final years =
-        i.licensedSince == null ? null : DateTime.now().year - i.licensedSince!;
-    final metaParts = <String>[
-      t('insure.generalInsurer'),
-      if (i.licensedSince != null)
-        t('insure.licensed', {'y': '${i.licensedSince}'}),
-      if (years != null) t('insure.years', {'n': '$years'}),
-    ];
 
     final travelPrice =
         isTravel ? (i.travelPrice(region!, days: days, pax: pax) ?? 0) : 0.0;
@@ -114,6 +108,29 @@ class InsurerDetailPage extends ConsumerWidget {
       ..sort((a, b) => a.amount.compareTo(b.amount));
 
     final shownPrice = isTravel ? travelPrice : motorLanded;
+
+    // The lead now names the CLASS, not just the product. "Motor comprehensive"
+    // was the same string whether you were pricing a private saloon or a PSV
+    // matatu, which are different tariffs entirely. "Private, comprehensive"
+    // tells you which quote you are looking at.
+    final premiumLead = isTravel
+        ? t('insure.travelLead', {
+            'region': regionLabel(region!),
+            'days': '$days',
+          })
+        : '${t('insure.class.${cls.key}')}, ${t('insure.cover.${cover.key}')}';
+
+    final premiumSub = isTravel
+        ? [
+            if (i.travelCover != null) i.travelCover!,
+            t('insure.travellersN', {'n': '$pax'}),
+          ].join(' \u00b7 ')
+        : cover == CoverType.tpo
+              ? t('insure.tpoFlat', {'class': t('insure.class.${cls.key}')})
+              : t('insure.rateOfValue', {
+                  'rate': (i.rateFor(value, cls) ?? 0).toStringAsFixed(2),
+                  'excess': i.excessLabel,
+                });
 
     return Scaffold(
       backgroundColor: c.bg,
@@ -157,117 +174,54 @@ class InsurerDetailPage extends ConsumerWidget {
               label: isTravel
                   ? t('insure.getTravelQuote')
                   : t('insure.getQuote'),
-              tint: brand,
+              // var(--accent) in the mockup, not the insurer's brand. Two
+              // reasons, and the second is the real one. First, gold is the
+              // app's "act" colour everywhere else. Second, brand_color is
+              // nullable: an insurer without one falls back to a generic tint,
+              // so a CTA painted from it is a button whose colour means nothing
+              // and which currently renders blue for all 38.
+              tint: c.accent,
               onTap: () => _primaryAction(i),
             ),
 
       body: ListView(
         padding: const EdgeInsets.only(bottom: 40),
         children: [
-          // identity
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
-            child: Row(
-              children: [
-                InsurerLogo(i, size: 44),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(i.name,
-                          style: TextStyle(
-                              color: c.text,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 2),
-                      Text(metaParts.join(' \u00b7 '),
-                          style: TextStyle(color: c.muted, fontSize: 11)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // big premium (priced modes only; info mode has no rate to show)
+          _Identity(insurer: i, brand: brand),
           if (!isInfo)
-            Padding(
-            padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  isTravel
-                      ? t('insure.travelLead', {
-                          'region': regionLabel(region!),
-                          'days': '$days',
-                        })
-                      : t('insure.motorLead'),
-                  style: TextStyle(color: c.faint, fontSize: 12),
-                ),
-                const SizedBox(height: 5),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
-                  children: [
-                    Text(kes(isTravel ? travelPrice : motorLanded),
-                        style: TextStyle(
-                            color: c.text,
-                            fontFamily: fructaFonts.mono,
-                            fontSize: 32,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: -1.2)),
-                    if (isTravel)
-                      Text('  ${t('insure.perTrip')}',
-                          style: TextStyle(color: c.muted, fontSize: 13)),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  isTravel
-                      ? [
-                          if (i.travelCover != null) i.travelCover!,
-                          pax > 1
-                              ? t('insure.travellersN', {'n': '$pax'})
-                              : t('insure.travellersN', {'n': '1'}),
-                        ].join(' \u00b7 ')
-                      : cover == CoverType.tpo
-                          ? t('insure.tpoFlat', {'class': t('insure.class.${cls.key}')})
-                          : t('insure.rateOfValue', {
-                              'rate': (i.rateFor(value, cls) ?? 0)
-                                  .toStringAsFixed(2),
-                              'excess': i.excessLabel,
-                            }),
-                  style: TextStyle(
-                      color: c.muted,
-                      fontSize: 12.5,
-                      fontFamily: fructaFonts.mono),
-                ),
-                if (!isTravel && !isInfo) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    t('insure.premiumBreakdown', {
-                      'base': kes(motorBase),
-                      'levy': kes(levyAmount(motorBase, levyPct)),
-                      'stamp': kes(stamp),
-                    }),
-                    style: TextStyle(
-                        color: c.faint,
-                        fontSize: 10.5,
-                        fontFamily: fructaFonts.mono),
-                  ),
-                ],
-              ],
+            _Premium(
+              lead: premiumLead,
+              amount: withCommas((isTravel ? travelPrice : motorLanded).round()),
+              unit: isTravel ? t('insure.perTrip') : t('insure.perYear'),
+              sub: premiumSub,
             ),
-          ),
+          // The breakdown as a three-cell strip, not a run-on line of text.
+          // "base KES 103,500 · levies KES 466 · stamp KES 40" is three numbers
+          // pretending to be a sentence; nobody parses it. A levy and a stamp
+          // duty are statutory add-ons the insurer does not set, and separating
+          // them out is the difference between a price and an itemised price.
+          if (!isTravel && !isInfo)
+            _Breakdown(
+              base: motorBase,
+              levy: levyAmount(motorBase, levyPct),
+              stamp: stamp,
+            ),
           // trust: regulatory standing, rating, ratios, complaints
           InsurerTrustPanel(i),
 
-          // how this ranks (premium vs peers)
-          if (peers.length >= 2) ...[
-            InsureH2(t('insure.rank'), small: t('insure.rankSub')),
-            _PeerCompare(rows: peers, meId: i.id, tint: brand),
-          ],
+          // How this ranks, on the SAME BarChart the rest of the feature uses.
+          //
+          // This section was the last bespoke chart in the insure tree: its own
+          // bars, its own animation, and full legal names ("CIC General
+          // Insurance Limited") where every other chart shortens them. That is
+          // why the page read as a different app below the fold.
+          //
+          // Cheapest gold, dearest red, the viewed insurer highlighted. The
+          // brand tint is deliberately NOT used for the bars: an insurer with
+          // no brand_color falls back to a generic colour, and a chart whose
+          // meaning depends on a nullable column is a chart that lies when the
+          // column is null.
+          if (peers.length >= 2) _PeerChart(rows: peers, meId: i.id),
 
           // contact
           if (_hasContact(i)) ...[
@@ -553,48 +507,6 @@ class _GaugePainter extends CustomPainter {
       old.frac != frac || old.color != color || old.trackColor != trackColor;
 }
 
-// Horizontal premium-vs-peers bars. The viewed insurer is highlighted in its
-// brand tint; peers sit muted. Names wrap rather than truncate.
-class _PeerCompare extends StatelessWidget {
-  const _PeerCompare(
-      {required this.rows, required this.meId, required this.tint});
-  final List<({String id, String name, double amount})> rows;
-  final String meId;
-  final Color tint;
-
-  String _compact(num v) {
-    if (v >= 1000000) {
-      final m = v / 1000000;
-      return 'KES ${m.toStringAsFixed(m == m.roundToDouble() ? 0 : 1)}M';
-    }
-    if (v >= 1000) return 'KES ${(v / 1000).round()}k';
-    return kes(v);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.c;
-    final peak = rows.fold<double>(0, (a, r) => r.amount > a ? r.amount : a);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-      child: Column(
-        children: [
-          for (final r in rows)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: _PeerBar(
-                name: r.name,
-                amountText: _compact(r.amount),
-                frac: peak <= 0 ? 0 : r.amount / peak,
-                me: r.id == meId,
-                tint: tint,
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
 
 class _PeerBar extends StatelessWidget {
   const _PeerBar({
@@ -911,6 +823,319 @@ class _StickyQuoteBar extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Premium versus peers, on the shared BarChart.
+class _PeerChart extends StatelessWidget {
+  const _PeerChart({required this.rows, required this.meId});
+  final List<({String id, String name, double amount})> rows;
+  final String meId;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    final dearest = rows.last.amount;
+    final last = rows.length - 1;
+    if (dearest <= 0) return const SizedBox.shrink();
+
+    return BarChart(
+      title: t('insure.rank'),
+      subtitle: t('insure.rankSub'),
+      labelWidth: 92,
+      bars: [
+        for (var k = 0; k < rows.length; k++)
+          BarDatum(
+            label: shortInsurerName(rows[k].name),
+            value: rows[k].amount / dearest,
+            display: kesCompact(rows[k].amount),
+            color: rows[k].id == meId
+                ? c.accent
+                : k == last
+                    ? c.down
+                    : c.line2,
+            highlight: rows[k].id == meId,
+          ),
+      ],
+    );
+  }
+}
+
+// ── V8 detail header ───────────────────────────────────────────────────────
+
+/// The identity row.
+///
+///   .lgb  58px, radius 17, brand-tinted drop shadow
+///   .inm  19px, weight 750, tracking -0.5
+///   .imt  11.5px faint, carrying a licence badge and the GCR grade
+///
+/// The old version said "General insurer", which every row on the register also
+/// is, so it told the reader nothing. What they want to know in the first
+/// second is: is this outfit licensed, and is it rated. Both are facts we hold,
+/// and now both are in the header instead of buried three sections down.
+class _Identity extends StatelessWidget {
+  const _Identity({required this.insurer, required this.brand});
+  final Insurer insurer;
+  final Color brand;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    final i = insurer;
+    // licenseYear (IRA register) is the sourced fact. licensedSince is the
+    // older free-text field, kept as a fallback so nothing regresses.
+    final year = i.licenseYear ?? i.licensedSince;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 6, 20, 0),
+      child: Row(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(17),
+              boxShadow: [
+                BoxShadow(
+                  color: brand.withValues(alpha: 0.32),
+                  blurRadius: 26,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: InsurerLogo(i, size: 58),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  shortInsurerName(i.name),
+                  style: TextStyle(
+                    color: c.text,
+                    fontSize: 19,
+                    height: 1.15,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Row(
+                  children: [
+                    if (year != null) ...[
+                      Icon(Icons.check, size: 12, color: c.up),
+                      const SizedBox(width: 4),
+                      Text(
+                        t('insure.licensed', {'y': '$year'}),
+                        style: TextStyle(
+                          color: c.up,
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                    if (year != null && i.financialRating != null)
+                      Text(
+                        '  \u00b7  ',
+                        style: TextStyle(color: c.faint, fontSize: 11.5),
+                      ),
+                    if (i.financialRating != null)
+                      Text(
+                        i.financialRating!,
+                        style: TextStyle(
+                          color: c.up,
+                          fontFamily: fructaFonts.mono,
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    if (year == null && i.financialRating == null)
+                      Text(
+                        t('insure.generalInsurer'),
+                        style: TextStyle(color: c.faint, fontSize: 11.5),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The premium.
+///
+///   .plead  10px uppercase, tracked
+///   .pbig   40px, weight 750, tracking -2, with the unit as a baseline-aligned
+///           small rather than glued into the number
+///   .psub   12px muted
+///
+/// Splitting the unit off the figure is not decoration. "KES 104,006" reads as
+/// one long token; "104,006" with a quiet "KES / year" beside it reads as a
+/// number you can compare against the one on the previous screen.
+class _Premium extends StatelessWidget {
+  const _Premium({
+    required this.lead,
+    required this.amount,
+    required this.unit,
+    required this.sub,
+  });
+
+  final String lead;
+  final String amount;
+  final String unit;
+  final String sub;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 22, 20, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            lead.toUpperCase(),
+            style: TextStyle(
+              color: c.faint,
+              fontSize: 11,
+              letterSpacing: 0.8,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Flexible(
+                child: Text(
+                  amount,
+                  style: TextStyle(
+                    color: c.text,
+                    fontFamily: fructaFonts.mono,
+                    fontSize: 40,
+                    height: 1,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -2,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                unit,
+                style: TextStyle(
+                  color: c.muted,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -0.2,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            sub,
+            style: TextStyle(color: c.muted, fontSize: 12, height: 1.5),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Base, levy, stamp, as three cells in one bordered strip.
+///
+/// The levy (0.45%) and the stamp duty (KES 40) are set by statute, not by the
+/// insurer. Folding them into a single quoted figure hides the fact that a
+/// slice of every premium in Kenya is identical no matter who you buy from, and
+/// that the only part an insurer actually competes on is the base. This strip
+/// makes that visible in one glance.
+class _Breakdown extends StatelessWidget {
+  const _Breakdown({
+    required this.base,
+    required this.levy,
+    required this.stamp,
+  });
+
+  final double base;
+  final double levy;
+  final double stamp;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    final cells = <({String label, double value})>[
+      (label: t('insure.brk.base'), value: base),
+      (label: t('insure.brk.levy'), value: levy),
+      (label: t('insure.brk.stamp'), value: stamp),
+    ];
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+      decoration: BoxDecoration(
+        color: c.s1,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: c.line),
+      ),
+      clipBehavior: Clip.antiAlias,
+      // IntrinsicHeight, and it is load-bearing.
+      //
+      // A Row's cross axis is VERTICAL, and inside a ListView the height is
+      // unbounded, so CrossAxisAlignment.stretch asked these cells to fill an
+      // infinite extent. The sliver then failed to lay out, its geometry stayed
+      // null, and the viewport blew up on `child.geometry!` during paint. The
+      // crash surfaced as a null-check error in Flutter's own painting code,
+      // which is why it looked like it had nothing to do with this widget.
+      //
+      // stretch is still what we want (the divider must run the full height of
+      // the tallest cell); IntrinsicHeight is what makes it legal, by measuring
+      // the children first and giving the Row a real bounded height.
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (var k = 0; k < cells.length; k++)
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(12, 11, 12, 11),
+                  decoration: BoxDecoration(
+                    border: k == cells.length - 1
+                        ? null
+                        : Border(right: BorderSide(color: c.line)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        cells[k].label.toUpperCase(),
+                        style: TextStyle(
+                          color: c.faint,
+                          fontSize: 8.5,
+                          letterSpacing: 0.7,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        withCommas(cells[k].value.round()),
+                        style: TextStyle(
+                          color: c.text,
+                          fontFamily: fructaFonts.mono,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );

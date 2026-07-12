@@ -165,6 +165,20 @@ class Stars extends StatelessWidget {
 }
 
 /// Section heading matching the mockup `.h2` (mono, optional small trailing).
+/// A section header, as the V8 mockup specifies it:
+///
+///   h2 { font-size:10px; font-weight:750; letter-spacing:1.1px;
+///        text-transform:uppercase; color:var(--faint) }
+///   h2 em { margin-left:auto }
+///
+/// This widget was rendering at 20px in mono and in c.text, which made every
+/// section title on every insure screen a large black display heading. That
+/// single discrepancy is most of why the app did not look like the design:
+/// "How this ranks" and "Reach them" shouted where they were meant to whisper,
+/// and the eye had no idea what the actual subject of the screen was.
+///
+/// The header is chrome. The premium, the chart and the rows are the content.
+/// Chrome should be quiet.
 class InsureH2 extends StatelessWidget {
   const InsureH2(this.title, {super.key, this.small});
   final String title;
@@ -174,21 +188,36 @@ class InsureH2 extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.c;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 26, 20, 4),
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 10),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.baseline,
-        textBaseline: TextBaseline.alphabetic,
         children: [
-          Text(title,
-              style: TextStyle(
-                  color: c.text,
-                  fontFamily: fructaFonts.mono,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: -0.5)),
+          Text(
+            title.toUpperCase(),
+            style: TextStyle(
+              color: c.faint,
+              fontSize: 10,
+              letterSpacing: 1.1,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
           if (small != null) ...[
-            const SizedBox(width: 9),
-            Text(small!, style: TextStyle(color: c.faint, fontSize: 11)),
+            const SizedBox(width: 10),
+            // margin-left:auto in the mockup. A single Expanded with an
+            // end-aligned Text does that. A Spacer PLUS a Flexible does not:
+            // they are both flex children, so they split the free space in
+            // half, and the note ends up wrapping in the middle of the row
+            // instead of sitting against the right margin.
+            Expanded(
+              child: Text(
+                small!,
+                textAlign: TextAlign.end,
+                style: TextStyle(
+                  color: c.faint,
+                  fontSize: 9.5,
+                  height: 1.3,
+                ),
+              ),
+            ),
           ],
         ],
       ),
@@ -196,7 +225,6 @@ class InsureH2 extends StatelessWidget {
   }
 }
 
-/// A comparison quote row (motor + travel share this). Tap opens the detail.
 class InsureQuoteRow extends StatelessWidget {
   const InsureQuoteRow({
     super.key,
@@ -206,10 +234,10 @@ class InsureQuoteRow extends StatelessWidget {
     required this.onTap,
     this.logoDomain,
     this.logoUrl,
-    this.stars,
+    this.rateLabel,
+    this.priceUnit,
+    this.barFraction,
     this.meta,
-    this.benefits = const [],
-    this.subText,
     this.best = false,
   });
 
@@ -219,85 +247,120 @@ class InsureQuoteRow extends StatelessWidget {
   final VoidCallback onTap;
   final String? logoDomain;
   final String? logoUrl;
-  final int? stars;
+
+  /// The rate mechanics, e.g. "3.00% band, floor 37,500" or "7.00% of value".
+  /// Mono, because it is a figure, not prose.
+  final String? rateLabel;
+
+  /// e.g. "KES / year". Sits under the price.
+  final String? priceUnit;
+
+  /// This row's price as a share of the dearest on screen, 0..1. Null hides the
+  /// bar, which is correct for a single-row list where there is no spread to
+  /// show.
+  final double? barFraction;
+
+  /// Anything else worth a line (claims turnaround, cover ceiling).
   final String? meta;
-  final List<String> benefits;
-  final String? subText;
+
   final bool best;
 
   @override
   Widget build(BuildContext context) {
     final c = context.c;
-    final shown = benefits.take(3).toList();
-    final extra = benefits.length - shown.length;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: c.line)),
-        ),
-        child: Stack(
-          children: [
-            if (best)
-              Positioned(
-                left: 0,
-                top: 10,
-                bottom: 10,
-                child: Container(
-                  width: 3,
-                  decoration: BoxDecoration(
-                    color: c.up,
-                    borderRadius: BorderRadius.circular(3),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: c.s1,
+            borderRadius: BorderRadius.circular(18),
+            // The cheapest row is outlined, not merely ticked. It is the answer
+            // to the question the screen was opened to ask.
+            border: Border.all(color: best ? c.accent : c.line),
+          ),
+          child: Column(
+            children: [
+              if (best)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: c.accentSoft,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        t('insure.cheapest'),
+                        style: TextStyle(
+                          color: c.accent,
+                          fontSize: 8.5,
+                          letterSpacing: 0.7,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
-              child: Row(
+              Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   FundLogo(
-                      logoUrl: logoUrl,
-                      domain: logoDomain,
-                      seed: name,
-                      size: 42,
-                      brandColor: brand),
+                    logoUrl: logoUrl,
+                    domain: logoDomain,
+                    seed: name,
+                    size: 38,
+                    brandColor: brand,
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(name,
-                            style: TextStyle(
-                                color: c.text,
-                                fontSize: 13.5,
-                                fontWeight: FontWeight.w600)),
-                        const SizedBox(height: 3),
-                        Row(
-                          children: [
-                            if (stars != null) Stars(stars!, size: 11),
-                            if (meta != null)
-                              Flexible(
-                                child: Text(
-                                    stars != null
-                                        ? '  \u00b7  ${meta!}'
-                                        : meta!,
-                                    style: TextStyle(
-                                        color: c.muted, fontSize: 10.5)),
-                              ),
-                          ],
-                        ),
-                        if (benefits.isNotEmpty) ...[
-                          const SizedBox(height: 6),
-                          Wrap(
-                            spacing: 5,
-                            runSpacing: 5,
-                            children: [
-                              for (final b in shown) _chip(c, b),
-                              if (extra > 0) _chip(c, '+$extra'),
-                            ],
+                        Text(
+                          shortInsurerName(name),
+                          style: TextStyle(
+                            color: c.text,
+                            fontSize: 13,
+                            height: 1.25,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: -0.1,
                           ),
+                        ),
+                        if (rateLabel != null) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            rateLabel!,
+                            style: TextStyle(
+                              color: c.faint,
+                              fontFamily: fructaFonts.mono,
+                              fontSize: 10.5,
+                              height: 1.4,
+                            ),
+                          ),
+                        ],
+                        if (meta != null) ...[
+                          const SizedBox(height: 3),
+                          Text(
+                            meta!,
+                            style: TextStyle(
+                              color: c.faint,
+                              fontSize: 10.5,
+                              height: 1.4,
+                            ),
+                          ),
+                        ],
+                        if (barFraction != null) ...[
+                          const SizedBox(height: 8),
+                          _QBar(fraction: barFraction!, best: best),
                         ],
                       ],
                     ),
@@ -306,41 +369,67 @@ class InsureQuoteRow extends StatelessWidget {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text(priceText,
-                          style: TextStyle(
-                              color: c.text,
-                              fontFamily: fructaFonts.mono,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600)),
-                      if (subText != null) ...[
-                        const SizedBox(height: 2),
-                        Text(subText!,
-                            textAlign: TextAlign.end,
-                            style: TextStyle(
-                                color: c.faint,
-                                fontSize: 10,
-                                fontFamily: fructaFonts.mono)),
+                      Text(
+                        priceText,
+                        style: TextStyle(
+                          color: c.text,
+                          fontFamily: fructaFonts.mono,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.4,
+                        ),
+                      ),
+                      if (priceUnit != null) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          priceUnit!,
+                          style: TextStyle(color: c.faint, fontSize: 9.5),
+                        ),
                       ],
                     ],
                   ),
                 ],
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
-
-  Widget _chip(fructaColors c, String label) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-        decoration: BoxDecoration(
-            color: c.s3, borderRadius: BorderRadius.circular(6)),
-        child: Text(label, style: TextStyle(color: c.muted, fontSize: 9)),
-      );
 }
 
-/// One "what's covered" checklist line (dot + label + check).
+/// The inline price bar. Cheapest gold, everyone else neutral. It grows on
+/// entry, so the spread animates into being rather than just sitting there.
+class _QBar extends StatelessWidget {
+  const _QBar({required this.fraction, required this.best});
+  final double fraction;
+  final bool best;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(3),
+      child: Container(
+        height: 4,
+        color: c.s3,
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: fraction.clamp(0.0, 1.0)),
+            duration: const Duration(milliseconds: 900),
+            curve: Curves.easeOutCubic,
+            builder: (_, v, __) => FractionallySizedBox(
+              widthFactor: v.clamp(0.02, 1.0),
+              child: Container(color: best ? c.accent : c.line2),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class CoverRow extends StatelessWidget {
   const CoverRow(this.label, {super.key, required this.tint, this.last = false});
   final String label;

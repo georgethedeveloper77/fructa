@@ -7,6 +7,7 @@ import '../../core/i18n.dart';
 import '../../core/theme.dart';
 import '../../core/widgets/kit.dart';
 import '../../data/models/fund.dart';
+import '../../data/models/stock.dart';
 import '../../data/providers.dart';
 import '../../data/snapshot_providers.dart';
 import '../alerts/alerts_page.dart';
@@ -18,6 +19,7 @@ import '../compare/saved_comparisons_section.dart';
 import '../insure/insure_overlay.dart';
 import '../learn/learn_home_page.dart';
 import '../learn/learn_progress.dart';
+import '../stocks/stock_page.dart';
 import '../stocks/stocks_page.dart';
 import 'markets_controller.dart';
 import 'search_overlay.dart';
@@ -29,7 +31,7 @@ import 'widgets/market_allocation_donut.dart';
 import 'widgets/market_context_card.dart';
 import 'widgets/money_currency_tabs.dart';
 import 'widgets/news_feed.dart';
-import 'widgets/stocks_spotlight.dart';
+import 'widgets/stock_sector_tabs.dart';
 import 'widgets/sort_pills.dart';
 import 'widgets/ticker_tape.dart';
 import 'widgets/yield_curve.dart';
@@ -206,7 +208,17 @@ class MarketsPage extends ConsumerWidget {
     ref.listen<MarketSort>(marketSortProvider, (_, __) => collapse());
     ref.listen<String?>(marketMoneyCcyProvider, (_, __) => collapse());
     ref.listen<String>(marketSearchProvider, (_, __) => collapse());
+    ref.listen<String?>(stockSectorProvider, (_, __) => collapse());
     final total = stream.valueOrNull?.length ?? 0;
+
+    // The Stocks tab swaps the whole stream over. Stocks are not Funds and are
+    // never merged into the fund list, so `all` stays a pure rates league table.
+    final isStock = ref.watch(marketTabProvider) == MarketTab.stock;
+    final stocks = ref.watch(streamStocksProvider);
+    // A rank badge beside an alphabetical list would imply a league position
+    // that does not exist.
+    final stockRank =
+        ref.watch(effectiveStockSortProvider) != StockSort.alpha;
 
     return Scaffold(
       backgroundColor: c.bg,
@@ -264,18 +276,6 @@ class MarketsPage extends ConsumerWidget {
                               ),
                             ),
                           ),
-                        // Stocks. A card, not a rate tab: a stock has no
-                        // comparable headline rate to rank beside a yield.
-                        // Self-hides when the snapshot carries no stocks.
-                        SliverToBoxAdapter(
-                          child: StocksSpotlight(
-                            onTap: () => Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => const StocksPage(),
-                              ),
-                            ),
-                          ),
-                        ),
                         if (!compareMode)
                           const SliverToBoxAdapter(
                             child: SavedComparisonsSection(),
@@ -291,6 +291,7 @@ class MarketsPage extends ConsumerWidget {
                           pinned: true,
                           delegate: _StreamHeader(
                             compareMode: compareMode,
+                            isStock: isStock,
                             showCcy:
                                 ref.watch(marketTabProvider) ==
                                     MarketTab.moneyMarket &&
@@ -298,9 +299,15 @@ class MarketsPage extends ConsumerWidget {
                                         .watch(moneyMarketCurrenciesProvider)
                                         .length >
                                     1,
+                            showSector:
+                                isStock &&
+                                ref.watch(stockSectorsProvider).length > 1,
                           ),
                         ),
-                        stream.when(
+                        if (isStock)
+                          _stocksSliver(context, stocks, stockRank)
+                        else
+                          stream.when(
                           loading: () => SliverToBoxAdapter(
                             child: Padding(
                               padding: const EdgeInsets.all(40),
@@ -361,7 +368,7 @@ class MarketsPage extends ConsumerWidget {
                                   },
                                 ),
                         ),
-                        if (!showAll && total > kFundsInitial)
+                        if (!isStock && !showAll && total > kFundsInitial)
                           SliverToBoxAdapter(
                             child: _ShowMoreButton(
                               count: total - kFundsInitial,
@@ -373,7 +380,11 @@ class MarketsPage extends ConsumerWidget {
                             ),
                           ),
                         SliverToBoxAdapter(
-                          child: Disclaimer(t('markets.disclaimer')),
+                          child: Disclaimer(
+                            isStock
+                                ? t('stocks.disclaimer')
+                                : t('markets.disclaimer'),
+                          ),
                         ),
                         // ── Market context (post-rates): the "beating
                         // inflation" read, then the government yield curve, and
@@ -480,15 +491,24 @@ class _TopBar extends ConsumerWidget {
 
 // ── Pinned tabs + sort + count header ──────────────────────────────────────
 class _StreamHeader extends SliverPersistentHeaderDelegate {
-  _StreamHeader({required this.compareMode, required this.showCcy});
+  _StreamHeader({
+    required this.compareMode,
+    required this.showCcy,
+    required this.isStock,
+    required this.showSector,
+  });
   final bool compareMode;
   final bool showCcy;
+  final bool isStock;
+  final bool showSector;
 
   // CategoryTabs(46) + gap(8) + SortPills(42) + gap(8) + count(22) + pad(8)
   static const _base = 46.0 + 8 + 42 + 8 + 22 + 8;
-  static const _ccyRow = 8.0 + 38; // gap + MoneyCurrencyTabs
+  // gap + MoneyCurrencyTabs, and the stock sector row is the same 38px, so the
+  // header is exactly as tall under Stocks as it is under Money Market.
+  static const _ccyRow = 8.0 + 38;
 
-  double get _h => _base + (showCcy ? _ccyRow : 0);
+  double get _h => _base + ((showCcy || showSector) ? _ccyRow : 0);
 
   @override
   double get minExtent => _h;
@@ -500,9 +520,25 @@ class _StreamHeader extends SliverPersistentHeaderDelegate {
     final c = context.c;
     return Consumer(
       builder: (context, ref, _) {
-        final count = ref
-            .watch(streamFundsProvider)
-            .maybeWhen(data: (l) => l.length, orElse: () => 0);
+        final count = isStock
+            ? ref.watch(streamStocksProvider).length
+            : ref
+                  .watch(streamFundsProvider)
+                  .maybeWhen(data: (l) => l.length, orElse: () => 0);
+
+        // Under Stocks the count reads in stocks, not funds, and Compare is
+        // absent: Compare ranks yields, and a stock has no yield to rank.
+        final String label;
+        if (isStock) {
+          label = count == 1
+              ? t('stocks.countOne')
+              : t('stocks.count', {'n': '$count'});
+        } else if (compareMode) {
+          label = t('compare.selectHint', {'n': '$kMaxCompare'});
+        } else {
+          label = t('markets.fundCount', {'n': '$count'});
+        }
+
         return Container(
           color: c.bg,
           child: Column(
@@ -513,12 +549,20 @@ class _StreamHeader extends SliverPersistentHeaderDelegate {
                 const SizedBox(height: 8),
                 const MoneyCurrencyTabs(),
               ],
+              if (showSector) ...[
+                const SizedBox(height: 8),
+                const StockSectorTabs(),
+              ],
               const SizedBox(height: 8),
-              SortPills(
-                onCompare: compareMode
-                    ? null
-                    : () => ref.read(compareModeProvider.notifier).state = true,
-              ),
+              if (isStock)
+                const StockSortPills()
+              else
+                SortPills(
+                  onCompare: compareMode
+                      ? null
+                      : () =>
+                            ref.read(compareModeProvider.notifier).state = true,
+                ),
               const SizedBox(height: 8),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -526,9 +570,7 @@ class _StreamHeader extends SliverPersistentHeaderDelegate {
                   children: [
                     Expanded(
                       child: Text(
-                        compareMode
-                            ? t('compare.selectHint', {'n': '$kMaxCompare'})
-                            : t('markets.fundCount', {'n': '$count'}),
+                        label,
                         style: TextStyle(color: c.faint, fontSize: 12),
                       ),
                     ),
@@ -545,7 +587,10 @@ class _StreamHeader extends SliverPersistentHeaderDelegate {
 
   @override
   bool shouldRebuild(covariant _StreamHeader old) =>
-      old.compareMode != compareMode || old.showCcy != showCcy;
+      old.compareMode != compareMode ||
+      old.showCcy != showCcy ||
+      old.isStock != isStock ||
+      old.showSector != showSector;
 }
 
 // ── "Show more"  reveals the funds beyond the top 20 (no nested scroll) ────
@@ -590,4 +635,46 @@ class _ShowMoreButton extends StatelessWidget {
       ),
     );
   }
+}
+
+
+/// The Stocks tab's list. A sibling of the fund SliverList, not a merge into
+/// it: StockTile shares FundTile's shell so the rows read as the same kind of
+/// object, while the right-hand figure stays honest (price only under licence,
+/// otherwise the declared dividend, otherwise a dash).
+///
+/// Returns a sliver directly rather than a widget, because `slivers:` needs
+/// real slivers.
+Widget _stocksSliver(
+  BuildContext context,
+  List<Stock> stocks,
+  bool showRank,
+) {
+  if (stocks.isEmpty) {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.all(40),
+        child: Center(
+          child: Text(
+            t('markets.noMatch'),
+            style: TextStyle(color: context.c.muted),
+          ),
+        ),
+      ),
+    );
+  }
+  return SliverList.separated(
+    itemCount: stocks.length,
+    separatorBuilder: (_, _) => const SizedBox.shrink(),
+    itemBuilder: (context, i) {
+      final s = stocks[i];
+      return StockTile(
+        s,
+        rank: showRank ? i + 1 : null,
+        onTap: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => StockPage(s))),
+      );
+    },
+  );
 }

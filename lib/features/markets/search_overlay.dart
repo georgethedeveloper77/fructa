@@ -2,16 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/categories.dart';
+import '../../core/i18n.dart';
 import '../../core/theme.dart';
 import '../../core/widgets/kit.dart';
 import '../../data/models/fund.dart';
 import '../../data/models/insurer.dart';
+import '../../data/models/stock.dart';
 import '../../data/providers.dart';
 import '../../data/snapshot_providers.dart';
 import '../company/company_page.dart';
 import '../insure/insure_overlay.dart';
+import '../stocks/stock_page.dart';
 
-/// v5 `#searchOv`  global search across funds and insurers. Flat rows:
+/// v5 `#searchOv`  global search across funds, insurers and stocks. Flat rows:
 /// 36px logo · highlighted name · manager sub · category chip · mono rate.
 /// Empty query shows admin-controlled suggestion chips (`search.suggestions`
 /// via remote config) plus the top five funds ("Suggested"), matching the
@@ -41,8 +44,9 @@ class _SearchOverlayState extends ConsumerState<SearchOverlay> {
     final cfg = ref.watch(remoteConfigProvider);
     final funds = ref.watch(ratesProvider).valueOrNull ?? const <Fund>[];
     final insurers = ref.watch(insurersProvider);
+    final stocks = ref.watch(stocksProvider);
 
-    final results = _search(funds, insurers, _q);
+    final results = _search(funds, insurers, stocks, _q);
     final suggestions = cfg.stringList('search.suggestions', const [
       'Money market',
       'Tax-free',
@@ -172,12 +176,25 @@ class _SearchOverlayState extends ConsumerState<SearchOverlay> {
   }
 
   // ── matching (mirrors v5 doSearch: name + manager + category label) ─────
-  List<_Hit> _search(List<Fund> funds, List<Insurer> insurers, String q) {
+  //
+  // Stocks carry NO rate into search, deliberately. The empty-query "Suggested"
+  // slice ranks by rate, and a stock's dividend yield is not the same kind of
+  // number as an MMF yield: it needs a licensed price, it is not guaranteed,
+  // and ranking one against the other would invite a comparison that is not
+  // real. So a stock is findable by name or ticker, shows a dash where the rate
+  // would be, and never competes in the yield ranking.
+  List<_Hit> _search(
+    List<Fund> funds,
+    List<Insurer> insurers,
+    List<Stock> stocks,
+    String q,
+  ) {
     final needle = q.toLowerCase();
     final hits = <_Hit>[
       for (final f in funds)
         _Hit.fund(f, categoryLabel(f.category).toUpperCase()),
       for (final i in insurers) _Hit.insurer(i),
+      for (final s in stocks) _Hit.stock(s, t('category.stock').toUpperCase()),
     ];
     if (needle.isEmpty) {
       final top = hits.where((h) => h.rate != null).toList()
@@ -193,15 +210,20 @@ class _SearchOverlayState extends ConsumerState<SearchOverlay> {
 
   Widget _row(BuildContext context, _Hit h) {
     final c = context.c;
-    final logoUrl = h.fund != null
-        ? ref.watch(logoUrlProvider(h.fund!.id))
-        : null;
+    // A stock's logo rides on the stock row itself (no company_id indirection),
+    // so it is resolved on the hit rather than through logoUrlProvider.
+    final logoUrl = h.stock != null
+        ? h.stock!.logoUrl
+        : (h.fund != null ? ref.watch(logoUrlProvider(h.fund!.id)) : null);
     return InkWell(
       onTap: () {
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (_) =>
-                h.fund != null ? CompanyPage(h.fund!) : const InsureOverlay(),
+            builder: (_) => switch (h) {
+              _ when h.fund != null => CompanyPage(h.fund!),
+              _ when h.stock != null => StockPage(h.stock!),
+              _ => const InsureOverlay(),
+            },
           ),
         );
       },
@@ -306,6 +328,7 @@ class _Hit {
   _Hit.fund(Fund f, this.tag)
     : fund = f,
       insurer = null,
+      stock = null,
       title = f.name,
       sub = f.manager,
       rate = f.currentRate,
@@ -314,14 +337,27 @@ class _Hit {
   _Hit.insurer(Insurer i)
     : fund = null,
       insurer = i,
+      stock = null,
       title = i.name,
       sub = i.name,
       tag = 'INSURER',
       rate = i.motorRate,
       logoDomain = i.logoDomain;
 
+  /// Ticker rides in `sub`, so typing "SCOM" finds Safaricom.
+  /// `rate` is deliberately null: see _search.
+  _Hit.stock(Stock s, this.tag)
+    : fund = null,
+      insurer = null,
+      stock = s,
+      title = s.name,
+      sub = s.sector != null ? '${s.sector} \u00b7 ${s.ticker}' : s.ticker,
+      rate = null,
+      logoDomain = null;
+
   final Fund? fund;
   final Insurer? insurer;
+  final Stock? stock;
   final String title;
   final String sub;
   final String tag;
