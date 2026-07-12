@@ -12,15 +12,27 @@ const FT: [string, string][] = [
 
 export default async function FundsPage() {
   const db = supabaseAdmin();
-  const [{ data: fundsData, error }, { data: cos }] = await Promise.all([
+  const [{ data: fundsData, error }, { data: cos }, { data: rh }] = await Promise.all([
     db.from("funds")
-      .select("id,name,manager,fund_type,category,currency,current_rate,status,verified,featured,retail,company_id,logo_domain")
+      .select("id,name,manager,fund_type,category,currency,current_rate,status,verified,featured,retail,company_id,logo_domain,basis,price_per_unit,price_as_of,distribution_pct")
       .eq("kind", "fund")
       .order("name"),
     db.from("companies").select("id,name,logo_url,brand_color"),
+    // Latest rate_history row per fund gives the current rate's provenance
+    // (source) and freshness (as_of). Ordered newest-first; the first row seen
+    // for each fund wins. onConflict(fund_id,as_of) keeps one row per day, so
+    // "latest as_of" is unambiguous.
+    db.from("rate_history").select("fund_id,source,as_of").order("as_of", { ascending: false }),
   ]);
   const funds = (fundsData ?? []) as FundRow[];
   const companies = (cos ?? []) as Co[];
+
+  // fund_id -> { source, asOf } for the most recent rate. Plain object so it
+  // serialises across the server/client boundary into FundsTable.
+  const prov: Record<string, { source: string | null; asOf: string | null }> = {};
+  for (const r of (rh ?? []) as { fund_id: string; source: string | null; as_of: string | null }[]) {
+    if (!prov[r.fund_id]) prov[r.fund_id] = { source: r.source, asOf: r.as_of };
+  }
 
   const total = funds.length;
   const missing = funds.filter((f) => f.current_rate == null).length;
@@ -67,7 +79,7 @@ export default async function FundsPage() {
 
       <ImportFundDetails />
 
-      <FundsTable rows={funds} companies={companies} />
+      <FundsTable rows={funds} companies={companies} prov={prov} />
     </div>
   );
 }

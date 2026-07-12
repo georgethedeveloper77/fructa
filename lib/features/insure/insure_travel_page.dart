@@ -55,6 +55,7 @@ class _InsureTravelPageState extends ConsumerState<InsureTravelPage> {
   @override
   Widget build(BuildContext context) {
     final c = context.c;
+    final rc = ref.watch(remoteConfigProvider);
     final travel =
         ref.watch(insurersProvider).where((i) => i.hasTravel).toList();
 
@@ -80,7 +81,7 @@ class _InsureTravelPageState extends ConsumerState<InsureTravelPage> {
       ListView(
         padding: const EdgeInsets.only(bottom: 36),
         children: [
-          DisplayHeader(title: t('insure.travel'), sub: t('insure.travelSub')),
+          DisplayHeader(title: t('insure.travel'), sub: rcText(rc, 'insure.travelSub')),
           _TravelBox(
             region: _region,
             days: _days,
@@ -119,7 +120,7 @@ class _InsureTravelPageState extends ConsumerState<InsureTravelPage> {
               )),
             ),
           _TravelFoot(sorted: sorted, region: _region, price: _price),
-          Disclaimer(t('insure.disc.travel')),
+          Disclaimer(rcText(rc, 'insure.disc.travel')),
         ],
       ),
     );

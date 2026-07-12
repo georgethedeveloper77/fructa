@@ -136,7 +136,7 @@ class _FundTileState extends ConsumerState<FundTile> {
         '${f.minInvest != null ? ' \u00b7 min ${f.currency} ${_commas(f.minInvest!)}' : ''}';
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
       child: Material(
         color: widget.selected ? c.accentSoft : c.s1,
         shape: RoundedRectangleBorder(
@@ -149,14 +149,14 @@ class _FundTileState extends ConsumerState<FundTile> {
         child: InkWell(
           onTap: widget.selectable ? widget.onToggleSelect : widget.onTap,
           child: Padding(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 // logo + rank badge (fades) + optional select badge
                 SizedBox(
-                  width: 38,
-                  height: 38,
+                  width: 34,
+                  height: 34,
                   child: Stack(
                     clipBehavior: Clip.none,
                     children: [
@@ -164,7 +164,7 @@ class _FundTileState extends ConsumerState<FundTile> {
                         domain: f.logoDomain,
                         logoUrl: logoUrl,
                         seed: f.manager,
-                        size: 38,
+                        size: 34,
                         brandColor: widget.brandColor,
                       ),
                       if (widget.rank != null)
@@ -226,7 +226,7 @@ class _FundTileState extends ConsumerState<FundTile> {
                     ],
                   ),
                 ),
-                const SizedBox(width: 13),
+                const SizedBox(width: 11),
                 // name + meta
                 Expanded(
                   child: Column(
@@ -238,7 +238,7 @@ class _FundTileState extends ConsumerState<FundTile> {
                           color: c.text,
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          height: 1.3,
+                          height: 1.25,
                         ),
                       ),
                       const SizedBox(height: 2),

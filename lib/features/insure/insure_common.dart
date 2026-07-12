@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/category_colors.dart';
@@ -7,6 +8,17 @@ import '../../core/i18n.dart';
 import '../../core/theme.dart';
 import '../../core/widgets/kit.dart';
 import '../../data/models/insurer.dart';
+import '../../data/models/remote_config.dart';
+
+// ── config-first copy ────────────────────────────────────────────────────
+// Admin-editable copy: the config value wins when set, otherwise the baked
+// i18n string. So the UI is never blank and every string is release-free
+// editable from the Config page.
+
+String rcText(RemoteConfig rc, String key) => rc.string(key, t(key));
+
+List<String> rcBullets(RemoteConfig rc, String key, List<String> fallback) =>
+    rc.stringList(key, fallback);
 
 // ── colour + icon helpers ────────────────────────────────────────────────
 
@@ -39,6 +51,63 @@ IconData insureTypeIcon(String? name) => switch ((name ?? '').toLowerCase()) {
     };
 
 String regionLabel(String key) => t('insure.region.$key');
+
+/// Category icon: plays [lottieUrl] when set, otherwise (and while the animation
+/// loads, or if it fails) shows the Material [icon]. The animation is authored
+/// with its own colours; [color] applies only to the Material fallback.
+class TypeIcon extends StatelessWidget {
+  const TypeIcon({
+    super.key,
+    required this.icon,
+    required this.color,
+    this.lottieUrl,
+    this.lottieAsset,
+    this.size = 21,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String? lottieUrl; // admin-set network animation (wins)
+  final String? lottieAsset; // bundled fallback, e.g. assets/lottie/motor.json
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final box = size * 1.5;
+    final material = Icon(icon, size: size, color: color);
+
+    // Bundled asset layer (or the Material icon if no asset ships for this key).
+    Widget assetLayer() {
+      final a = lottieAsset;
+      if (a == null || a.isEmpty) return Center(child: material);
+      return Lottie.asset(
+        a,
+        fit: BoxFit.contain,
+        repeat: true,
+        frameBuilder: (context, child, composition) =>
+            composition == null ? Center(child: material) : child,
+        errorBuilder: (context, error, stack) => Center(child: material),
+      );
+    }
+
+    // Priority: admin URL -> bundled asset -> Material icon. The network layer
+    // shows the asset (or icon) while loading and on any failure, so a bad or
+    // missing URL degrades gracefully instead of showing nothing.
+    final url = lottieUrl;
+    final Widget inner = (url != null && url.isNotEmpty)
+        ? Lottie.network(
+            url,
+            fit: BoxFit.contain,
+            repeat: true,
+            frameBuilder: (context, child, composition) =>
+                composition == null ? assetLayer() : child,
+            errorBuilder: (context, error, stack) => assetLayer(),
+          )
+        : assetLayer();
+
+    return SizedBox(width: box, height: box, child: inner);
+  }
+}
 
 double coverNum(String? cover) {
   final m = RegExp(r'[\d.]+').firstMatch(cover ?? '');
@@ -349,3 +418,11 @@ void openWeb(String site) => _open(
     Uri.parse(site.startsWith('http') ? site : 'https://$site'));
 
 String kes(num v) => 'KES ${withCommas(v.round())}';
+
+/// Landed motor premium: base + levy% of base + flat stamp duty. Kenya's
+/// mandatory charges (training 0.2% + PHCF 0.25% = 0.45% of basic premium,
+/// plus a flat KES 40 stamp). Defaults match statute; overridable via config.
+double landedPremium(double base, {double levyPct = 0.45, double stamp = 40}) =>
+    base + base * levyPct / 100 + stamp;
+
+double levyAmount(double base, double levyPct) => base * levyPct / 100;

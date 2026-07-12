@@ -6,6 +6,10 @@ import { republishSnapshot } from "@/lib/publish";
 
 // Each writer touches ONLY the keys its own form carries (same discipline as
 // updateContact/updateCustody), so saving one section never blanks another.
+//
+// The marketing image uploads are gone: the landing is chart-led and reads its
+// figures from rate_history, so there are no screenshots to store. The
+// `marketing` bucket and the landing.feature_*_image keys are now unused.
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 
@@ -84,70 +88,14 @@ export async function saveStats(fd: FormData) {
   done(err);
 }
 
-// ── Marketing images (Supabase Storage `marketing` bucket) ───────────────────
-// Mirrors uploadCompanyLogo, but returns a Result so the UI can show WHY an
-// upload failed (the common one being a missing bucket — run migration 0033).
-const MIME_EXT: Record<string, string> = {
-  "image/png": "png",
-  "image/jpeg": "jpg",
-  "image/webp": "webp",
-};
-
-const IMAGE_KEYS = new Set([
-  "landing.feature_rank_image",
-  "landing.feature_portfolio_image",
-  "landing.feature_alerts_image",
-  "seo.og_image",
-]);
-
-export async function uploadMarketingImage(fd: FormData): Promise<Result> {
-  const key = str(fd, "key");
-  const file = fd.get("file") as File | null;
-  if (!IMAGE_KEYS.has(key)) return { ok: false, error: "Unknown image slot." };
-  if (!file || file.size === 0) return { ok: false, error: "No file selected." };
-  if (file.size > 4 * 1024 * 1024) return { ok: false, error: "File is over 4 MB." };
-  const ext = MIME_EXT[file.type];
-  if (!ext) return { ok: false, error: "Use a PNG, JPG or WebP image." };
-
-  const path = `${key.replace(/\./g, "/")}.${ext}`; // landing/feature_rank_image.png
-  const bytes = new Uint8Array(await file.arrayBuffer());
-
-  const db = supabaseAdmin();
-  const up = await db.storage.from("marketing").upload(path, bytes, {
-    upsert: true,
-    contentType: file.type,
-  });
-  if (up.error) {
-    // e.g. "Bucket not found" when migration 0033 hasn't been pushed.
-    return { ok: false, error: `Storage: ${up.error.message}` };
+// Manual republish from the header bar. Returns a Result rather than throwing so
+// the bar can show why it failed without taking the page down.
+export async function republishNow(): Promise<Result> {
+  try {
+    await republishSnapshot();
+    revalidate();
+    return { ok: true, error: null };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Republish failed" };
   }
-
-  const { data } = db.storage.from("marketing").getPublicUrl(path);
-  const url = `${data.publicUrl}?v=${Date.now()}`; // cache-bust re-uploads
-  const err = await upsertKeys([{ key, value: url }]);
-  if (err) return { ok: false, error: err };
-
-  await republishSnapshot();
-  revalidate();
-  return { ok: true, error: null };
-}
-
-export async function removeMarketingImage(fd: FormData): Promise<Result> {
-  const key = str(fd, "key");
-  const url = str(fd, "url");
-  if (!IMAGE_KEYS.has(key)) return { ok: false, error: "Unknown image slot." };
-
-  const db = supabaseAdmin();
-  const marker = "/object/public/marketing/";
-  const i = url.indexOf(marker);
-  if (i >= 0) {
-    const path = url.slice(i + marker.length).split("?")[0];
-    await db.storage.from("marketing").remove([path]);
-  }
-  const err = await upsertKeys([{ key, value: "" }]);
-  if (err) return { ok: false, error: err };
-
-  await republishSnapshot();
-  revalidate();
-  return { ok: true, error: null };
 }

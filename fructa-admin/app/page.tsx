@@ -1,14 +1,22 @@
 import type { Metadata } from 'next';
+import { cache } from 'react';
 import './landing/landing.css';
 import Landing from './landing/Landing';
 import { getLandingContent } from './landing/content.server';
+import { getLandingCharts } from './landing/charts.server';
 
 export const dynamic = 'force-dynamic';
 
 const SITE = 'https://fructa.africa';
 
+// generateMetadata and the page body both need the content, and Next runs them
+// in the same request. cache() collapses that into one app_config read instead
+// of two. The charts read is separate and only the body needs it.
+const content = cache(getLandingContent);
+const charts = cache(getLandingCharts);
+
 export async function generateMetadata(): Promise<Metadata> {
-  const c = await getLandingContent();
+  const c = await content();
   const og = c.seo.ogImage ?? `${SITE}/og.png`;
   return {
     metadataBase: new URL(SITE),
@@ -44,25 +52,25 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Page() {
-  const content = await getLandingContent();
+  const [c, ch] = await Promise.all([content(), charts()]);
 
   const jsonLd = {
     '@context': 'https://schema.org',
     '@graph': [
       {
         '@type': 'Organization',
-        name: content.brand.name,
+        name: c.brand.name,
         url: SITE,
-        email: content.brand.contactEmail,
+        email: c.brand.contactEmail,
         logo: `${SITE}/icon.png`,
         areaServed: 'KE',
       },
       {
         '@type': 'MobileApplication',
-        name: content.brand.name,
+        name: c.brand.name,
         operatingSystem: 'ANDROID, IOS',
         applicationCategory: 'FinanceApplication',
-        description: content.seo.description,
+        description: c.seo.description,
         offers: { '@type': 'Offer', price: '0', priceCurrency: 'KES' },
       },
     ],
@@ -74,7 +82,7 @@ export default async function Page() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <Landing content={content} />
+      <Landing content={c} charts={ch} />
     </>
   );
 }

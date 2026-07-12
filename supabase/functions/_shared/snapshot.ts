@@ -107,7 +107,7 @@ export async function publishSnapshot(
   const { data: companies } = await db
     .from("companies")
     .select(
-      "id,name,type,brand_color,logo_url,website,verified,aum_kes,market_share,rank,aum_as_of,trustee,custodian,auditor",
+      "id,name,type,brand_color,logo_url,website,phone,whatsapp,email,verified,aum_kes,market_share,rank,aum_as_of,trustee,custodian,auditor",
     );
 
   // Agents + their company mapping.
@@ -183,7 +183,7 @@ export async function publishSnapshot(
   // coming-soon cards until their pricing tables land.
   const { data: insTypes } = await db
     .from("insurance_types")
-    .select("key,label,icon,status,ord,sub")
+    .select("key,label,icon,status,ord,sub,lottie_url")
     .eq("active", true)
     .order("ord", { ascending: true });
 

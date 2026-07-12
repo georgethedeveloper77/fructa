@@ -140,69 +140,135 @@ class _Chart extends StatelessWidget {
 
     // Minimal v5 aesthetic: no axes, no grid, no border  just the brand line
     // and gradient fill, with min/max pinned to the right edge.
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: LineChart(
-            LineChartData(
-              minX: 0,
-              maxX: (points.length - 1).toDouble(),
-              minY: (lo - pad).clamp(0.0, double.infinity),
-              maxY: hi + pad,
-              gridData: const FlGridData(show: false),
-              borderData: FlBorderData(show: false),
-              titlesData: const FlTitlesData(show: false),
-              lineTouchData: LineTouchData(
-                touchTooltipData: LineTouchTooltipData(
-                  getTooltipColor: (_) => c.s2,
-                  getTooltipItems: (touched) => touched.map((s) {
-                    final p = points[s.x.round().clamp(0, points.length - 1)];
-                    return LineTooltipItem(
-                      '${p.asOf}\n${p.rate.toStringAsFixed(2)}%',
-                      TextStyle(
-                        color: c.text,
-                        fontSize: 12,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ),
-              lineBarsData: [
-                LineChartBarData(
-                  spots: spots,
-                  isCurved: true,
-                  curveSmoothness: 0.28,
-                  color: color,
-                  barWidth: 2.4,
-                  dotData: FlDotData(show: points.length <= 6),
-                  belowBarData: BarAreaData(
-                    show: true,
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        color.withValues(alpha: 0.25),
-                        color.withValues(alpha: 0.0),
-                      ],
-                    ),
+    final minY = (lo - pad).clamp(0.0, double.infinity);
+    final maxY = hi + pad;
+    // ~5 horizontal rules across the padded range  the "rows" of the grid.
+    final yStep = ((maxY - minY) / 4).clamp(0.01, double.infinity);
+    // ~4 date ticks along the bottom  the "columns". Spread across the window
+    // so a dense series doesn't crowd the axis.
+    final n = points.length;
+    final xStep = ((n - 1) / 3).clamp(1.0, (n - 1).toDouble());
+
+    // Gridded v5 aesthetic: faint horizontal rules, a right-edge rate axis
+    // (promoted from the old pinned min/max), and a bottom date axis  the
+    // Stocks-style frame, verticals intentionally omitted to stay calm.
+    return LineChart(
+      LineChartData(
+        minX: 0,
+        maxX: (n - 1).toDouble(),
+        minY: minY,
+        maxY: maxY,
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+          horizontalInterval: yStep,
+          getDrawingHorizontalLine: (_) => FlLine(
+            color: c.line,
+            strokeWidth: 1,
+          ),
+        ),
+        borderData: FlBorderData(show: false),
+        titlesData: FlTitlesData(
+          show: true,
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          leftTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          rightTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              interval: yStep,
+              reservedSize: 44,
+              getTitlesWidget: (value, meta) {
+                if (value <= minY || value >= maxY) {
+                  return const SizedBox.shrink();
+                }
+                return Padding(
+                  padding: const EdgeInsets.only(left: 6),
+                  child: Text(
+                    value.toStringAsFixed(2),
+                    style: labelStyle,
+                    textAlign: TextAlign.left,
                   ),
-                ),
-              ],
+                );
+              },
+            ),
+          ),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              interval: xStep,
+              reservedSize: 22,
+              getTitlesWidget: (value, meta) {
+                final i = value.round();
+                if (i < 0 || i >= n) return const SizedBox.shrink();
+                final d = DateTime.tryParse(points[i].asOf);
+                if (d == null) return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text('${_mon(d.month)} \u2019${d.year % 100}', style: labelStyle),
+                );
+              },
             ),
           ),
         ),
-        Positioned(
-          top: 4,
-          right: 8,
-          child: Text(hi.toStringAsFixed(2), style: labelStyle),
+        lineTouchData: LineTouchData(
+          touchTooltipData: LineTouchTooltipData(
+            getTooltipColor: (_) => c.s2,
+            getTooltipItems: (touched) => touched.map((s) {
+              final p = points[s.x.round().clamp(0, points.length - 1)];
+              return LineTooltipItem(
+                '${p.asOf}\n${p.rate.toStringAsFixed(2)}%',
+                TextStyle(
+                  color: c.text,
+                  fontSize: 12,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              );
+            }).toList(),
+          ),
         ),
-        Positioned(
-          bottom: 4,
-          right: 8,
-          child: Text(lo.toStringAsFixed(2), style: labelStyle),
-        ),
-      ],
+        lineBarsData: [
+          LineChartBarData(
+            spots: spots,
+            isCurved: true,
+            curveSmoothness: 0.28,
+            color: color,
+            barWidth: 2.4,
+            dotData: FlDotData(show: points.length <= 6),
+            belowBarData: BarAreaData(
+              show: true,
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  color.withValues(alpha: 0.25),
+                  color.withValues(alpha: 0.0),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
+
+const _monthAbbr = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+
+String _mon(int m) => (m >= 1 && m <= 12) ? _monthAbbr[m - 1] : '';

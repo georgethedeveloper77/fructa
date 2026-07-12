@@ -2,14 +2,21 @@
 
 import { useEffect, useState } from 'react';
 import { Inter, Space_Grotesk } from 'next/font/google';
-import type { LandingContent } from './content';
-import RateChart from './RateChart';
+import type { LandingCharts, LandingContent } from './content';
+import { INFLATION, WHT } from './content';
+import { Wordmark } from './Wordmark';
+import HeroTerminal from './charts/HeroTerminal';
+import NetOfTaxBars from './charts/NetOfTaxBars';
+import PortfolioDonut from './charts/PortfolioDonut';
+import AlertThreshold from './charts/AlertThreshold';
+import MarketDonut from './charts/MarketDonut';
+import YieldCurve from './charts/YieldCurve';
 
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--fl-sans' });
 const grotesk = Space_Grotesk({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--fl-mono' });
 
 const PLAY = (
-  <svg className="fl-mk" viewBox="0 0 24 24">
+  <svg className="fl-mk" viewBox="0 0 24 24" aria-hidden="true">
     <defs>
       <linearGradient id="flpg" x1="0" y1="0" x2="1" y2="1">
         <stop offset="0" stopColor="#00E2FF" />
@@ -23,7 +30,7 @@ const PLAY = (
   </svg>
 );
 const APPLE = (
-  <svg className="fl-mk" viewBox="0 0 24 24" fill="#fff">
+  <svg className="fl-mk" viewBox="0 0 24 24" fill="#fff" aria-hidden="true">
     <path d="M16.4 12.7c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.8-3.5.8-.7 0-1.9-.8-3.1-.8-1.6 0-3 .9-3.9 2.4-1.6 2.9-.4 7.1 1.2 9.4.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3-.7 1.4 0 1.8.7 3 .7 1.2 0 2-1.1 2.8-2.2.9-1.3 1.2-2.5 1.2-2.6-.1 0-2.3-.9-2.3-3.6ZM14.1 5.6c.6-.8 1.1-1.9.9-3-1 0-2.1.6-2.8 1.4-.6.7-1.1 1.8-.9 2.9 1.1.1 2.2-.5 2.8-1.3Z" />
   </svg>
 );
@@ -49,17 +56,31 @@ function StoreBadges({ links, platform }: { links: LandingContent['links']; plat
       </span>
     </a>
   );
-  const order = platform === 'ios' ? [apple, play] : [play, apple];
-  return <div className="fl-store">{order}</div>;
+  return <div className="fl-store">{platform === 'ios' ? [apple, play] : [play, apple]}</div>;
 }
 
-const CHECK = (
-  <svg viewBox="0 0 24 24">
-    <path d="M5 13l4 4L19 7" />
-  </svg>
-);
+/** Feature claims read as a spec sheet, not a checklist. The key is the thing
+ *  you get; the value is the condition it holds under. */
+function Points({ rows }: { rows: [string, string][] }) {
+  return (
+    <dl className="fl-pts">
+      {rows.map(([k, v]) => (
+        <div className="fl-pt" key={k}>
+          <dt>{k}</dt>
+          <dd>{v}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
 
-export default function Landing({ content }: { content: LandingContent }) {
+export default function Landing({
+  content,
+  charts,
+}: {
+  content: LandingContent;
+  charts: LandingCharts;
+}) {
   const [platform, setPlatform] = useState<Platform>('other');
   const [theme, setTheme] = useState<'dark' | 'light' | null>(null);
 
@@ -83,71 +104,64 @@ export default function Landing({ content }: { content: LandingContent }) {
     setTheme(next);
   };
 
-  const ticker = [
-    ['91-DAY T-BILL', '8.71%', 1],
-    ['182-DAY', '8.60%', 0],
-    ['364-DAY', '8.87%', 1],
-    ['CBR', '8.75', null],
-    ['INFLATION', '6.70', null],
-    ['USD/KES', '129.4', 0],
-    ['TOP MMF KES', '13.42%', 1],
-    ['SACCO AVG', '10.20', null],
-  ] as [string, string, number | null][];
-
-  const tItem = (l: string, v: string, d: number | null, k: number) => (
-    <span className="fl-it" key={k}>
-      {l} <b>{v}</b>
-      {d === 1 ? (
-        <svg className="fl-caret u" viewBox="0 0 10 10">
-          <path d="M5 3 8 7H2z" />
-        </svg>
-      ) : d === 0 ? (
-        <svg className="fl-caret d" viewBox="0 0 10 10">
-          <path d="M5 7 2 3h6z" />
-        </svg>
-      ) : null}
-    </span>
-  );
-
-  const shot = (img: string | null, label: string) =>
-    img ? (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img className="fl-shot-img" src={img} alt={label} />
-    ) : (
-      <div className="fl-ph">{label}</div>
+  // The ticker reads the same numbers the charts do, so it can never drift.
+  // The curve and the benchmark chips both carry the 91d T-bill (and the chips
+  // repeat CBR and inflation), so the tape is keyed by label and de-duplicated:
+  // the first source to claim a label wins, and nothing prints twice.
+  const lead = charts.tabs[0]?.series.find((s) => s.lead) ?? charts.tabs[0]?.series[0];
+  const tape = new Map<string, string>();
+  charts.curve.labels.forEach((l, i) => {
+    tape.set(`${l.toUpperCase()} T-BILL`, `${charts.curve.values[i].toFixed(2)}%`);
+  });
+  if (lead && charts.tabs[0]) {
+    tape.set(
+      `TOP ${charts.tabs[0].label.toUpperCase()}`,
+      `${lead.values[lead.values.length - 1].toFixed(2)}%`,
     );
+  }
+  for (const [k, v] of charts.tabs[0]?.benchmarks ?? []) {
+    const key = k.toUpperCase();
+    // the curve already printed every T-bill tenor
+    if (key.includes('T-BILL')) continue;
+    if (!tape.has(key)) tape.set(key, v);
+  }
+  const ticker = [...tape.entries()];
+
+  const hasCharts = charts.live && charts.tabs.length > 0;
 
   return (
     <div className={`fl ${inter.variable} ${grotesk.variable}`} data-theme-ready={theme ? 'true' : undefined}>
-      {/* TOP TICKER */}
-      <div className="fl-tickerwrap" aria-hidden="true">
-        <div className="fl-ticker">
-          {ticker.map((t, i) => tItem(t[0], t[1], t[2], i))}
-          {ticker.map((t, i) => tItem(t[0], t[1], t[2], i + 100))}
+      {ticker.length > 0 && (
+        <div className="fl-tickerwrap" aria-hidden="true">
+          <div className="fl-ticker">
+            {[...ticker, ...ticker].map(([l, v], i) => (
+              <span className="fl-it" key={i}>
+                {l} <b>{v}</b>
+              </span>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* NAV */}
       <nav className="fl-nav">
         <div className="fl-nav-in">
-          <a className="fl-brand" href="#">
-            <span className="fl-dot" />
-            {content.brand.name}
+          <a className="fl-brandlink" href="#" aria-label={content.brand.name}>
+            <Wordmark size={15} />
           </a>
           <div className="fl-nav-links">
             <a href="#rates">Rates</a>
+            <a href="#market">Market</a>
             <a href="#how">How it works</a>
-            <a href="#data">Data</a>
           </div>
           <div className="fl-nav-cta">
             <button className="fl-ttoggle" aria-label="Toggle theme" onClick={toggleTheme}>
               {theme === 'dark' ? (
-                <svg viewBox="0 0 24 24">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
                   <circle cx="12" cy="12" r="4.5" />
                   <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4" />
                 </svg>
               ) : (
-                <svg viewBox="0 0 24 24">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M21 12.8A9 9 0 1111.2 3 7 7 0 0021 12.8Z" />
                 </svg>
               )}
@@ -159,11 +173,10 @@ export default function Landing({ content }: { content: LandingContent }) {
         </div>
       </nav>
 
-      {/* HERO */}
       <section className="fl-hero">
-        <div className="fl-wrap fl-hero-grid">
+        <div className={'fl-wrap ' + (hasCharts ? 'fl-hero-grid' : 'fl-hero-solo')}>
           <div>
-            <span className="fl-eyebrow">Kenya · Live yields</span>
+            <span className="fl-eyebrow">Kenya, live yields</span>
             <h1>
               {content.hero.headline}
               <br />
@@ -176,135 +189,89 @@ export default function Landing({ content }: { content: LandingContent }) {
               {content.hero.microtrust}
             </div>
           </div>
-          <RateChart months={content.months} tabs={content.chart} />
+          {hasCharts && <HeroTerminal charts={charts} />}
         </div>
       </section>
 
-      {/* COVERAGE */}
-      <section className="fl-sec" id="rates">
-        <div className="fl-wrap">
-          <div className="fl-sec-head">
-            <span className="fl-eyebrow">One place</span>
-            <h2>Every rate that matters, in one board.</h2>
-            <p>
-              You currently chase yields across WhatsApp groups, fund manager PDFs and spreadsheets. Fructa pulls them
-              into a single ranked view and keeps it fresh.
-            </p>
-          </div>
-          <div className="fl-cov">
-            <div className="c">
-              <svg viewBox="0 0 24 24">
-                <path d="M3 7l9-4 9 4-9 4-9-4Z" />
-                <path d="M3 12l9 4 9-4M3 17l9 4 9-4" />
-              </svg>
-              <h3>Money Market</h3>
-              <span>KES &amp; USD · daily</span>
+      {hasCharts && (
+        <>
+          <section className="fl-wrap" id="rates">
+            <div className="fl-feat">
+              <div className="fx">
+                <NetOfTaxBars funds={charts.netOfTax} />
+              </div>
+              <div>
+                <span className="fl-eyebrow">Compare</span>
+                <h2>The headline rate is not what you keep.</h2>
+                <p>
+                  Every board in Kenya quotes gross. Fructa ranks on what lands in your account: after
+                  the {Math.round(WHT * 100)}% withholding, and after {INFLATION}% inflation takes its cut.
+                </p>
+                <Points
+                  rows={[
+                    ['Gross, net, real', 'all three on every fund, always visible'],
+                    ['Filters', 'by type, currency and minimum to enter'],
+                    ['Compare', 'any two funds side by side, winner marked'],
+                  ]}
+                />
+              </div>
             </div>
-            <div className="c">
-              <svg viewBox="0 0 24 24">
-                <rect x="3" y="4" width="18" height="16" rx="2" />
-                <path d="M7 9h10M7 13h6" />
-              </svg>
-              <h3>T-Bills</h3>
-              <span>91 · 182 · 364</span>
-            </div>
-            <div className="c">
-              <svg viewBox="0 0 24 24">
-                <path d="M4 19V5M4 19h16M8 15l3-4 3 2 4-6" />
-              </svg>
-              <h3>Bonds</h3>
-              <span>fixed income</span>
-            </div>
-            <div className="c">
-              <svg viewBox="0 0 24 24">
-                <circle cx="12" cy="8" r="4" />
-                <path d="M5 21c0-4 3-6 7-6s7 2 7 6" />
-              </svg>
-              <h3>SACCOs</h3>
-              <span>dividend rates</span>
-            </div>
-            <div className="c">
-              <svg viewBox="0 0 24 24">
-                <path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6l7-3Z" />
-              </svg>
-              <h3>Insurance</h3>
-              <span>guaranteed funds</span>
-            </div>
-          </div>
-        </div>
-      </section>
+          </section>
 
-      {/* FEATURE 1 */}
-      <section className="fl-wrap">
-        <div className="fl-feat">
-          <div className="fx">
-            <div className="fl-shot">{shot(content.images.rank, 'Ranked rates screenshot')}</div>
-          </div>
-          <div>
-            <span className="fl-eyebrow">Compare</span>
-            <h2>Ranked, net of tax, side by side.</h2>
-            <p>
-              Headline rates lie. Fructa shows the net yield after 15% withholding, the real return after inflation,
-              and the minimum to get in — so the ranking reflects what you actually earn.
-            </p>
-            <ul>
-              <li>{CHECK}Gross, net and real yield on every fund</li>
-              <li>{CHECK}Filter by type, currency and minimum</li>
-              <li>{CHECK}Side-by-side compare, winner highlighted</li>
-            </ul>
-          </div>
-        </div>
-      </section>
+          <section className="fl-wrap">
+            <div className="fl-feat rev">
+              <div className="fx">
+                <PortfolioDonut />
+              </div>
+              <div>
+                <span className="fl-eyebrow">Your money</span>
+                <h2>Your holdings, on top of the market.</h2>
+                <p>
+                  Add what you already hold and Fructa overlays it on the live board. See your blended
+                  yield, your projected earnings, and whether your money is sitting in a fund that has
+                  quietly slipped down the ranking.
+                </p>
+                <Points
+                  rows={[
+                    ['Blended yield', 'consolidated to KES across every holding'],
+                    ['Projected earnings', 'with withholding already applied'],
+                    ['On-device only', 'no account, no server, no balances leave the phone'],
+                  ]}
+                />
+              </div>
+            </div>
+          </section>
 
-      {/* FEATURE 2 */}
-      <section className="fl-wrap">
-        <div className="fl-feat rev">
-          <div className="fx">
-            <div className="fl-shot">{shot(content.images.portfolio, 'Portfolio screenshot')}</div>
-          </div>
-          <div>
-            <span className="fl-eyebrow">Your money</span>
-            <h2>Your holdings, on top of the market.</h2>
-            <p>
-              Add what you already hold and Fructa overlays it on the live board. See your blended yield, projected
-              earnings, and whether your money is sitting in a fund that&apos;s slipped down the ranking.
-            </p>
-            <ul>
-              <li>{CHECK}KES-consolidated total across all funds</li>
-              <li>{CHECK}Projected earnings with real tax applied</li>
-              <li>{CHECK}Stored on-device — we never see your balances</li>
-            </ul>
-          </div>
-        </div>
-      </section>
+          <section className="fl-wrap">
+            <div className="fl-feat">
+              <div className="fx">
+                <AlertThreshold alert={charts.alert} />
+              </div>
+              <div>
+                <span className="fl-eyebrow">Move first</span>
+                <h2>Know the moment a rate moves.</h2>
+                <p>
+                  Set a threshold on any fund or benchmark. When a rate crosses it, when a T-bill
+                  auction prints, or when a fund you hold slips, Fructa tells you before the WhatsApp
+                  group does.
+                </p>
+                <Points
+                  rows={[
+                    ['Thresholds', 'on any rate on the board'],
+                    ['Auctions', 'T-bill results and maturity reminders'],
+                    ['Weekly digest', 'where every rate landed, once a week'],
+                  ]}
+                />
+              </div>
+            </div>
+          </section>
+        </>
+      )}
 
-      {/* FEATURE 3 */}
-      <section className="fl-wrap">
-        <div className="fl-feat">
-          <div className="fx">
-            <div className="fl-shot">{shot(content.images.alerts, 'Alerts screenshot')}</div>
-          </div>
-          <div>
-            <span className="fl-eyebrow">Move first</span>
-            <h2>Know the moment a rate moves.</h2>
-            <p>
-              Set an alert on any fund or benchmark. When a rate crosses your threshold, a T-bill auction prints, or a
-              fund you hold slips, Fructa tells you — before the WhatsApp group does.
-            </p>
-            <ul>
-              <li>{CHECK}Threshold alerts on any rate</li>
-              <li>{CHECK}T-bill auction and maturity reminders</li>
-              <li>{CHECK}Weekly digest of where rates landed</li>
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      {/* STAT BAND */}
       <section className="fl-band" id="data">
         <div className="fl-band-in">
-          {content.stats.map((s, i) => (
-            <div className="fl-stat" key={i}>
+          {content.stats.map((s) => (
+            <div className="fl-stat" key={s.l}>
               <div className="n">{s.n}</div>
               <div className="l">{s.l}</div>
             </div>
@@ -312,7 +279,25 @@ export default function Landing({ content }: { content: LandingContent }) {
         </div>
       </section>
 
-      {/* HOW */}
+      {hasCharts && (
+        <section className="fl-sec" id="market">
+          <div className="fl-wrap">
+            <div className="fl-sec-head">
+              <span className="fl-eyebrow">The market</span>
+              <h2>The whole board, and the curve that prices it.</h2>
+              <p>
+                Where Kenya&apos;s collective investment money sits, next to the Treasury curve every
+                other rate in the country is measured against.
+              </p>
+            </div>
+            <div className="fl-mkt">
+              <MarketDonut market={charts.market} />
+              <YieldCurve curve={charts.curve} />
+            </div>
+          </div>
+        </section>
+      )}
+
       <section className="fl-sec" id="how">
         <div className="fl-wrap">
           <div className="fl-sec-head">
@@ -323,7 +308,7 @@ export default function Landing({ content }: { content: LandingContent }) {
             <div className="fl-step">
               <div className="no">01</div>
               <h3>Open the board</h3>
-              <p>Every Kenyan rate, ranked and live, the second you land — no account required to look.</p>
+              <p>Every Kenyan rate, ranked and live, the second you land. No account required to look.</p>
             </div>
             <div className="fl-step">
               <div className="no">02</div>
@@ -339,7 +324,6 @@ export default function Landing({ content }: { content: LandingContent }) {
         </div>
       </section>
 
-      {/* FINAL CTA */}
       <section className="fl-final" id="get">
         <div className="fl-wrap">
           <span className="fl-eyebrow">Free to start</span>
@@ -349,14 +333,12 @@ export default function Landing({ content }: { content: LandingContent }) {
         </div>
       </section>
 
-      {/* FOOTER */}
       <footer className="fl-footer">
         <div className="fl-wrap">
           <div className="fl-foot">
             <div>
-              <div className="fl-brand" style={{ marginBottom: 14 }}>
-                <span className="fl-dot" />
-                {content.brand.name}
+              <div className="fl-foot-brand">
+                <Wordmark size={16} domain />
               </div>
               <p className="fl-foot-blurb">{content.brand.footerBlurb}</p>
             </div>
@@ -364,8 +346,8 @@ export default function Landing({ content }: { content: LandingContent }) {
               <div className="fl-foot-col">
                 <h4>Product</h4>
                 <a href="#rates">Rates</a>
+                <a href="#market">Market</a>
                 <a href="#how">How it works</a>
-                <a href="#data">Data sources</a>
               </div>
               <div className="fl-foot-col">
                 <h4>Company</h4>
@@ -381,7 +363,7 @@ export default function Landing({ content }: { content: LandingContent }) {
             </div>
           </div>
           <div className="fl-legal">
-            <span>© 2026 {content.brand.name} · Nairobi, Kenya</span>
+            <span>2026 {content.brand.name}, Nairobi</span>
             <span>fructa.africa</span>
           </div>
         </div>

@@ -1,14 +1,14 @@
-// Config registry — the human face of the app's machine contract.
+// Config registry: the human face of the app's machine contract.
 //
 // The snapshot keys (`benchmark.cbr`, `insurance.launched`, …) are the strings
 // the Flutter side reads (see remote_config.dart) and snapshot.ts publishes.
-// We do NOT rename them — that would break the app in lockstep. Instead this
+// We do NOT rename them, because that would break the app in lockstep. Instead this
 // registry decides how each key is LABELLED and EDITED, so an operator sees
 // "Central Bank Rate" with a number field, not `benchmark.cbr` with raw JSON.
 //
 // Keys with no entry degrade gracefully: we infer an editor from the value's
 // shape (bool → toggle, string → text, string[] → chips, else → JSON), so
-// adding a key never requires touching this file — it just gets a nicer editor
+// adding a key never requires touching this file, it just gets a nicer editor
 // when you describe it here.
 
 export type FieldKind = "rate" | "flag" | "text" | "stringList" | "table" | "json";
@@ -46,7 +46,7 @@ export type Field =
 // ── The registry ──────────────────────────────────────────────────────────
 
 export const CONFIG_SCHEMA: Record<string, Field> = {
-  // Benchmarks — the market anchors, highest-churn operator keys.
+  // Benchmarks: the market anchors, highest-churn operator keys.
   "benchmark.inflation": {
     kind: "rate",
     group: "Benchmarks",
@@ -82,7 +82,7 @@ export const CONFIG_SCHEMA: Record<string, Field> = {
     group: "Benchmarks",
     label: "Withholding tax",
     help: "WHT rate used to compute net-of-tax yield. 15% for residents on most funds.",
-    showMeta: false, // no as-of / source — it's a policy constant, not a dated print
+    showMeta: false, // no as-of / source, it is a policy constant, not a dated print
   },
 
   // Feature flags.
@@ -107,12 +107,57 @@ export const CONFIG_SCHEMA: Record<string, Field> = {
     help: "Chips offered under the empty search field. Tapped, they run as a query.",
   },
 
-  // Market (CMA) — authoritative quarterly figures. Editable grid, not a blob.
+  // Insurance: market-level truths from the regulator. These are NOT per-insurer
+  // (IRA publishes combined ratio only class-wise and industry-wide), so they
+  // live here rather than on a fund row. They are the honest backdrop to every
+  // motor quote we show: the market loses money underwriting motor.
+  "insure.industry_combined_ratio": {
+    kind: "rate",
+    group: "Insurance",
+    label: "Industry combined ratio",
+    help: "IRA general-insurance combined ratio. Above 100 means the whole market pays out more in claims and expenses than it earns in premium. Shown as the benchmark line against any insurer we can rate.",
+    seed: { rate: 103.9, as_of: "2023-12-31", source: "IRA Insurance Industry Report Jan-Dec 2023" },
+  },
+  "insure.industry_loss_ratio": {
+    kind: "rate",
+    group: "Insurance",
+    label: "Industry loss ratio",
+    help: "IRA net incurred claims as a percentage of net earned premium, general insurance. The claims half of the combined ratio.",
+    seed: { rate: 67.9, as_of: "2023-12-31", source: "IRA Insurance Industry Report Jan-Dec 2023" },
+  },
+  "insure.class_combined_ratios": {
+    kind: "table",
+    group: "Insurance",
+    label: "Combined ratio by class",
+    help: "IRA Table 20. Both motor classes run well above 100, which is why motor cover keeps repricing. Feeds the context line under a motor quote.",
+    rowsKey: "classes",
+    addLabel: "Add class",
+    columns: [
+      { key: "class", label: "Class", type: "text" },
+      { key: "combined", label: "Combined ratio", type: "number", suffix: "%" },
+    ],
+    seed: {
+      as_of: "2023-12-31",
+      source: "IRA Insurance Industry Report Jan-Dec 2023, Table 20",
+      classes: [
+        { class: "motor_commercial", combined: 113.3 },
+        { class: "motor_private", combined: 109.9 },
+        { class: "medical", combined: 103.6 },
+        { class: "liability", combined: 107.8 },
+        { class: "fire_industrial", combined: 95.3 },
+        { class: "theft", combined: 89.5 },
+        { class: "marine", combined: 77.4 },
+        { class: "workmens_comp", combined: 74.7 },
+      ],
+    },
+  },
+
+  // Market (CMA): authoritative quarterly figures. Editable grid, not a blob.
   "market.aum_by_fund_type": {
     kind: "table",
     group: "Market (CMA)",
     label: "Market by fund type",
-    help: "Authoritative AUM split from the CMA CIS quarterly report. Powers the Markets donut — the real market, not the funds we happen to track.",
+    help: "Authoritative AUM split from the CMA CIS quarterly report. Powers the Markets donut: the real market, not the funds we happen to track.",
     rowsKey: "types",
     addLabel: "Add fund type",
     totalKey: "total_kes",
@@ -138,7 +183,7 @@ export const CONFIG_SCHEMA: Record<string, Field> = {
     kind: "table",
     group: "Market (CMA)",
     label: "Market by asset class",
-    help: "CMA CIS Table 9 — where the whole market's money actually sits. Feeds the market context card.",
+    help: "CMA CIS Table 9: where the whole market's money actually sits. Feeds the market context card.",
     rowsKey: "classes",
     addLabel: "Add asset class",
     columns: [
@@ -166,6 +211,7 @@ export const CONFIG_SCHEMA: Record<string, Field> = {
 export const GROUP_ORDER = [
   "Benchmarks",
   "Feature flags",
+  "Insurance",
   "Market (CMA)",
   "Search",
   "Onboarding",
@@ -317,7 +363,7 @@ export function serializeValue(field: Field, model: Model): string {
       return JSON.stringify(out);
     }
     case "json":
-      return model as string; // raw — actions.ts parses JSON-or-text
+      return model as string; // raw - actions.ts parses JSON-or-text
   }
 }
 

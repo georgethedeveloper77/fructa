@@ -151,6 +151,7 @@ export async function createInsuranceType(formData: FormData) {
     icon: strOrNull(formData.get("icon")),
     status: String(formData.get("status") ?? "soon"),
     ord: int(formData.get("ord")) ?? 0,
+    lottie_url: strOrNull(formData.get("lottie_url")),
     active: true,
   });
   await republishSnapshot();
@@ -168,6 +169,7 @@ export async function updateInsuranceType(formData: FormData) {
       status: String(formData.get("status") ?? "soon"),
       ord: int(formData.get("ord")) ?? 0,
       sub: strOrNull(formData.get("sub")),
+      lottie_url: strOrNull(formData.get("lottie_url")),
       active: formData.get("active") === "on",
     })
     .eq("key", key);

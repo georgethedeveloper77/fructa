@@ -9,6 +9,7 @@ class InsuranceType {
   final String status; // 'live' | 'soon'
   final int ord;
   final String? sub; // optional static subtitle override
+  final String? lottieUrl; // optional animated icon (material icon is fallback)
 
   const InsuranceType({
     required this.key,
@@ -17,6 +18,7 @@ class InsuranceType {
     this.status = 'soon',
     this.ord = 0,
     this.sub,
+    this.lottieUrl,
   });
 
   bool get isLive => status == 'live';
@@ -28,6 +30,7 @@ class InsuranceType {
         status: (j['status'] ?? 'soon') as String,
         ord: (j['ord'] as num?)?.toInt() ?? 0,
         sub: j['sub'] as String?,
+        lottieUrl: j['lottie_url'] as String?,
       );
 
   /// Baked fallback used when the snapshot carries no types (e.g. before the

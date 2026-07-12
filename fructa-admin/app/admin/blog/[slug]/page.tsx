@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabase/server";
-import { PostEditor, type PostRow } from "./PostEditor";
+import { PostEditor, type PostRow, type LinkOption } from "./PostEditor";
 
 export const dynamic = "force-dynamic";
 
@@ -10,11 +10,17 @@ export default async function EditPostPage({
 }) {
   const { slug } = await params;
   const db = supabaseAdmin();
-  const { data } = await db
-    .from("posts")
-    .select("slug,title,excerpt,body,cover_url,published,published_at,seo_title,seo_description,updated_at")
-    .eq("slug", slug)
-    .maybeSingle();
+  const [{ data }, { data: funds }, { data: companies }] = await Promise.all([
+    db
+      .from("posts")
+      .select(
+        "slug,kind,title,excerpt,body,cover_url,published,published_at,seo_title,seo_description,tags,fund_id,company_id,pinned,reading_minutes,updated_at",
+      )
+      .eq("slug", slug)
+      .maybeSingle(),
+    db.from("funds").select("id,name").eq("kind", "fund").neq("status", "hidden").order("name"),
+    db.from("companies").select("id,name").order("name"),
+  ]);
 
   if (!data) {
     return (
@@ -27,9 +33,14 @@ export default async function EditPostPage({
     );
   }
 
+  const links: LinkOption[] = [
+    ...(funds ?? []).map((f) => ({ type: "fund" as const, id: f.id as string, name: f.name as string })),
+    ...(companies ?? []).map((c) => ({ type: "company" as const, id: c.id as string, name: c.name as string })),
+  ];
+
   return (
-    <div className="mx-auto max-w-3xl">
-      <PostEditor post={data as PostRow} />
+    <div className="mx-auto max-w-5xl">
+      <PostEditor post={data as PostRow} links={links} />
     </div>
   );
 }

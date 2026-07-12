@@ -76,6 +76,9 @@ export interface SnapshotCompany {
   brand_color: string | null;
   logo_url: string | null;
   website: string | null;
+  phone: string | null;
+  whatsapp: string | null;
+  email: string | null;
   verified: boolean;
   aum_kes: number | null;
   market_share: number | null;

@@ -7,6 +7,7 @@ import {
   bulkSetVerified, bulkSetStatus, bulkSetRetail, bulkDeleteFunds,
 } from "./actions";
 import { IconChevronUp, IconChevronDown } from "../_icons";
+import { ProvenanceCell, type Provenance } from "./provenance";
 
 export type FundRow = {
   id: string; name: string; manager: string;
@@ -14,6 +15,8 @@ export type FundRow = {
   current_rate: number | null; status: string;
   verified: boolean; featured: boolean; retail: boolean;
   company_id: string | null; logo_domain: string | null;
+  basis: string | null; price_per_unit: number | null;
+  price_as_of: string | null; distribution_pct: number | null;
 };
 export type Co = { id: string; name: string; logo_url: string | null; brand_color: string | null };
 
@@ -50,7 +53,7 @@ function StarIcon({ size = 13 }: { size?: number }) {
 
 type SortKey = "name" | "type" | "rate" | "status";
 
-export function FundsTable({ rows, companies }: { rows: FundRow[]; companies: Co[] }) {
+export function FundsTable({ rows, companies, prov }: { rows: FundRow[]; companies: Co[]; prov: Record<string, Provenance> }) {
   const [q, setQ] = useState("");
   const [tab, setTab] = useState<string>("all");
   const [cur, setCur] = useState<string>("all");
@@ -156,6 +159,7 @@ export function FundsTable({ rows, companies }: { rows: FundRow[]; companies: Co
               <Th k="name">Fund</Th>
               <Th k="type">Type</Th>
               <Th k="rate">Rate</Th>
+              <th className="px-3 py-3 font-medium uppercase tracking-wider">Source</th>
               <th className="px-3 py-3 font-medium uppercase tracking-wider">Flags</th>
               <Th k="status">Status</Th>
               <th className="px-3 py-3" />
@@ -185,14 +189,9 @@ export function FundsTable({ rows, companies }: { rows: FundRow[]; companies: Co
 
                   <td className="px-3 py-3"><span className="rounded-md border border-line bg-panel2 px-2 py-0.5 text-xs text-mute">{catLabel(f)}</span></td>
 
-                  <td className="px-3 py-3">
-                    <form action={setRate} className="flex items-center gap-1.5">
-                      <input type="hidden" name="id" value={f.id} />
-                      <input name="rate" type="number" step="0.01" min="0" max="30" defaultValue={f.current_rate ?? ""} placeholder="—"
-                        className="w-[70px] rounded-md border border-line bg-panel2 px-2 py-1 text-sm tnum text-ink outline-none placeholder:text-faint focus:border-gold/60" />
-                      <button className="rounded-md border border-line px-2.5 py-1 text-xs text-mute hover:border-gold/60 hover:text-gold">Set</button>
-                    </form>
-                  </td>
+                  <td className="px-3 py-3"><RateCell f={f} /></td>
+
+                  <td className="px-3 py-3"><ProvenanceCell p={prov[f.id]} /></td>
 
                   <td className="px-3 py-3">
                     <div className="flex items-center gap-1.5">
@@ -217,12 +216,52 @@ export function FundsTable({ rows, companies }: { rows: FundRow[]; companies: Co
               );
             })}
             {filtered.length === 0 && (
-              <tr><td colSpan={7} className="px-4 py-10 text-center text-sm text-mute">No funds match.</td></tr>
+              <tr><td colSpan={8} className="px-4 py-10 text-center text-sm text-mute">No funds match.</td></tr>
             )}
           </tbody>
         </table>
       </div>
     </div>
+  );
+}
+
+// Rate cell routes on `basis`, the same field that gates yield UI in the app:
+//   yield (or null) -> the inline editable rate, unchanged
+//   nav             -> read-only unit price (edited on the detail page's
+//                      Pricing card, so it can't be corrupted from here)
+//   none            -> no headline figure; never offer a yield input, so
+//                      equity/balanced/special funds can't be given a fake rate
+function fmtPrice(v: number): string {
+  return v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+}
+
+function RateCell({ f }: { f: FundRow }) {
+  const basis = f.basis ?? "yield";
+
+  if (basis === "nav") {
+    return (
+      <div className="flex flex-col leading-tight">
+        {f.price_per_unit != null
+          ? <span className="tnum text-sm text-blue">{fmtPrice(f.price_per_unit)}</span>
+          : <span className="text-xs text-faint">no price</span>}
+        <span className="text-[10px] text-faint">
+          unit price{f.distribution_pct != null ? ` \u00B7 ${f.distribution_pct.toFixed(2)}% dist` : ""}
+        </span>
+      </div>
+    );
+  }
+
+  if (basis === "none") {
+    return <span className="text-xs text-faint">not rate-based</span>;
+  }
+
+  return (
+    <form action={setRate} className="flex items-center gap-1.5">
+      <input type="hidden" name="id" value={f.id} />
+      <input name="rate" type="number" step="0.01" min="0" max="30" defaultValue={f.current_rate ?? ""} placeholder="rate"
+        className="w-[70px] rounded-md border border-line bg-panel2 px-2 py-1 text-sm tnum text-ink outline-none placeholder:text-faint focus:border-gold/60" />
+      <button className="rounded-md border border-line px-2.5 py-1 text-xs text-mute hover:border-gold/60 hover:text-gold">Set</button>
+    </form>
   );
 }
 

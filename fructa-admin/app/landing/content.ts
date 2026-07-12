@@ -2,14 +2,39 @@
 //
 // Types and DEFAULT_CONTENT are client-safe (Landing.tsx imports the types).
 // The live read lives in content.server.ts, which calls applyConfig() below.
+//
+// The landing is chart-led: there are no marketing screenshots to upload. The
+// chart shapes live in LandingCharts and are computed from rate_history + funds
+// in charts.server.ts. FALLBACK_CHARTS below is what renders if that read fails,
+// so the page can never break, but it is clearly marked and must never be
+// mistaken for live data.
 
 export type Series = { name: string; values: number[]; lead?: boolean };
-export type ChartTab = {
+
+export type RateTab = {
   key: string;
   label: string;
   unit: string;
   series: Series[];
   benchmarks: [string, string][];
+};
+
+export type MarketSlice = { name: string; value: number };
+
+export type LandingCharts = {
+  /** x-axis labels shared by the hero tabs, oldest to newest */
+  months: string[];
+  tabs: RateTab[];
+  /** top MMF gross yields; net and real are derived client-side from WHT + inflation */
+  netOfTax: { name: string; gross: number }[];
+  /** the lead fund's own history, with the alert line the copy talks about */
+  alert: { fund: string; labels: string[]; values: number[]; threshold: number; crossedAt: string | null };
+  /** industry split. `mode` says whether the slices are AUM or fund counts. */
+  market: { mode: 'aum' | 'count'; label: string; total: string; slices: MarketSlice[] };
+  /** T-bill curve */
+  curve: { labels: string[]; values: number[] };
+  /** true when every chart above came from the database */
+  live: boolean;
 };
 
 export type LandingContent = {
@@ -19,10 +44,14 @@ export type LandingContent = {
   hero: { headline: string; headlineAccent: string; subhead: string; microtrust: string };
   cta: { headline: string; subhead: string };
   stats: { n: string; l: string }[];
-  images: { rank: string | null; portfolio: string | null; alerts: string | null };
-  months: string[];
-  chart: ChartTab[];
 };
+
+/** Withholding tax on Kenyan fund income, and the inflation print the real
+ *  return is measured against. Both are shown as labels on the landing, so they
+ *  live in one place. Move to the benchmarks table once its schema is settled. */
+export const WHT = 0.15;
+export const INFLATION = 6.7;
+export const CBR = 8.75;
 
 export const DEFAULT_CONTENT: LandingContent = {
   brand: {
@@ -32,7 +61,7 @@ export const DEFAULT_CONTENT: LandingContent = {
     contactEmail: 'hello@fructa.africa',
   },
   seo: {
-    title: 'Fructa — the rates terminal for Kenyan money',
+    title: 'Fructa, the rates terminal for Kenyan money',
     description:
       'Money market funds, T-bills, bonds, SACCOs and insurance. Every live rate in Kenya, ranked and compared, with your own holdings on top.',
     ogImage: null,
@@ -42,8 +71,8 @@ export const DEFAULT_CONTENT: LandingContent = {
     headline: 'Every Kenyan rate.',
     headlineAccent: 'One terminal.',
     subhead:
-      'Money market funds, T-bills, bonds, SACCOs and insurance — every live rate in Kenya, ranked and compared, with your own holdings on top.',
-    microtrust: '144 funds tracked · updated at noon EAT, every weekday',
+      'Money market funds, T-bills, bonds, SACCOs and insurance. Every live rate in Kenya, ranked and compared, with your own holdings on top.',
+    microtrust: '144 funds tracked, updated at noon EAT every weekday',
   },
   cta: {
     headline: 'Stop hunting for yields.',
@@ -55,49 +84,26 @@ export const DEFAULT_CONTENT: LandingContent = {
     { n: 'Noon', l: 'EAT refresh, every weekday' },
     { n: '6', l: 'asset classes in one board' },
   ],
-  images: { rank: null, portfolio: null, alerts: null },
-  months: ['Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-  chart: [
-    {
-      key: 'kes',
-      label: 'MMF KES',
-      unit: '%',
-      series: [
-        { name: 'Etica MMF', lead: true, values: [10.1, 10.4, 10.9, 11.5, 12.0, 12.6, 13.0, 13.42] },
-        { name: 'Cytonn MMF', values: [9.9, 10.2, 10.6, 11.1, 11.6, 12.2, 12.7, 13.11] },
-        { name: 'Kuza MMF', values: [9.6, 9.9, 10.3, 10.8, 11.3, 11.9, 12.4, 12.88] },
-        { name: 'GenAfrica MMF', values: [9.2, 9.4, 9.8, 10.2, 10.7, 11.3, 11.9, 12.4] },
-      ],
-      benchmarks: [['CBR', '8.75'], ['Inflation', '6.70'], ['91d T-bill', '8.71']],
-    },
-    {
-      key: 'usd',
-      label: 'MMF USD',
-      unit: '%',
-      series: [
-        { name: 'Nabo USD', lead: true, values: [5.0, 5.1, 5.3, 5.6, 5.8, 6.0, 6.1, 6.2] },
-        { name: 'Old Mutual USD', values: [4.7, 4.8, 5.0, 5.2, 5.4, 5.6, 5.8, 5.9] },
-        { name: 'Sanlam USD', values: [4.4, 4.5, 4.7, 4.9, 5.1, 5.3, 5.5, 5.6] },
-      ],
-      benchmarks: [['Fed range', '4.50'], ['USD infl.', '3.10'], ['SOFR', '4.38']],
-    },
-    {
-      key: 'fixed',
-      label: 'Fixed Income',
-      unit: '%',
-      series: [
-        { name: '364-Day', lead: true, values: [8.5, 8.55, 8.6, 8.62, 8.7, 8.75, 8.8, 8.87] },
-        { name: '182-Day', values: [8.3, 8.35, 8.42, 8.45, 8.5, 8.55, 8.58, 8.6] },
-        { name: '91-Day', values: [8.2, 8.25, 8.3, 8.35, 8.5, 8.6, 8.68, 8.71] },
-      ],
-      benchmarks: [['CBR', '8.75'], ['Inflation', '6.70'], ['Auction', '15 Jun']],
-    },
-  ],
 };
 
 /**
- * Merge app_config rows over the defaults. Pure — takes already-parsed rows
- * (jsonb comes back as JS values). Unknown/empty keys keep the default, so a
+ * Rendered ONLY when the database read fails. Deliberately flat and unflattering
+ * so a silent fallback is obvious in review rather than passing as live data.
+ * `live: false` also hides the LIVE pip in the terminal header.
+ */
+export const FALLBACK_CHARTS: LandingCharts = {
+  months: [],
+  tabs: [],
+  netOfTax: [],
+  alert: { fund: '', labels: [], values: [], threshold: 0, crossedAt: null },
+  market: { mode: 'count', label: 'funds by asset class', total: '0', slices: [] },
+  curve: { labels: [], values: [] },
+  live: false,
+};
+
+/**
+ * Merge app_config rows over the defaults. Pure, takes already-parsed rows
+ * (jsonb comes back as JS values). Unknown or empty keys keep the default, so a
  * deleted or blank value can never blank the page.
  */
 export function applyConfig(rows: { key: string; value: unknown }[]): LandingContent {
@@ -136,14 +142,10 @@ export function applyConfig(rows: { key: string; value: unknown }[]): LandingCon
   if (Array.isArray(stats)) {
     const clean = stats
       .filter((s): s is { n: string; l: string } => !!s && typeof s === 'object')
-      .map((s) => ({ n: String((s as any).n ?? ''), l: String((s as any).l ?? '') }))
+      .map((s) => ({ n: String((s as { n?: unknown }).n ?? ''), l: String((s as { l?: unknown }).l ?? '') }))
       .filter((s) => s.n || s.l);
     if (clean.length) c.stats = clean;
   }
-
-  c.images.rank = img('landing.feature_rank_image');
-  c.images.portfolio = img('landing.feature_portfolio_image');
-  c.images.alerts = img('landing.feature_alerts_image');
 
   return c;
 }
