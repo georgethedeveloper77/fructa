@@ -28,6 +28,19 @@
 import { parseAfxTable } from "../functions/scrape-nse/adapters/afx-nse.ts";
 
 const FEED = Deno.env.get("NSE_PRICES_URL") ?? "https://afx.kwayisi.org/nse/";
+
+// When set, read the board from a FILE that a real browser already fetched
+// (scrapers/fetch-nse-html.mjs), instead of fetching it here.
+//
+// afx does not answer plain fetch() calls. We watched it hang from Supabase's
+// edge (150s) AND from a GitHub runner (30s), with an honest bot user agent AND
+// with a real Chrome string. Silence, never a status code. What Deno fetch, Node
+// fetch and curl all share is a TLS handshake that does not look like a
+// browser's, and bot protection drops those before any HTTP is exchanged.
+//
+// So Chromium does the fetching and this script does the parsing and posting.
+// The parser stays here, in one place, tested against a real board.
+const HTML_FILE = Deno.env.get("NSE_HTML_FILE");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const CRON_SECRET = Deno.env.get("CRON_SECRET");
 
@@ -49,17 +62,33 @@ const HEADERS = {
 };
 
 async function main() {
-  console.log(`fetching ${FEED}`);
-
-  const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), 30_000);
   let html: string;
-  try {
-    const res = await fetch(FEED, { headers: HEADERS, signal: ctl.signal });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    html = await res.text();
-  } finally {
-    clearTimeout(timer);
+
+  if (HTML_FILE) {
+    html = await Deno.readTextFile(HTML_FILE);
+    console.log(`read ${html.length} bytes from ${HTML_FILE}`);
+  } else {
+    // Direct fetch. Kept for local use and for any source that will actually
+    // answer one. Against afx from a datacenter, this hangs: see above.
+    console.log(`fetching ${FEED}`);
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 30_000);
+    try {
+      const res = await fetch(FEED, { headers: HEADERS, signal: ctl.signal });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      html = await res.text();
+    } catch (e) {
+      const aborted = e instanceof Error && e.name === "AbortError";
+      throw new Error(
+        aborted
+          ? `no response from ${FEED} within 30s. The host is dropping this ` +
+            "client. Fetch with scrapers/fetch-nse-html.mjs (Chromium) and set " +
+            "NSE_HTML_FILE instead."
+          : `fetch failed: ${e instanceof Error ? e.message : String(e)}`,
+      );
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   const rows = parseAfxTable(html);

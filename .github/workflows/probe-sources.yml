@@ -1,0 +1,24 @@
+name: probe-sources
+
+# Which NSE price sources can we actually reach from a datacenter, and are they
+# current? Writes nothing, touches no database. Run it by hand when a source goes
+# dark, and pick the replacement on evidence instead of guessing.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install Chromium
+        run: |
+          npm install playwright@1.48.0
+          npx playwright install --with-deps chromium
+      - name: Probe
+        run: node scrapers/probe-sources.mjs

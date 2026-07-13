@@ -1,49 +1,75 @@
 name: scrape-nse
 
-# NSE end-of-day prices, fetched from a GitHub runner.
+# NSE end-of-day prices.
 #
-# This runs here rather than on the Supabase edge because afx BLOCKS SUPABASE'S
-# EGRESS. The edge functions live in eu-central-1 and afx drops those packets
-# silently: no 403, no 429, just no answer until the socket dies at 150 seconds.
-# Swapping the user agent for a real browser string changed nothing, which is how
-# we know it is the address and not the header.
+# Two steps, on purpose:
 #
-# A GitHub runner has an ordinary-looking IP. ke-cbk-tbills already runs this way
-# for the same class of reason.
+#   1. Chromium (Playwright) FETCHES the board. It has to be a real browser: afx
+#      does not answer plain fetch() calls. We watched it hang from Supabase's
+#      edge (killed at 150s) and from this same GitHub runner (aborted at 30s),
+#      with an honest bot user agent and with a real Chrome string. Never a 403,
+#      never a 429, never a challenge page: silence. That is bot protection
+#      dropping the connection on the TLS fingerprint, before any HTTP happens.
+#      A refusal has a status code; this had none.
 #
-# The runner ONLY fetches and parses. It posts the board to the scrape-nse edge
-# function, which still owns ticker mapping, the sanity band, prev_close, source
-# health, the run log and the snapshot rebuild. Do not be tempted to give this
-# workflow a service key and let it write to stock_prices directly: it would
-# bypass every check we built, and the checks are the product.
+#   2. Deno PARSES and POSTS it to the scrape-nse edge function, which still owns
+#      ticker mapping, the sanity band, prev_close from our own stored series,
+#      source health, the run log and the snapshot rebuild.
+#
+# The runner is deliberately dumb. It does not hold a service key and it does not
+# write to stock_prices. Every check lives in the edge function, in one place,
+# and the checks are the product.
 
 on:
   schedule:
     # 16:00 UTC = 19:00 EAT, weekdays. The NSE trades 09:00 to 15:00 EAT, so this
-    # is four hours after the close: late enough that afx has published the final
-    # board, early enough to be the same calendar day in Nairobi.
-    #
-    # GitHub cron is UTC and is best-effort: it can be delayed under load, which
-    # is fine for an end-of-day job and would not be for an intraday one.
+    # is four hours after the close: late enough for the final board, early
+    # enough to still be the same calendar day in Nairobi.
     - cron: "0 16 * * 1-5"
   workflow_dispatch:
 
 jobs:
   scrape:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
 
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
 
-      - name: Fetch the NSE board and post it to scrape-nse
+      - name: Install Chromium
+        run: |
+          npm install playwright@1.48.0
+          npx playwright install --with-deps chromium
+
+      - name: Fetch the board with a real browser
+        env:
+          NSE_HTML_FILE: /tmp/nse.html
+        run: node scrapers/fetch-nse-html.mjs
+
+      - name: Parse it and post it to scrape-nse
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          NSE_HTML_FILE: /tmp/nse.html
           TRIGGER: ${{ github.event_name == 'workflow_dispatch' && 'manual' || 'cron' }}
-        run: |
-          deno run --allow-net --allow-env supabase/scripts/nse-fetch-post.ts
+        run: deno run --allow-net --allow-env --allow-read supabase/scripts/nse-fetch-post.ts
+
+      # The HTML, kept when the run fails. If afx serves a challenge page or
+      # moves its layout, the page itself is the evidence, and re-running to
+      # "see what happened" is how you find out it only happens at 19:00 EAT.
+      - name: Keep the page when it goes wrong
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nse-html
+          path: /tmp/nse.html
+          if-no-files-found: ignore
+          retention-days: 7
