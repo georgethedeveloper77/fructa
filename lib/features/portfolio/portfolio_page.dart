@@ -12,7 +12,6 @@ import '../../core/i18n.dart';
 import '../../core/settings_prefs.dart';
 import '../../core/theme.dart';
 import '../../core/widgets/kit.dart';
-import '../../data/models/fund.dart';
 import '../../data/models/holding.dart';
 import '../../data/providers.dart';
 import '../../data/snapshot_providers.dart';
@@ -37,17 +36,37 @@ class PortfolioPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final holdings = ref.watch(holdingsProvider);
-    final byId = ref.watch(fundsByIdProvider);
     final fx = ref.watch(usdKesProvider); // KES per USD, or null if unpublished
     final hidden = ref.watch(
       settingsControllerProvider.select((p) => p.hideBalances),
     );
+
+    // Resolve each holding to its subject ONCE, here, and hand the map down.
+    //
+    // This used to be `fundsByIdProvider`, a Map<String, Fund>, and a SACCO
+    // holding fell through every lookup it fed: no name, no rate, no logo, and
+    // silently absent from the blended yield. A holding is now resolved by id
+    // AND kind, so the rest of the page never has to know which table it came
+    // from.
+    final subjects = <String, HoldingSubject>{};
+    for (final h in holdings) {
+      final s = ref.watch(
+        holdingSubjectProvider((id: h.fundId, sacco: h.isSacco)),
+      );
+      if (s != null) subjects[h.fundId] = s;
+    }
+
     return Scaffold(
       body: SafeArea(
         bottom: false,
         child: holdings.isEmpty
             ? const _Empty()
-            : _Full(holdings: holdings, byId: byId, fx: fx, hidden: hidden),
+            : _Full(
+                holdings: holdings,
+                subjects: subjects,
+                fx: fx,
+                hidden: hidden,
+              ),
       ),
     );
   }
@@ -56,13 +75,13 @@ class PortfolioPage extends ConsumerWidget {
 class _Full extends ConsumerWidget {
   const _Full({
     required this.holdings,
-    required this.byId,
+    required this.subjects,
     required this.fx,
     required this.hidden,
   });
 
   final List<Holding> holdings;
-  final Map<String, Fund> byId;
+  final Map<String, HoldingSubject> subjects;
   final double? fx;
   final bool hidden;
 
@@ -71,10 +90,10 @@ class _Full extends ConsumerWidget {
   double _totalAt(DateTime d) {
     var t = 0.0;
     for (final h in holdings) {
-      final f = byId[h.fundId];
+      final f = subjects[h.fundId];
       final v = PortfolioMath.value(
         h,
-        ratePercent: f?.currentRate,
+        ratePercent: f?.ratePercent,
         taxFree: f?.taxFree ?? false,
         usdKes: fx,
         asOf: d,
@@ -99,10 +118,10 @@ class _Full extends ConsumerWidget {
     final values = <String, HoldingValue>{};
 
     for (final h in holdings) {
-      final f = byId[h.fundId];
+      final f = subjects[h.fundId];
       final v = PortfolioMath.value(
         h,
-        ratePercent: f?.currentRate,
+        ratePercent: f?.ratePercent,
         taxFree: f?.taxFree ?? false,
         usdKes: fx,
         asOf: now,
@@ -116,14 +135,25 @@ class _Full extends ConsumerWidget {
         fxMissing = true;
       }
 
-      final r = f?.currentRate;
+      // Allocation counts the MONEY, so a SACCO with no usable rate still takes
+      // its slice of the donut: it is real money you hold, and leaving it out
+      // would make the allocation lie about where your book actually sits.
+      if (f != null && v.valueKes != null) {
+        byCategory[f.categoryKey] =
+            (byCategory[f.categoryKey] ?? 0) + v.valueKes!;
+      }
+
+      // Earnings and the blended yield count only what we can compute. A SACCO
+      // whose net rate is unknown contributes ZERO growth and is absent from the
+      // weighted average, rather than dragging it down as a nominal zero or
+      // inflating it with an untaxed gross figure. Unknown is not zero.
+      final r = f?.ratePercent;
       if (f != null && r != null) {
         final dailyOwn = f.taxFree
             ? AccrualEngine.dailyInterest(v.valueNative, r)
             : AccrualEngine.dailyInterestNet(v.valueNative, r);
         dailyKes += v.isUsd ? (fx != null ? dailyOwn * fx! : 0.0) : dailyOwn;
         if (v.valueKes != null) {
-          byCategory[f.category] = (byCategory[f.category] ?? 0) + v.valueKes!;
           wSum += r * v.valueKes!;
           w += v.valueKes!;
         }
@@ -135,7 +165,7 @@ class _Full extends ConsumerWidget {
     final yearlyKes = dailyKes * 365;
     final blendedGross = w > 0 ? wSum / w : 0.0;
     final providers = holdings
-        .map((h) => byId[h.fundId]?.manager)
+        .map((h) => subjects[h.fundId]?.manager)
         .whereType<String>()
         .toSet()
         .length;
@@ -294,7 +324,7 @@ class _Full extends ConsumerWidget {
                 if (i > 0) Divider(height: 1, thickness: 1, color: c.line),
                 _HoldingRow(
                   holding: holdings[i],
-                  fund: byId[holdings[i].fundId],
+                  subject: subjects[holdings[i].fundId],
                   value: values[holdings[i].fundId]!,
                   hidden: hidden,
                 ),
@@ -664,13 +694,13 @@ class _TrendChart extends StatelessWidget {
 class _HoldingRow extends ConsumerWidget {
   const _HoldingRow({
     required this.holding,
-    required this.fund,
+    required this.subject,
     required this.value,
     required this.hidden,
   });
 
   final Holding holding;
-  final Fund? fund;
+  final HoldingSubject? subject;
   final HoldingValue value;
   final bool hidden;
 
@@ -692,14 +722,12 @@ class _HoldingRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.c;
-    final f = fund;
+    final f = subject;
     final name = f?.name ?? holding.fundId;
-    final rate = f?.currentRate;
+    final rate = f?.ratePercent;
     final ccy = holding.currency;
-    final brand =
-        ref.watch(brandColorProvider(holding.fundId)) ??
-        fundTypeColor(f?.fundType);
-    final logoUrl = ref.watch(logoUrlProvider(holding.fundId));
+    final brand = f?.brandColor ?? c.accent;
+    final logoUrl = f?.logoUrl;
     final since = '${_months[value.firstLot.month - 1]} ${value.firstLot.day}';
 
     final valNative = ccy == 'USD'
@@ -716,9 +744,27 @@ class _HoldingRow extends ConsumerWidget {
         ? null
         : (showGain ? '$gainText \u00b7 since $since' : 'Added $since');
 
-    final sub = rate != null
-        ? '${rate.toStringAsFixed(2)}% ${f!.taxFree ? 'tax-free' : 'net'}${ccy == 'USD' ? ' \u00b7 USD' : ''}'
-        : 'rate unavailable';
+    // The subtitle is the one line on this row that can mislead, so it says
+    // exactly which of the three states we are in.
+    //
+    // A SACCO whose withholding rate is unconfirmed is NOT "rate unavailable":
+    // we know the society declared 13 percent, we just cannot yet say what lands
+    // in the member's hand. Saying "unavailable" hides a number we have; showing
+    // the gross figure beside a column of net fund yields invites a comparison
+    // that is false. So the row names the problem instead.
+    final String sub;
+    if (f != null && f.isSacco && f.rateUnknown) {
+      sub = 'Rate not applied \u00b7 tax to confirm';
+    } else if (rate != null) {
+      final basis = f!.isSacco
+          ? 'on deposits'
+          : (f.taxFree ? 'tax-free' : 'net');
+      sub =
+          '${rate.toStringAsFixed(2)}% $basis'
+          '${ccy == 'USD' ? ' \u00b7 USD' : ''}';
+    } else {
+      sub = 'rate unavailable';
+    }
 
     return InkWell(
       onTap: () => showManageHolding(context, holding, f),

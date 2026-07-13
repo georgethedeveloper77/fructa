@@ -99,14 +99,23 @@ class HoldingsNotifier extends Notifier<List<Holding>> {
   Future<void> setBalance(
     String fundId,
     String currency,
-    double balance,
-  ) async {
-    await _repo.setBalance(fundId, currency, balance);
+    double balance, {
+    HoldingKind kind = HoldingKind.fund,
+  }) async {
+    await _repo.setBalance(fundId, currency, balance, kind: kind);
     state = _repo.all();
     // A fund you hold is a fund you want alerts on: follow it (add-only, so it
     // never toggles off an existing follow). The user can unfollow from the
     // fund page if they don't want the nudges.
-    await ref.read(subscriptionsProvider.notifier).ensureFollow(fundId);
+    //
+    // NOT for SACCOs. `subscriptionsProvider` is the FUND tag namespace, the one
+    // emit-events targets on a fund rate change. Putting a SACCO id in it would
+    // write a tag nothing ever matches, so the user would be silently following
+    // nothing, and it would sit in the set that drives "alerts on funds I hold".
+    // SACCO follows need their own namespace, exactly as stock follows do.
+    if (kind == HoldingKind.fund) {
+      await ref.read(subscriptionsProvider.notifier).ensureFollow(fundId);
+    }
   }
 
   Future<void> remove(String fundId) async {

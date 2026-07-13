@@ -585,5 +585,15 @@
   "stocks.whereToBuy.sub": "Fructa does not hold your money or place trades. Buy and sell through a CMA-licensed broker.",
   "update.body": "A new version of fructa is ready. It downloads in the background and installs when you’re done.",
   "update.cta": "Update",
-  "update.title": "Update available"
+  "update.title": "Update available",
+  "insure.dir.kickerPlain": "IRA register",
+  "insure.dir.h1": "Licensed insurers",
+  "insure.dir.noRate": "No published rate",
+  "insure.dir.share": "{p}% share",
+  "insure.dir.foot": "Kenya Gazette, s.184 Insurance Act. Grade bars map the GCR national scale. Unrated is not a bad rating: it means no agency has published one.",
+  "insure.motor.kicker": "{n} published rates",
+  "insure.motor.h1Tpo": "Third party only",
+  "insure.motor.subTpo": "The legal minimum. Pays for damage you cause to others, nothing for your own car.",
+  "insure.travel.kicker": "{n} insurers",
+  "insure.travel.sub": "Cover for one trip, priced per traveller and per day."
 }

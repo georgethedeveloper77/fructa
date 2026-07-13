@@ -12,6 +12,8 @@ import type {
   SnapshotLearnLesson,
   SnapshotLearnStep,
   SnapshotPost,
+  SnapshotSacco,
+  SnapshotSaccoRate,
   SnapshotStock,
   SnapshotStockDividend,
   SnapshotTemplate,
@@ -437,6 +439,130 @@ export async function publishSnapshot(
     .order("sort_order", { ascending: true, nullsFirst: false })
     .order("name", { ascending: true });
 
+  // SACCOs (0062) - SASRA-regulated co-operative societies.
+  //
+  // Gated on `saccos.enabled`, which stays false until at least one SACCO has a
+  // sourced rate. With it off the query is never even run and the app sees an
+  // empty array, so the tab can ship dark and light up with no release.
+  //
+  // TWO RATES, and keeping them apart is the whole job. See SnapshotSacco in
+  // types.ts. Short version: interest_on_deposits is paid on savings and is the
+  // number we rank on; dividend_on_share_capital is paid on a capped pot of
+  // shares, is almost always the bigger percentage, and is almost always the
+  // smaller cheque. There is no field here called "rate", on purpose, because
+  // any such field would eventually get filled with whichever number was
+  // biggest.
+  //
+  // A SACCO with no declared rate is still published. It is a real, licensed
+  // institution and the directory is worth something on its own. It carries a
+  // null interest_on_deposits, which keeps it OUT of every sorted list rather
+  // than ranking it at zero.
+  const saccosEnabled = config["saccos.enabled"] === true;
+
+  const saccos: SnapshotSacco[] = [];
+  if (saccosEnabled) {
+    const { data: saccoRows } = await db
+      .from("saccos")
+      .select(
+        "id,name,display_name,sasra_licensed_until,tier,common_bond,bond_note," +
+          "county,physical_location,branches,website,phone,email,logo_url,brand_color,about," +
+          "registration_fee_kes,min_share_capital_kes,min_monthly_deposit_kes," +
+          "loan_multiple,deposit_notice_days,has_fosa," +
+          "total_assets_kes,deposits_kes,members,registered_year,financials_as_of",
+      )
+      .eq("active", true)
+      // Deposit-taking only. Credit-only societies (SASRA Schedule III) are
+      // prohibited by law from taking new deposits, so publishing one next to a
+      // savings rate would be worse than useless. They are seeded so the
+      // register is complete; they must never reach a user.
+      .eq("licence_class", "dt")
+      .order("sort_order", { ascending: true, nullsFirst: false })
+      .order("name", { ascending: true });
+
+    // Declared rates, newest financial year first, so the first row seen per
+    // SACCO is the latest one.
+    const { data: rateRows } = await db
+      .from("sacco_rates")
+      .select(
+        "sacco_id,financial_year,interest_on_deposits,dividend_on_share_capital,declared_on,source_url,source_doc",
+      )
+      .order("financial_year", { ascending: false });
+
+    const num = (v: unknown): number | null => v == null ? null : Number(v);
+
+    const ratesBySacco = new Map<string, SnapshotSaccoRate[]>();
+    for (const r of rateRows ?? []) {
+      const arr = ratesBySacco.get(r.sacco_id) ?? [];
+      arr.push({
+        financial_year: r.financial_year,
+        interest_on_deposits: num(r.interest_on_deposits),
+        dividend_on_share_capital: num(r.dividend_on_share_capital),
+        declared_on: r.declared_on ?? null,
+        source_url: r.source_url ?? null,
+        source_doc: r.source_doc ?? null,
+      });
+      ratesBySacco.set(r.sacco_id, arr);
+    }
+
+    for (const s of saccoRows ?? []) {
+      const history = ratesBySacco.get(s.id) ?? [];
+      const latest = history.length ? history[0] : null;
+      const bond = s.common_bond ?? "unknown";
+
+      saccos.push({
+        id: s.id,
+        name: s.name,
+        display_name: s.display_name ?? s.name,
+        sasra_licensed_until: s.sasra_licensed_until ?? null,
+        tier: num(s.tier),
+
+        bond,
+        bond_note: s.bond_note ?? null,
+        // 'unknown' is NOT joinable. SASRA does not publish the common bond, so
+        // most rows start unknown, and guessing open would send a user to a
+        // SACCO whose membership is closed to them.
+        joinable: bond === "open",
+
+        county: s.county ?? null,
+        physical_location: s.physical_location ?? null,
+        branches: num(s.branches),
+        website: s.website ?? null,
+        phone: s.phone ?? null,
+        email: s.email ?? null,
+
+        logo_url: s.logo_url ?? null,
+        brand_color: s.brand_color ?? null,
+        about: s.about ?? null,
+
+        // Always true. Deposits are not withdrawable while you remain a member.
+        locked: true,
+
+        interest_on_deposits: latest ? latest.interest_on_deposits : null,
+        dividend_on_share_capital: latest
+          ? latest.dividend_on_share_capital
+          : null,
+        rate_year: latest ? latest.financial_year : null,
+        rate_declared_on: latest ? latest.declared_on : null,
+        rate_source_url: latest ? latest.source_url : null,
+        rate_source_doc: latest ? latest.source_doc : null,
+        rate_history: history,
+
+        registration_fee_kes: num(s.registration_fee_kes),
+        min_share_capital_kes: num(s.min_share_capital_kes),
+        min_monthly_deposit_kes: num(s.min_monthly_deposit_kes),
+        loan_multiple: num(s.loan_multiple),
+        deposit_notice_days: num(s.deposit_notice_days),
+        has_fosa: s.has_fosa ?? null,
+
+        total_assets_kes: num(s.total_assets_kes),
+        deposits_kes: num(s.deposits_kes),
+        members: num(s.members),
+        registered_year: num(s.registered_year),
+        financials_as_of: s.financials_as_of ?? null,
+      });
+    }
+  }
+
   const snapshot:
     & SnapshotV2
     & {
@@ -447,6 +573,7 @@ export async function publishSnapshot(
       insurance_types: SnapshotInsuranceType[];
       stocks: SnapshotStock[];
       brokers: SnapshotBroker[];
+      saccos: SnapshotSacco[];
     } = {
     schema: 2,
     as_of: asOf,
@@ -465,6 +592,7 @@ export async function publishSnapshot(
     insurance_types: (insTypes ?? []) as SnapshotInsuranceType[],
     stocks,
     brokers: (brokerRows ?? []) as SnapshotBroker[],
+    saccos,
   };
 
   const body = new TextEncoder().encode(JSON.stringify(snapshot));

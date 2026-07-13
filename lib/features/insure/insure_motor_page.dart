@@ -10,6 +10,7 @@ import '../../data/models/insurer.dart';
 import '../../data/snapshot_providers.dart';
 import 'insure_common.dart';
 import 'insure_motion.dart';
+import 'insure_shell.dart';
 import 'insurer_detail_page.dart';
 import 'motor_cover_selector.dart';
 
@@ -91,15 +92,17 @@ class _InsureMotorPageState extends ConsumerState<InsureMotorPage> {
 
     if (motor.isEmpty) {
       return _shell(
-        c,
-        Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Text(t('insure.emptyMotor'),
-                textAlign: TextAlign.center,
-                style: TextStyle(color: c.muted)),
+        [
+          _head(0),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(32, 48, 32, 0),
+            child: Text(
+              t('insure.emptyMotor'),
+              textAlign: TextAlign.center,
+              style: TextStyle(color: c.muted, height: 1.6),
+            ),
           ),
-        ),
+        ],
       );
     }
 
@@ -114,102 +117,109 @@ class _InsureMotorPageState extends ConsumerState<InsureMotorPage> {
     double landed(Insurer i) =>
         landedPremium(_price(i), levyPct: levyPct, stamp: stamp);
 
-    return _shell(
-      c,
-      GestureDetector(
-        behavior: HitTestBehavior.deferToChild,
-        onTap: () => FocusScope.of(context).unfocus(),
-        child: ListView(
-        padding: const EdgeInsets.only(bottom: 36),
-        children: [
-          // The three numbers this page exists to produce. The spread is the
-          // whole argument, so it leads, and it is computed from the SAME
-          // landed premiums the rows below show: the strip can never claim a
-          // gap the list then fails to display.
-          KpiStrip([
-            KpiCell(
-              label: t('insure.motor.kpiInsurers'),
-              value: '${sorted.length}',
-            ),
-            KpiCell(
-              label: t('insure.motor.kpiCheapest'),
-              value: kesCompact(landed(cheap)),
-              color: c.accent,
-            ),
-            KpiCell(
-              label: t('insure.motor.kpiSpread'),
-              value: gap <= 0
-                  ? '1.0x'
-                  : '${(landed(exp) / landed(cheap)).toStringAsFixed(1)}x',
-              color: gap > 0 ? c.down : null,
-            ),
-          ]),
-          MotorCoverSelector(
-            cls: _cls,
-            cover: _cover,
-            availableClasses: availableClasses,
-            tpoAvailable: tpoAvailable,
-            onClass: (v) => setState(() {
-              _cls = v;
-              // Selecting a class nobody prices TPO for must not strand the
-              // user on an empty list.
-              if (_cover == CoverType.tpo &&
-                  !all.any((i) => i.offers(v, CoverType.tpo))) {
-                _cover = CoverType.comprehensive;
-              }
-            }),
-            onCover: (v) => setState(() => _cover = v),
-          ),
-          // TPO is a flat annual figure. Vehicle value does not enter into it,
-          // so asking for one would be theatre.
-          if (_cover == CoverType.comprehensive)
-            _VehicleValueCard(
-              value: _value,
-              onChanged: (v) => setState(() => _value = v),
-            ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
-            child: Text(rcText(cfg, 'insure.indicativeNote'),
-                style: TextStyle(color: c.faint, fontSize: 10.5, height: 1.4)),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
-            child: SlidingSegments<MotorSort>(
-              values: MotorSort.values,
-              selected: _sort,
-              labelOf: (s) => s.label,
-              onTap: (s) => setState(() => _sort = s),
-            ),
-          ),
-          for (var qi = 0; qi < sorted.length; qi++)
-            Stagger(
-              index: qi,
-              child: _quoteRow(context, sorted[qi], best, landed, landed(exp)),
-            ),
-          InsureH2(t('insure.whyPriciest')),
-          if (gap > 0)
-            SignalRow(
-              tag: t('insure.gapTag'),
-              tone: SignalTone.neutral,
-              text: t('insure.gap', {
-                'name': exp.name,
-                'amt': kes(gap),
-                'cheap': cheap.name,
-              }),
-              showDivider: exp.signals.isNotEmpty,
-            ),
-          for (var s = 0; s < exp.signals.length; s++)
-            SignalRow(
-              tag: exp.signals[s].label,
-              text: exp.signals[s].text,
-              tone: _tone(exp.signals[s].tag),
-              showDivider: s < exp.signals.length - 1,
-            ),
-          InsureFoot(t('insure.motorFoot')),
-          Disclaimer(rcText(cfg, 'insure.disc.motor')),
-        ],
+    return _shell([
+      _head(sorted.length),
+      // The three numbers this page exists to produce. The spread is the
+      // whole argument, so it leads, and it is computed from the SAME
+      // landed premiums the rows below show: the strip can never claim a
+      // gap the list then fails to display.
+      KpiStrip([
+        KpiCell(
+          label: t('insure.motor.kpiInsurers'),
+          value: '${sorted.length}',
+        ),
+        KpiCell(
+          label: t('insure.motor.kpiCheapest'),
+          value: kesCompact(landed(cheap)),
+          color: c.accent,
+        ),
+        KpiCell(
+          label: t('insure.motor.kpiSpread'),
+          value: gap <= 0
+              ? '1.0x'
+              : '${(landed(exp) / landed(cheap)).toStringAsFixed(1)}x',
+          color: gap > 0 ? c.down : null,
+        ),
+      ]),
+      MotorCoverSelector(
+        cls: _cls,
+        cover: _cover,
+        availableClasses: availableClasses,
+        tpoAvailable: tpoAvailable,
+        onClass: (v) => setState(() {
+          _cls = v;
+          // Selecting a class nobody prices TPO for must not strand the
+          // user on an empty list.
+          if (_cover == CoverType.tpo &&
+              !all.any((i) => i.offers(v, CoverType.tpo))) {
+            _cover = CoverType.comprehensive;
+          }
+        }),
+        onCover: (v) => setState(() => _cover = v),
       ),
+      // TPO is a flat annual figure. Vehicle value does not enter into it,
+      // so asking for one would be theatre.
+      if (_cover == CoverType.comprehensive)
+        _VehicleValueCard(
+          value: _value,
+          onChanged: (v) => setState(() => _value = v),
+        ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+        child: Text(
+          rcText(cfg, 'insure.indicativeNote'),
+          style: TextStyle(color: c.faint, fontSize: 10.5, height: 1.4),
+        ),
       ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
+        child: SlidingSegments<MotorSort>(
+          values: MotorSort.values,
+          selected: _sort,
+          labelOf: (s) => s.label,
+          onTap: (s) => setState(() => _sort = s),
+        ),
+      ),
+      for (var qi = 0; qi < sorted.length; qi++)
+        Stagger(
+          index: qi,
+          child: _quoteRow(context, sorted[qi], best, landed, landed(exp)),
+        ),
+      InsureH2(t('insure.whyPriciest')),
+      if (gap > 0)
+        SignalRow(
+          tag: t('insure.gapTag'),
+          tone: SignalTone.neutral,
+          text: t('insure.gap', {
+            'name': exp.name,
+            'amt': kes(gap),
+            'cheap': cheap.name,
+          }),
+          showDivider: exp.signals.isNotEmpty,
+        ),
+      for (var s = 0; s < exp.signals.length; s++)
+        SignalRow(
+          tag: exp.signals[s].label,
+          text: exp.signals[s].text,
+          tone: _tone(exp.signals[s].tag),
+          showDivider: s < exp.signals.length - 1,
+        ),
+      InsureFoot(t('insure.motorFoot')),
+      Disclaimer(rcText(cfg, 'insure.disc.motor')),
+    ]);
+  }
+
+  /// The head block. Under TPO the screen is a different question, so it gets a
+  /// different title and a line explaining what the cover actually buys: the
+  /// legal minimum, and nothing at all for your own car. Under comprehensive
+  /// the word "Motor" is enough, and a subtitle would only push the price down
+  /// the screen.
+  Widget _head(int n) {
+    final tpo = _cover == CoverType.tpo;
+    return InsureHead(
+      kicker: t('insure.motor.kicker', {'n': '$n'}),
+      title: tpo ? t('insure.motor.h1Tpo') : t('insure.motor'),
+      sub: tpo ? t('insure.motor.subTpo') : null,
     );
   }
 
@@ -261,31 +271,8 @@ class _InsureMotorPageState extends ConsumerState<InsureMotorPage> {
         ),
       );
 
-  Widget _shell(fructaColors c, Widget body) => Scaffold(
-        backgroundColor: c.bg,
-        appBar: AppBar(
-          backgroundColor: c.bg,
-          surfaceTintColor: Colors.transparent,
-          foregroundColor: c.text,
-          elevation: 0,
-          title: Text(
-            t('insure.motor'),
-            style: TextStyle(
-              color: c.text,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              letterSpacing: -0.2,
-            ),
-          ),
-          centerTitle: false,
-          titleSpacing: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => Navigator.of(context).maybePop(),
-          ),
-        ),
-        body: body,
-      );
+  Widget _shell(List<Widget> children) =>
+      InsureScaffold(navTitle: t('insure.motor'), children: children);
 }
 
 SignalTone _tone(String tag) => switch (tag.toUpperCase()) {

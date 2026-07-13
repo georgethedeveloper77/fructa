@@ -5,11 +5,17 @@ import '../../core/format.dart';
 import '../../core/i18n.dart';
 import '../../core/theme.dart';
 import '../../core/widgets/fund_logo.dart';
-import '../../data/models/fund.dart';
 import '../../data/models/holding.dart';
 import '../../data/providers.dart';
+import '../../data/snapshot_providers.dart';
 
-void showManageHolding(BuildContext context, Holding holding, Fund? fund) {
+/// [subject] is what the holding is held in: a fund or a SACCO. Resolved by the
+/// caller, because only the caller knows the holding's kind.
+void showManageHolding(
+  BuildContext context,
+  Holding holding,
+  HoldingSubject? subject,
+) {
   final c = context.c;
   showModalBottomSheet(
     context: context,
@@ -18,13 +24,13 @@ void showManageHolding(BuildContext context, Holding holding, Fund? fund) {
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
-    builder: (_) => _ManageSheet(holding: holding, fund: fund),
+    builder: (_) => _ManageSheet(holding: holding, fund: subject),
   );
 }
 
 class _ManageSheet extends ConsumerStatefulWidget {
   final Holding holding;
-  final Fund? fund;
+  final HoldingSubject? fund;
   const _ManageSheet({required this.holding, required this.fund});
   @override
   ConsumerState<_ManageSheet> createState() => _ManageSheetState();
@@ -114,6 +120,8 @@ class _ManageSheetState extends ConsumerState<_ManageSheet> {
             children: [
               FundLogo(
                 domain: f?.logoDomain,
+                logoUrl: f?.logoUrl,
+                brandColor: f?.brandColor,
                 seed: f?.manager ?? h.fundId,
                 size: 42,
               ),
@@ -130,11 +138,11 @@ class _ManageSheetState extends ConsumerState<_ManageSheet> {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    if (f?.currentRate != null)
+                    if (f != null && f.ratePercent != null)
                       Text(
                         t('portfolio.manage.rateManager', {
-                          'rate': f!.currentRate!.toStringAsFixed(2),
-                          'manager': f.manager,
+                          'rate': f.ratePercent!.toStringAsFixed(2),
+                          'manager': f.manager ?? '',
                         }),
                         style: TextStyle(color: c.faint, fontSize: 12),
                       ),
@@ -144,8 +152,12 @@ class _ManageSheetState extends ConsumerState<_ManageSheet> {
             ],
           ),
           const SizedBox(height: 20),
-          Text(t('portfolio.manage.balance'),
-              style: TextStyle(color: c.faint, fontSize: 12)),
+          Text(
+            f != null && f.isSacco
+                ? 'Your deposits (savings only, not share capital)'
+                : t('portfolio.manage.balance'),
+            style: TextStyle(color: c.faint, fontSize: 12),
+          ),
           const SizedBox(height: 6),
           TextField(
             controller: _balance,

@@ -11,6 +11,7 @@ import '../../data/models/insurer.dart';
 import '../../data/snapshot_providers.dart';
 import 'insure_common.dart';
 import 'insure_motion.dart';
+import 'insure_shell.dart';
 import 'insurer_reviews.dart';
 import 'insurer_trust_panel.dart';
 
@@ -118,42 +119,24 @@ class InsurerDetailPage extends ConsumerWidget {
                   'excess': i.excessLabel,
                 });
 
-    return Scaffold(
-      backgroundColor: c.bg,
-      appBar: AppBar(
-        backgroundColor: c.bg,
-        surfaceTintColor: Colors.transparent,
-        foregroundColor: c.text,
-        elevation: 0,
-        title: Text(
-          shortInsurerName(i.name),
-          style: TextStyle(
-            color: c.text,
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-            letterSpacing: -0.2,
-          ),
-        ),
-        centerTitle: false,
-        titleSpacing: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).maybePop(),
-        ),
-      ),
-
-      // The price follows you down the page.
-      //
-      // The premium sits at the top, but the trust panel, the peer ranking, the
-      // agents and the reviews are all BELOW it, and they are exactly the things
-      // that decide whether someone acts. By the time a reader has finished them
-      // the number is a full screen behind, and asking them to scroll back up to
-      // act is asking them not to.
-      //
-      // Absent for an unpriced insurer, since a bar reading "Get a quote" with
-      // no quote behind it is a lie. Those get an official-site link only, in
-      // the body.
-      bottomNavigationBar: isInfo || shownPrice <= 0
+    // The glass nav, not a Material AppBar. The brand wash behind the header
+    // is a 260px bloom that starts ABOVE the identity row: an opaque app bar
+    // painted over its top half and left a hard horizontal edge across the
+    // hero. Content passing under a translucent nav is the whole point of the
+    // shape, and it is what the mockup does.
+    //
+    // The price still follows you down the page. The premium sits at the top,
+    // but the trust panel, the peer ranking, the agents and the reviews are all
+    // BELOW it, and they are exactly the things that decide whether someone
+    // acts. By the time a reader has finished them the number is a full screen
+    // behind, and asking them to scroll back up to act is asking them not to.
+    //
+    // The bar is absent for an unpriced insurer, since a bar reading "Get a
+    // quote" with no quote behind it is a lie. Those get an official-site link
+    // only, in the body.
+    return InsureScaffold(
+      navTitle: shortInsurerName(i.name),
+      bottomBar: isInfo || shownPrice <= 0
           ? null
           : _StickyQuoteBar(
               price: shownPrice,
@@ -169,108 +152,102 @@ class InsurerDetailPage extends ConsumerWidget {
               tint: c.accent,
               onTap: () => _primaryAction(i),
             ),
-
-      body: ListView(
-        padding: const EdgeInsets.only(bottom: 40),
-        children: [
-          _Identity(insurer: i, brand: brand),
-          if (!isInfo)
-            _Premium(
-              lead: premiumLead,
-              amount: withCommas((isTravel ? travelPrice : motorLanded).round()),
-              unit: isTravel ? t('insure.perTrip') : t('insure.perYear'),
-              sub: premiumSub,
-            ),
-          // The breakdown as a three-cell strip, not a run-on line of text.
-          // "base KES 103,500 · levies KES 466 · stamp KES 40" is three numbers
-          // pretending to be a sentence; nobody parses it. A levy and a stamp
-          // duty are statutory add-ons the insurer does not set, and separating
-          // them out is the difference between a price and an itemised price.
-          if (!isTravel && !isInfo)
-            _Breakdown(
-              base: motorBase,
-              levy: levyAmount(motorBase, levyPct),
-              stamp: stamp,
-            ),
-          // ── SCREEN 02 ENDS HERE FOR A PRICED INSURER ──────────────────
-          //
-          // Everything below this line is gated to the INFORMATIONAL page, and
-          // that is the design, not an oversight.
-          //
-          // A page that is quoting someone a price has exactly one job. The
-          // trust surface (the rating arc, the market-share chart, the
-          // regulatory timeline, the contact grid) belongs on the page for an
-          // insurer we CANNOT price, where the facts are all we have to offer.
-          // Stacking it under a live quote buries the agent and the reviews,
-          // which are the two things that actually convert, under three
-          // sections of chart.
-          //
-          // The trust signal a quoted insurer needs is the licence badge and
-          // the GCR grade, and those are already in the header, where they are
-          // read in the first second rather than the fortieth.
-          if (isInfo) ...[
-            InsurerTrustPanel(i),
-            if (_hasContact(i)) ...[
-              InsureH2(t('insure.reachThem'), small: t('insure.reachSmall')),
-              _ContactGrid(insurer: i),
-            ],
-            if (i.benefits.isNotEmpty) ...[
-              InsureH2(
-                isTravel ? t('insure.inThePlan') : t('insure.whatsCovered'),
-              ),
-              for (var b = 0; b < i.benefits.length; b++)
-                CoverRow(
-                  i.benefits[b],
-                  tint: c.accent,
-                  last: b == i.benefits.length - 1,
-                ),
-            ],
+      children: [
+        _Identity(insurer: i, brand: brand),
+        if (!isInfo)
+          _Premium(
+            lead: premiumLead,
+            amount: withCommas((isTravel ? travelPrice : motorLanded).round()),
+            unit: isTravel ? t('insure.perTrip') : t('insure.perYear'),
+            sub: premiumSub,
+          ),
+        // The breakdown as a three-cell strip, not a run-on line of text.
+        // "base KES 103,500 · levies KES 466 · stamp KES 40" is three numbers
+        // pretending to be a sentence; nobody parses it. A levy and a stamp
+        // duty are statutory add-ons the insurer does not set, and separating
+        // them out is the difference between a price and an itemised price.
+        if (!isTravel && !isInfo)
+          _Breakdown(
+            base: motorBase,
+            levy: levyAmount(motorBase, levyPct),
+            stamp: stamp,
+          ),
+        // ── SCREEN 02 ENDS HERE FOR A PRICED INSURER ──────────────────
+        //
+        // Everything below this line is gated to the INFORMATIONAL page, and
+        // that is the design, not an oversight.
+        //
+        // A page that is quoting someone a price has exactly one job. The
+        // trust surface (the rating arc, the market-share chart, the
+        // regulatory timeline, the contact grid) belongs on the page for an
+        // insurer we CANNOT price, where the facts are all we have to offer.
+        // Stacking it under a live quote buries the agent and the reviews,
+        // which are the two things that actually convert, under three
+        // sections of chart.
+        //
+        // The trust signal a quoted insurer needs is the licence badge and
+        // the GCR grade, and those are already in the header, where they are
+        // read in the first second rather than the fortieth.
+        if (isInfo) ...[
+          InsurerTrustPanel(i),
+          if (_hasContact(i)) ...[
+            InsureH2(t('insure.reachThem'), small: t('insure.reachSmall')),
+            _ContactGrid(insurer: i),
           ],
-
-          // Agents. On screen 02 this is the first thing under the breakdown:
-          // a human who can actually bind the policy.
-          if (agents.isNotEmpty) ...[
+          if (i.benefits.isNotEmpty) ...[
             InsureH2(
-              t('insure.talkAgent'),
-              small: t('insure.agentsNear', {'n': '${agents.length}'}),
+              isTravel ? t('insure.inThePlan') : t('insure.whatsCovered'),
             ),
-            for (var a = 0; a < agents.length; a++)
-              AgentRow(
-                name: agents[a].name,
-                phone: agents[a].phone ?? '',
-                onCall: agents[a].phone == null
-                    ? null
-                    : () => openTel(agents[a].phone!),
-                onWhatsApp: agents[a].phone == null || !agents[a].whatsapp
-                    ? null
-                    : () => openWhatsApp(agents[a].phone!),
-                showDivider: a < agents.length - 1,
+            for (var b = 0; b < i.benefits.length; b++)
+              CoverRow(
+                i.benefits[b],
+                tint: c.accent,
+                last: b == i.benefits.length - 1,
               ),
           ],
-
-          // The in-body CTA exists ONLY where the sticky bar does not: an
-          // unpriced insurer has no premium to pin to the foot. Two identical
-          // gold buttons a thumb apart is a bug, not emphasis.
-          if (isInfo || shownPrice <= 0)
-            CtaFull(
-              label: isTravel
-                  ? t('insure.getTravelQuote')
-                  : t('insure.getQuote'),
-              tint: c.accent,
-              icon: Icons.north_east,
-              onTap: () => _primaryAction(i),
-            ),
-          if (isInfo && i.website != null)
-            CtaGhost(
-              label: t('insure.officialSite'),
-              icon: Icons.language,
-              onTap: () => openWeb(i.website!),
-            ),
-
-          InsurerReviews(i),
-          Disclaimer(rcText(cfg, 'insure.disc.detail')),
         ],
-      ),
+
+        // Agents. On screen 02 this is the first thing under the breakdown:
+        // a human who can actually bind the policy.
+        if (agents.isNotEmpty) ...[
+          InsureH2(
+            t('insure.talkAgent'),
+            small: t('insure.agentsNear', {'n': '${agents.length}'}),
+          ),
+          for (var a = 0; a < agents.length; a++)
+            AgentRow(
+              name: agents[a].name,
+              phone: agents[a].phone ?? '',
+              onCall: agents[a].phone == null
+                  ? null
+                  : () => openTel(agents[a].phone!),
+              onWhatsApp: agents[a].phone == null || !agents[a].whatsapp
+                  ? null
+                  : () => openWhatsApp(agents[a].phone!),
+              showDivider: a < agents.length - 1,
+            ),
+        ],
+
+        // The in-body CTA exists ONLY where the sticky bar does not: an
+        // unpriced insurer has no premium to pin to the foot. Two identical
+        // gold buttons a thumb apart is a bug, not emphasis.
+        if (isInfo || shownPrice <= 0)
+          CtaFull(
+            label: isTravel ? t('insure.getTravelQuote') : t('insure.getQuote'),
+            tint: c.accent,
+            icon: Icons.north_east,
+            onTap: () => _primaryAction(i),
+          ),
+        if (isInfo && i.website != null)
+          CtaGhost(
+            label: t('insure.officialSite'),
+            icon: Icons.language,
+            onTap: () => openWeb(i.website!),
+          ),
+
+        InsurerReviews(i),
+        Disclaimer(rcText(cfg, 'insure.disc.detail')),
+      ],
     );
   }
 

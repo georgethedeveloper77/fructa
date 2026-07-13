@@ -5,10 +5,17 @@ export const dynamic = "force-dynamic"; // admin data is always live, never cach
 
 type Fund = { id: string; name: string; category: string; currency: string; current_rate: number | null; status: string };
 type Run = { source: string; started_at: string; finished_at: string | null; written: number; rejected: number; ok: boolean; unmapped: string[]; errors: string[] };
+type Sacco = { id: string; display_name: string | null; name: string; common_bond: string; active: boolean };
+type SaccoRate = { sacco_id: string; financial_year: number; interest_on_deposits: number | null };
 
+// Fund categories ONLY. `sacco` and `stock` used to be listed here and were
+// dead the whole time: SACCOs live in `saccos` and stocks in `stocks`, so no row
+// in `funds` has ever carried either value. The byCat filter drops empty rows,
+// so the two entries rendered as nothing and looked wired. They are counted from
+// their own tables below instead, where the numbers are real.
 const CAT: Record<string, string> = {
   mmf_kes: "MMF · KES", mmf_usd: "MMF · USD", tbill: "T-Bills",
-  bond: "Bonds", sacco: "SACCO", stock: "NSE Stocks",
+  bond: "Bonds",
 };
 
 function ago(iso: string): string {
@@ -27,19 +34,28 @@ export default async function Dashboard() {
   const db = supabaseAdmin();
   let funds: Fund[] = [];
   let runs: Run[] = [];
+  let saccos: Sacco[] = [];
+  let saccoRates: SaccoRate[] = [];
   let error: string | null = null;
 
   try {
-    const [f, r] = await Promise.all([
+    const [f, r, s, sr] = await Promise.all([
       db.from("funds").select("id,name,category,currency,current_rate,status"),
       db.from("scraper_runs")
         .select("source,started_at,finished_at,written,rejected,ok,unmapped,errors")
         .order("started_at", { ascending: false }).limit(200),
+      // Deposit-taking only. Credit-only societies are seeded so the register is
+      // complete and are barred from taking new deposits, so they have no place
+      // in a savings-rate count.
+      db.from("saccos").select("id,display_name,name,common_bond,active").eq("licence_class", "dt"),
+      db.from("sacco_rates").select("sacco_id,financial_year,interest_on_deposits"),
     ]);
     if (f.error) throw f.error;
     if (r.error) throw r.error;
     funds = (f.data ?? []) as Fund[];
     runs = (r.data ?? []) as Run[];
+    saccos = (s.data ?? []) as Sacco[];
+    saccoRates = (sr.data ?? []) as SaccoRate[];
   } catch (e) {
     error = e instanceof Error ? e.message : String(e);
   }
@@ -90,9 +106,48 @@ export default async function Dashboard() {
     return { key, label: CAT[key], count: rows.length, avg };
   }).filter((c) => c.count > 0);
 
+  // ── SACCOs ────────────────────────────────────────────────────────────
+  // Latest declared deposit rate per society. The DEPOSIT rate, never the
+  // dividend: the dividend is paid on a capped pot of share capital and is
+  // nearly always the bigger percentage and the smaller cheque. Averaging it
+  // here would put a number on the dashboard that answers no question anyone has.
+  const latestDeposit = new Map<string, number>();
+  const latestYear = new Map<string, number>();
+  for (const r of saccoRates) {
+    const seen = latestYear.get(r.sacco_id);
+    if (seen != null && seen >= r.financial_year) continue;
+    latestYear.set(r.sacco_id, r.financial_year);
+    if (r.interest_on_deposits != null) {
+      latestDeposit.set(r.sacco_id, Number(r.interest_on_deposits));
+    } else {
+      latestDeposit.delete(r.sacco_id);
+    }
+  }
+  const saccoLive = saccos.filter((x) => x.active);
+  const saccoRated = saccoLive.filter((x) => latestDeposit.has(x.id));
+  const saccoAvg = saccoRated.length
+    ? saccoRated.reduce((a, x) => a + (latestDeposit.get(x.id) ?? 0), 0) / saccoRated.length
+    : null;
+  // The only SACCOs a user can actually see: a rate to rank on AND a bond they
+  // can join. Everything else is a directory entry.
+  const saccoJoinable = saccoRated.filter((x) => x.common_bond === "open");
+  const saccoUnknownBond = saccoRated.filter((x) => x.common_bond === "unknown");
+
   // attention items
   type Att = { tone: string; t: string; d: string };
   const attention: Att[] = [];
+
+  // The failure that looks exactly like a working feature: rates imported, bond
+  // never confirmed. The open-bond filter is on by default and treats unknown as
+  // not joinable, so these societies carry a live rate and render to NOBODY. The
+  // tab looks broken and the data looks fine.
+  if (saccoUnknownBond.length) {
+    attention.push({
+      tone: "var(--warn)",
+      t: `${saccoUnknownBond.length} rated ${saccoUnknownBond.length === 1 ? "SACCO is" : "SACCOs are"} hidden, bond not confirmed`,
+      d: saccoUnknownBond.slice(0, 4).map((x) => x.display_name ?? x.name).join(" · ") + (saccoUnknownBond.length > 4 ? " …" : ""),
+    });
+  }
   for (const s of [...lastBySource.values()].filter((r) => !r.ok)) {
     attention.push({ tone: "var(--bad)", t: `Scrape failed · ${s.source}`, d: (s.errors?.[0] ?? "unknown error") });
   }
@@ -243,6 +298,45 @@ export default async function Dashboard() {
           </table>
         )}
       </div>
+
+      {/* SACCOs. Their own panel rather than a row in "By category", because the
+          number that matters here is not a rate average, it is how many societies
+          are actually reachable by a user. */}
+      {saccos.length > 0 && (
+        <div className="panelc" style={{ marginTop: 14 }}>
+          <div className="ph">
+            <h3>SACCOs</h3>
+            <span className="sub">AGM-declared rates · deposit interest, not the dividend</span>
+            <a className="act" href="/admin/saccos" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+              manage <IconArrowRight size={11} />
+            </a>
+          </div>
+          <table className="tbl">
+            <thead><tr><th>Societies</th><th className="r">Count</th><th className="r">Avg on deposits</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>Licensed, deposit taking</td>
+                <td className="r num">{saccos.length}</td>
+                <td className="r num" style={{ color: "var(--faint)" }}>{"\u2014"}</td>
+              </tr>
+              <tr>
+                <td>With a declared rate</td>
+                <td className="r num">{saccoRated.length}</td>
+                <td className="r num" style={{ color: saccoAvg != null ? "var(--gold)" : "var(--faint)" }}>
+                  {saccoAvg != null ? `${saccoAvg.toFixed(2)}%` : "\u2014"}
+                </td>
+              </tr>
+              <tr>
+                <td>Rated and joinable<small style={{ color: "var(--faint)", marginLeft: 6 }}>what a user actually sees</small></td>
+                <td className="r num" style={{ color: saccoJoinable.length ? "var(--ok, var(--gold))" : "var(--warn)" }}>
+                  {saccoJoinable.length}
+                </td>
+                <td className="r num" style={{ color: "var(--faint)" }}>{"\u2014"}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* snapshot */}
       <div className="panelc" style={{ marginTop: 14 }}>

@@ -9,6 +9,7 @@ import '../../data/models/insurer.dart';
 import '../../data/snapshot_providers.dart';
 import 'insure_common.dart';
 import 'insure_motion.dart';
+import 'insure_shell.dart';
 import 'insurer_detail_page.dart';
 
 enum TravelSort { cheapest, cover, claims }
@@ -82,81 +83,83 @@ class _InsureTravelPageState extends ConsumerState<InsureTravelPage> {
         .toList();
 
     if (travel.isEmpty) {
-      return _shell(
-        c,
-        Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Text(
-              t('insure.emptyTravel'),
-              textAlign: TextAlign.center,
-              style: TextStyle(color: c.muted),
-            ),
+      return _shell([
+        _head(0),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(32, 48, 32, 0),
+          child: Text(
+            t('insure.emptyTravel'),
+            textAlign: TextAlign.center,
+            style: TextStyle(color: c.muted, height: 1.6),
           ),
         ),
-      );
+      ]);
     }
 
     final sorted = _sorted(travel);
     final best = sorted.isEmpty ? null : sorted.first;
 
-    return _shell(
-      c,
-      ListView(
-        padding: const EdgeInsets.only(bottom: 36),
-        children: [
-          KpiStrip([
-            KpiCell(
-              label: t('insure.motor.kpiInsurers'),
-              value: '${sorted.length}',
-            ),
-            KpiCell(
-              label: t('insure.motor.kpiCheapest'),
-              value: best == null ? '' : kesCompact(_price(best)),
-              color: c.accent,
-            ),
-            KpiCell(
-              label: t('insure.travel.kpiTrip'),
-              value: t('insure.days', {'n': '$_days'}),
-            ),
-          ]),
-          _TravelBox(
-            region: _region,
-            days: _days,
-            pax: _pax,
-            onRegion: (r) => setState(() => _region = r),
-            onDays: _bumpDays,
-            onPax: _bumpPax,
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
-            child: SlidingSegments<TravelSort>(
-              values: TravelSort.values,
-              selected: _sort,
-              labelOf: (s) => s.label,
-              onTap: (s) => setState(() => _sort = s),
-            ),
-          ),
-          for (var qi = 0; qi < sorted.length; qi++)
-            Stagger(
-              index: qi,
-              child: _quoteRow(
-                context,
-                sorted[qi],
-                best,
-                sorted.isEmpty
-                    ? 0
-                    : _price(
-                        sorted.reduce((a, b) => _price(a) >= _price(b) ? a : b),
-                      ),
-              ),
-            ),
-          _TravelFoot(sorted: sorted, region: _region, price: _price),
-          Disclaimer(rcText(rc, 'insure.disc.travel')),
-        ],
+    return _shell([
+      _head(sorted.length),
+      KpiStrip([
+        KpiCell(
+          label: t('insure.motor.kpiInsurers'),
+          value: '${sorted.length}',
+        ),
+        KpiCell(
+          label: t('insure.motor.kpiCheapest'),
+          value: best == null ? '' : kesCompact(_price(best)),
+          color: c.accent,
+        ),
+        KpiCell(
+          label: t('insure.travel.kpiTrip'),
+          value: t('insure.days', {'n': '$_days'}),
+        ),
+      ]),
+      _TravelBox(
+        region: _region,
+        days: _days,
+        pax: _pax,
+        onRegion: (r) => setState(() => _region = r),
+        onDays: _bumpDays,
+        onPax: _bumpPax,
       ),
-    );
+      Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
+        child: SlidingSegments<TravelSort>(
+          values: TravelSort.values,
+          selected: _sort,
+          labelOf: (s) => s.label,
+          onTap: (s) => setState(() => _sort = s),
+        ),
+      ),
+      for (var qi = 0; qi < sorted.length; qi++)
+        Stagger(
+          index: qi,
+          child: _quoteRow(
+            context,
+            sorted[qi],
+            best,
+            sorted.isEmpty
+                ? 0
+                : _price(
+                    sorted.reduce((a, b) => _price(a) >= _price(b) ? a : b),
+                  ),
+          ),
+        ),
+      _TravelFoot(sorted: sorted, region: _region, price: _price),
+      Disclaimer(rcText(rc, 'insure.disc.travel')),
+    ]);
   }
+
+  /// Travel prices move with the region, the length of the trip and the number
+  /// of travellers, so the count in the kicker is a live figure and the node
+  /// pulses.
+  Widget _head(int n) => InsureHead(
+    kicker: t('insure.travel.kicker', {'n': '$n'}),
+    title: t('insure.travel'),
+    sub: t('insure.travel.sub'),
+  );
 
   Widget _quoteRow(
     BuildContext context,
@@ -193,31 +196,8 @@ class _InsureTravelPageState extends ConsumerState<InsureTravelPage> {
     ),
   );
 
-  Widget _shell(fructaColors c, Widget body) => Scaffold(
-    backgroundColor: c.bg,
-    appBar: AppBar(
-      backgroundColor: c.bg,
-      surfaceTintColor: Colors.transparent,
-      foregroundColor: c.text,
-      elevation: 0,
-      title: Text(
-        t('insure.travel'),
-        style: TextStyle(
-          color: c.text,
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          letterSpacing: -0.2,
-        ),
-      ),
-      centerTitle: false,
-      titleSpacing: 0,
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back),
-        onPressed: () => Navigator.of(context).maybePop(),
-      ),
-    ),
-    body: body,
-  );
+  Widget _shell(List<Widget> children) =>
+      InsureScaffold(navTitle: t('insure.travel'), children: children);
 }
 
 class _TravelBox extends StatelessWidget {

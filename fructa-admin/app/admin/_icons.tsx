@@ -63,6 +63,12 @@ export const IconSettings = (p: IconProps) => (
 export const IconStocks = (p: IconProps) => (
   <svg {...base(p)}><path d="M3 3v18h18" /><rect x="7" y="10" width="3" height="7" rx="1" /><path d="M8.5 7v3M8.5 17v3" /><rect x="14" y="6" width="3" height="6" rx="1" /><path d="M15.5 3v3M15.5 12v3" /></svg>
 );
+// A SACCO is a member-owned co-operative, not an institution you buy from, so
+// the icon is people rather than a building or a chart. Distinct from IconAgents
+// (a phone) and IconCompanies (a grid).
+export const IconSaccos = (p: IconProps) => (
+  <svg {...base(p)}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+);
 export const IconBrokers = (p: IconProps) => (
   <svg {...base(p)}><rect x="3" y="7" width="18" height="13" rx="2" /><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><path d="M3 12h18" /></svg>
 );

@@ -7,7 +7,7 @@ import {
   IconOverview, IconFunds, IconCompanies, IconInsurers, IconAgents,
   IconSources, IconScrapers, IconImport, IconInsights, IconConfig,
   IconLearn, IconBell, IconPages, IconSettings, IconArticle, IconModeration,
-  IconSearch, IconPower, IconRefresh, IconStocks, IconBrokers,
+  IconSearch, IconPower, IconRefresh, IconStocks, IconBrokers, IconSaccos,
 } from "./_icons";
 import type { SVGProps } from "react";
 
@@ -18,6 +18,7 @@ const OPERATE: NavItem[] = [
   { href: "/admin", label: "Overview", icon: IconOverview, title: "Overview", crumb: "rates ops" },
   { href: "/admin/funds", label: "Funds", icon: IconFunds, title: "Funds", crumb: "rate directory" },
   { href: "/admin/stocks", label: "Stocks", icon: IconStocks, title: "Stocks", crumb: "NSE listings & dividends" },
+  { href: "/admin/saccos", label: "SACCOs", icon: IconSaccos, title: "SACCOs", crumb: "AGM rates & common bond" },
   { href: "/admin/companies", label: "Companies", icon: IconCompanies, title: "Companies", crumb: "providers & brands" },
   { href: "/admin/insurers", label: "Insurers", icon: IconInsurers, title: "Insurers", crumb: "motor & travel" },
   { href: "/admin/agents", label: "Agents", icon: IconAgents, title: "Agents", crumb: "contacts" },

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/i18n.dart';
 import '../../data/models/fund.dart';
+import '../../data/models/sacco.dart';
 import '../../data/models/stock.dart';
 import '../../data/providers.dart';
 import '../../data/snapshot_providers.dart';
@@ -54,6 +55,11 @@ extension MarketTabX on MarketTab {
     MarketTab.equity => f.fundType == 'equity',
     MarketTab.balanced => f.fundType == 'balanced',
     MarketTab.special => f.fundType == 'special',
+    // SACCOs and stocks live in their own tables, NOT in `funds`. Both key off
+    // legacy categories that no live row carries, so both match nothing, and
+    // that is the point: it keeps them out of the `all` stream by default. A
+    // SACCO may only ever join that list DELIBERATELY, through
+    // [streamAllRowsProvider] below, and never by an accident of matching.
     MarketTab.sacco => f.category == 'sacco',
     MarketTab.stock => f.category == 'stock',
   };
@@ -109,10 +115,15 @@ final visibleMarketTabsProvider = Provider<List<MarketTab>>((ref) {
   // keeps stocks out of the `all` stream, which is exactly where they must
   // not appear.)
   final hasStocks = ref.watch(stocksProvider).isNotEmpty;
+  // Same story for SACCOs (0062): they are rows in `saccos`, never in `funds`,
+  // so the tab is driven by the SACCO snapshot. With `saccos.enabled` off the
+  // publisher emits none, the list is empty, and the tab simply is not there.
+  final hasSaccos = ref.watch(saccosProvider).isNotEmpty;
   bool hasData(Fund f) => f.currentRate != null || _isNavType(f);
   bool populated(MarketTab t) => switch (t) {
     MarketTab.all => true,
     MarketTab.stock => hasStocks,
+    MarketTab.sacco => hasSaccos,
     _ => funds.any((f) => f.retail && t.matches(f) && hasData(f)),
   };
   return MarketTab.values.where(populated).toList();
@@ -322,4 +333,246 @@ final streamStocksProvider = Provider<List<Stock>>((ref) {
       out.sort((a, b) => a.name.compareTo(b.name));
   }
   return out;
+});
+
+
+// ─────────────────────────────────────────────────────────────────────────
+// SACCO stream (0062). A separate stream, for the same reason stocks are.
+//
+// A SACCO is not a Fund. It carries TWO rates paid on two different pots of
+// money, and the pot decides everything:
+//
+//   interest_on_deposits       paid on member savings, which are uncapped. The
+//                              number that decides how much a member receives,
+//                              and the ONLY number this app ranks SACCOs on.
+//   dividend_on_share_capital  paid on share capital, which is capped. Nearly
+//                              always the bigger percentage, nearly always the
+//                              smaller cheque.
+//
+// THERE IS NO DIVIDEND SORT, and its absence is a decision, not an oversight.
+// The tile's headline figure is the deposit rate. A list ordered by a number
+// that is not the headline either reads as broken or, far worse, invites the
+// reader to take the headline AS the sort key, which rebuilds precisely the
+// confusion this whole feature exists to undo. The dividend is shown on every
+// row, clearly labelled, and it does not order anything.
+// ─────────────────────────────────────────────────────────────────────────
+
+enum SaccoSort { depositRate, largest, alpha }
+
+extension SaccoSortX on SaccoSort {
+  // Literal labels, like MarketTabX.label. No i18n key needed.
+  String get label => switch (this) {
+    SaccoSort.depositRate => 'On deposits',
+    SaccoSort.largest => 'Largest',
+    SaccoSort.alpha => 'A to Z',
+  };
+}
+
+final saccoSortProvider = StateProvider<SaccoSort>((_) => SaccoSort.depositRate);
+
+/// Show only societies a user can actually join. Defaults from remote config
+/// (`saccos.open_bond_only_default`, true), so it can be turned off from admin
+/// without a release.
+///
+/// On by default because membership is a harder gate than rate. A society with
+/// a brilliant rate and a closed bond is not a better option than one with a
+/// duller rate you can join. It is not an option at all.
+final saccoOpenOnlyProvider = StateProvider<bool>(
+  (ref) => ref
+      .watch(remoteConfigProvider)
+      .flag('saccos.open_bond_only_default', true),
+);
+
+/// The visible SACCO stream: bond filter, then search, then sort.
+final streamSaccosProvider = Provider<List<Sacco>>((ref) {
+  final sort = ref.watch(saccoSortProvider);
+  final openOnly = ref.watch(saccoOpenOnlyProvider);
+  final q = ref.watch(marketSearchProvider).trim().toLowerCase();
+
+  var list = ref.watch(saccosProvider).where((s) => !openOnly || s.joinable);
+
+  if (q.isNotEmpty) {
+    list = list.where(
+      (s) =>
+          s.displayName.toLowerCase().contains(q) ||
+          s.name.toLowerCase().contains(q) ||
+          (s.county ?? '').toLowerCase().contains(q),
+    );
+  }
+
+  final out = list.toList();
+  switch (sort) {
+    case SaccoSort.depositRate:
+      out.sort(
+        (a, b) => _saccoDesc(
+          a.interestOnDeposits,
+          b.interestOnDeposits,
+          a.displayName,
+          b.displayName,
+        ),
+      );
+    case SaccoSort.largest:
+      out.sort(
+        (a, b) => _saccoDesc(
+          a.totalAssetsKes,
+          b.totalAssetsKes,
+          a.displayName,
+          b.displayName,
+        ),
+      );
+    case SaccoSort.alpha:
+      out.sort((a, b) => a.displayName.compareTo(b.displayName));
+  }
+  return out;
+});
+
+/// Nulls sort last in both directions. A society with no declared rate is not a
+/// society paying zero: we do not know its rate, and "unknown" is not "worst".
+int _saccoDesc(double? a, double? b, String an, String bn) {
+  if (a == null && b == null) return an.compareTo(bn);
+  if (a == null) return 1;
+  if (b == null) return -1;
+  final r = b.compareTo(a);
+  return r != 0 ? r : an.compareTo(bn);
+}
+
+/// A rank badge is only honest on a ranked list. Under "A to Z" there is no
+/// league position to show.
+final saccoRankVisibleProvider = Provider<bool>(
+  (ref) => ref.watch(saccoSortProvider) != SaccoSort.alpha,
+);
+
+// ─────────────────────────────────────────────────────────────────────────
+// The All-tab merge (P6). The one place a SACCO is ranked against a fund.
+//
+// This is the riskiest thing in the SACCO build, so it is the most gated.
+//
+// GATE 1: `saccos.in_all_tab`. The product decision.
+//
+// GATE 2: a CONFIRMED withholding rate on deposit interest. This is not
+// bureaucracy, it is arithmetic. The fund list sorts on NET yield, after tax.
+// A SACCO declares its rate GROSS. Rank a gross number against net numbers and
+// the SACCO carries roughly 1.5 points of unpaid tax into the comparison, which
+// is wider than the entire spread between Kenya's best and worst money market
+// fund. It would take the top row on a technicality, and the app would be lying
+// with arithmetic rather than with words, which is harder to spot and worse.
+//
+// The public sources on the SACCO withholding rate genuinely disagree (see
+// migration 0064). Until one is confirmed, `saccoNetPctProvider` returns null
+// and the merge cannot happen no matter what the product flag says.
+//
+// GATE 3: sort must be "Highest yield". Under "Lowest minimum" a SACCO has no
+// comparable figure to offer: its minimums are TWO numbers, a share capital
+// floor and a monthly deposit floor, and neither is the same kind of thing as a
+// fund's single minimum investment. Rather than pick one and pretend, SACCOs sit
+// that sort out. Under "Tax-free" they are excluded because they are not.
+//
+// GATE 4: not in compare mode. Compare ranks fund yields against one another; a
+// SACCO carries two rates on two pots and money you cannot withdraw.
+// ─────────────────────────────────────────────────────────────────────────
+
+/// A row in the All league table.
+sealed class MarketRow {
+  const MarketRow();
+}
+
+final class FundRow extends MarketRow {
+  const FundRow(this.fund);
+  final Fund fund;
+}
+
+final class SaccoRow extends MarketRow {
+  const SaccoRow(this.sacco, {required this.netRate});
+  final Sacco sacco;
+
+  /// The net-of-tax deposit rate this row was RANKED on. Carried on the row
+  /// rather than recomputed at paint time, so the number the list sorted by and
+  /// the number the tile could show can never drift apart.
+  final double netRate;
+}
+
+/// Withholding on SACCO deposit interest, as a percentage, or NULL when it has
+/// not been confirmed.
+///
+/// Null is the honest default and it is load-bearing: everything downstream that
+/// needs a net SACCO figure checks this and declines to produce one. There is no
+/// fallback value, because a fallback here is a guess at a tax rate, and a guess
+/// at a tax rate is a wrong number printed next to somebody's savings.
+final saccoNetPctProvider = Provider<double?>((ref) {
+  final cfg = ref.watch(remoteConfigProvider);
+  if (!cfg.flag('saccos.tax_confirmed', false)) return null;
+  final v = cfg.number('saccos.wht_deposits_pct', -1);
+  return (v < 0 || v >= 100) ? null : v;
+});
+
+/// Net-of-tax deposit rate for a society, or null when either the rate or the
+/// tax treatment is unknown.
+double? saccoNetRate(Sacco s, double? whtPct) {
+  final gross = s.interestOnDeposits;
+  if (gross == null || whtPct == null) return null;
+  return gross * (1 - whtPct / 100);
+}
+
+/// Whether SACCOs may be ranked inside the All list right now. All four gates.
+final allTabMergeProvider = Provider<bool>((ref) {
+  if (!ref.watch(saccosInAllTabProvider)) return false;
+  if (ref.watch(saccoNetPctProvider) == null) return false;
+  if (ref.watch(marketSortProvider) != MarketSort.highestYield) return false;
+  return true;
+});
+
+/// The All list, funds and SACCOs interleaved, ranked on the same net-of-tax
+/// basis. Falls back to funds alone whenever any gate is shut, which is the
+/// normal state.
+final streamAllRowsProvider = Provider<AsyncValue<List<MarketRow>>>((ref) {
+  final funds = ref.watch(streamFundsProvider);
+  final merge = ref.watch(allTabMergeProvider);
+  final wht = ref.watch(remoteConfigProvider).whtPct;
+
+  if (!merge) {
+    return funds.whenData((l) => l.map<MarketRow>(FundRow.new).toList());
+  }
+
+  final saccoWht = ref.watch(saccoNetPctProvider);
+  final q = ref.watch(marketSearchProvider).trim().toLowerCase();
+
+  // Only societies a user can actually join, and only those with a declared
+  // rate. An unjoinable society ranked above a fund the user CAN buy is not
+  // information, it is an obstacle.
+  var saccos = ref.watch(joinableSaccosProvider);
+  if (q.isNotEmpty) {
+    saccos = saccos
+        .where(
+          (s) =>
+              s.displayName.toLowerCase().contains(q) ||
+              s.name.toLowerCase().contains(q) ||
+              (s.county ?? '').toLowerCase().contains(q),
+        )
+        .toList();
+  }
+
+  return funds.whenData((fundList) {
+    final rows = <MarketRow>[
+      for (final f in fundList) FundRow(f),
+      for (final s in saccos)
+        if (saccoNetRate(s, saccoWht) case final n?) SaccoRow(s, netRate: n),
+    ];
+
+    double key(MarketRow r) => switch (r) {
+      FundRow(:final fund) => _net(fund, wht),
+      SaccoRow(:final netRate) => netRate,
+    };
+
+    rows.sort((a, b) => key(b).compareTo(key(a)));
+    return rows;
+  });
+});
+
+/// True when a SACCO has taken the top of the All list. Drives the one note that
+/// must appear when it happens: the row above every money market fund on the
+/// page is the row whose money you cannot get back next week.
+final saccoLeadsAllProvider = Provider<bool>((ref) {
+  if (!ref.watch(allTabMergeProvider)) return false;
+  final rows = ref.watch(streamAllRowsProvider).valueOrNull;
+  return rows != null && rows.isNotEmpty && rows.first is SaccoRow;
 });

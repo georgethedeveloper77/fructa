@@ -7,6 +7,7 @@ import '../../core/i18n.dart';
 import '../../core/theme.dart';
 import '../../core/widgets/kit.dart';
 import '../../data/models/fund.dart';
+import '../../data/models/sacco.dart';
 import '../../data/models/stock.dart';
 import '../../data/providers.dart';
 import '../../data/snapshot_providers.dart';
@@ -19,6 +20,7 @@ import '../compare/saved_comparisons_section.dart';
 import '../insure/insure_overlay.dart';
 import '../learn/learn_home_page.dart';
 import '../learn/learn_progress.dart';
+import '../saccos/sacco_page.dart';
 import '../stocks/stock_page.dart';
 import '../stocks/stocks_page.dart';
 import 'markets_controller.dart';
@@ -30,7 +32,10 @@ import 'widgets/insurance_spotlight.dart';
 import 'widgets/market_allocation_donut.dart';
 import 'widgets/market_context_card.dart';
 import 'widgets/money_currency_tabs.dart';
+import 'widgets/locked_leader_note.dart';
 import 'widgets/news_feed.dart';
+import 'widgets/sacco_sort_pills.dart';
+import 'widgets/sacco_tile.dart';
 import 'widgets/stock_sector_tabs.dart';
 import 'widgets/sort_pills.dart';
 import 'widgets/ticker_tape.dart';
@@ -209,12 +214,34 @@ class MarketsPage extends ConsumerWidget {
     ref.listen<String?>(marketMoneyCcyProvider, (_, __) => collapse());
     ref.listen<String>(marketSearchProvider, (_, __) => collapse());
     ref.listen<String?>(stockSectorProvider, (_, __) => collapse());
+    ref.listen<SaccoSort>(saccoSortProvider, (_, __) => collapse());
+    ref.listen<bool>(saccoOpenOnlyProvider, (_, __) => collapse());
     final total = stream.valueOrNull?.length ?? 0;
 
     // The Stocks tab swaps the whole stream over. Stocks are not Funds and are
     // never merged into the fund list, so `all` stays a pure rates league table.
     final isStock = ref.watch(marketTabProvider) == MarketTab.stock;
     final stocks = ref.watch(streamStocksProvider);
+
+    // Same treatment for SACCOs. They are not Funds, they carry two rates paid
+    // on two different pots of money, and their deposit rate is paid on money
+    // the member cannot withdraw while they remain a member. So the SACCO tab
+    // swaps the whole list over rather than merging rows into the fund league
+    // table, and `all` stays a pure, liquid, single-rate list.
+    //
+    // Ranking SACCOs beside funds is a separate, deliberate decision gated on
+    // `saccos.in_all_tab`, and it is not this one.
+    final isSacco = ref.watch(marketTabProvider) == MarketTab.sacco;
+    final saccos = ref.watch(streamSaccosProvider);
+    final saccoRank = ref.watch(saccoRankVisibleProvider);
+
+    // P6: the merged All list. `allTabMergeProvider` is shut unless the product
+    // flag is on AND a withholding rate has been confirmed AND the sort is
+    // Highest yield AND compare is off. When it is shut this is just the fund
+    // list wearing a different type, so this branch is safe to take always.
+    final isAll = ref.watch(marketTabProvider) == MarketTab.all;
+    final merged = isAll && !compareMode && ref.watch(allTabMergeProvider);
+    final allRows = ref.watch(streamAllRowsProvider);
     // A rank badge beside an alphabetical list would imply a league position
     // that does not exist.
     final stockRank =
@@ -292,6 +319,7 @@ class MarketsPage extends ConsumerWidget {
                           delegate: _StreamHeader(
                             compareMode: compareMode,
                             isStock: isStock,
+                            isSacco: isSacco,
                             showCcy:
                                 ref.watch(marketTabProvider) ==
                                     MarketTab.moneyMarket &&
@@ -304,8 +332,22 @@ class MarketsPage extends ConsumerWidget {
                                 ref.watch(stockSectorsProvider).length > 1,
                           ),
                         ),
-                        if (isStock)
+                        // The note that must appear when the ranking puts the
+                        // least accessible money on the page at the top of it.
+                        // Hides itself whenever that is not what happened.
+                        if (merged)
+                          const SliverToBoxAdapter(child: LockedLeaderNote()),
+                        if (isSacco)
+                          _saccosSliver(context, saccos, saccoRank)
+                        else if (isStock)
                           _stocksSliver(context, stocks, stockRank)
+                        else if (merged)
+                          _mergedSliver(
+                            context,
+                            ref,
+                            allRows,
+                            showAll ? 1 << 30 : kFundsInitial,
+                          )
                         else
                           stream.when(
                           loading: () => SliverToBoxAdapter(
@@ -368,10 +410,20 @@ class MarketsPage extends ConsumerWidget {
                                   },
                                 ),
                         ),
-                        if (!isStock && !showAll && total > kFundsInitial)
+                        if (!isStock &&
+                            !isSacco &&
+                            !showAll &&
+                            (merged
+                                    ? (allRows.valueOrNull?.length ?? 0)
+                                    : total) >
+                                kFundsInitial)
                           SliverToBoxAdapter(
                             child: _ShowMoreButton(
-                              count: total - kFundsInitial,
+                              count:
+                                  (merged
+                                      ? (allRows.valueOrNull?.length ?? 0)
+                                      : total) -
+                                  kFundsInitial,
                               onTap: () =>
                                   ref
                                           .read(showAllFundsProvider.notifier)
@@ -381,7 +433,14 @@ class MarketsPage extends ConsumerWidget {
                           ),
                         SliverToBoxAdapter(
                           child: Disclaimer(
-                            isStock
+                            isSacco
+                                // Literal, not an i18n key, because the key does
+                                // not exist yet and a missing key would render as
+                                // the key. The one sentence that must never be
+                                // absent from a SACCO list is the one about the
+                                // money not coming back on demand.
+                                ? 'A SACCO pays interest on your savings, but those savings are locked until you resign your membership. The dividend is paid on share capital, which is capped, and is not the same thing. Fructa does not open accounts or hold your money.'
+                                : isStock
                                 ? t('stocks.disclaimer')
                                 : t('markets.disclaimer'),
                           ),
@@ -495,11 +554,13 @@ class _StreamHeader extends SliverPersistentHeaderDelegate {
     required this.compareMode,
     required this.showCcy,
     required this.isStock,
+    required this.isSacco,
     required this.showSector,
   });
   final bool compareMode;
   final bool showCcy;
   final bool isStock;
+  final bool isSacco;
   final bool showSector;
 
   // CategoryTabs(46) + gap(8) + SortPills(42) + gap(8) + count(22) + pad(8)
@@ -520,7 +581,12 @@ class _StreamHeader extends SliverPersistentHeaderDelegate {
     final c = context.c;
     return Consumer(
       builder: (context, ref, _) {
-        final count = isStock
+        final merged = ref.watch(allTabMergeProvider) && !compareMode;
+        final count = isSacco
+            ? ref.watch(streamSaccosProvider).length
+            : merged
+            ? (ref.watch(streamAllRowsProvider).valueOrNull?.length ?? 0)
+            : isStock
             ? ref.watch(streamStocksProvider).length
             : ref
                   .watch(streamFundsProvider)
@@ -529,7 +595,16 @@ class _StreamHeader extends SliverPersistentHeaderDelegate {
         // Under Stocks the count reads in stocks, not funds, and Compare is
         // absent: Compare ranks yields, and a stock has no yield to rank.
         final String label;
-        if (isStock) {
+        if (isSacco) {
+          // The count says how many you can JOIN when the filter is on, not how
+          // many exist. Reporting 176 while showing 14 would be a lie about the
+          // list the user is looking at.
+          final onlyJoinable = ref.watch(saccoOpenOnlyProvider);
+          final noun = count == 1 ? 'society' : 'societies';
+          label = onlyJoinable
+              ? '$count $noun you can join'
+              : '$count $noun';
+        } else if (isStock) {
           label = count == 1
               ? t('stocks.countOne')
               : t('stocks.count', {'n': '$count'});
@@ -554,9 +629,16 @@ class _StreamHeader extends SliverPersistentHeaderDelegate {
                 const StockSectorTabs(),
               ],
               const SizedBox(height: 8),
-              if (isStock)
+              if (isSacco)
+                const SaccoSortPills()
+              else if (isStock)
                 const StockSortPills()
               else
+                // Compare is absent under SACCOs, exactly as it is under Stocks.
+                // Compare ranks fund yields against one another; a SACCO carries
+                // two rates on two different pots and locked money, and dropping
+                // it into that matrix would produce a tidy table of numbers that
+                // are not comparable.
                 SortPills(
                   onCompare: compareMode
                       ? null
@@ -590,6 +672,7 @@ class _StreamHeader extends SliverPersistentHeaderDelegate {
       old.compareMode != compareMode ||
       old.showCcy != showCcy ||
       old.isStock != isStock ||
+      old.isSacco != isSacco ||
       old.showSector != showSector;
 }
 
@@ -674,6 +757,122 @@ Widget _stocksSliver(
         onTap: () => Navigator.of(
           context,
         ).push(MaterialPageRoute(builder: (_) => StockPage(s))),
+      );
+    },
+  );
+}
+
+
+/// The SACCO tab's list. A sibling of the fund SliverList, never a merge into
+/// it: SaccoTile shares FundTile's shell so the rows read as the same kind of
+/// object, while the two rates stay separately labelled and the lock chip rides
+/// on every row.
+Widget _saccosSliver(BuildContext context, List<Sacco> saccos, bool showRank) {
+  if (saccos.isEmpty) {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.all(40),
+        child: Center(
+          child: Text(
+            t('markets.noMatch'),
+            style: TextStyle(color: context.c.muted),
+          ),
+        ),
+      ),
+    );
+  }
+  return SliverList.separated(
+    itemCount: saccos.length,
+    separatorBuilder: (_, _) => const SizedBox.shrink(),
+    itemBuilder: (context, i) {
+      final s = saccos[i];
+      return SaccoTile(
+        s,
+        // A rank badge beside an alphabetical list would imply a league
+        // position that does not exist. It also never appears beside a society
+        // with no declared rate, because those sort last and are not ranked.
+        rank: showRank && s.hasDepositRate ? i + 1 : null,
+        onTap: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => SaccoPage(s))),
+      );
+    },
+  );
+}
+
+
+/// The All list when SACCOs are merged in. Funds and societies interleaved and
+/// ranked on the SAME net-of-tax basis, which is the only basis on which putting
+/// them in one list is defensible at all.
+///
+/// A SACCO row keeps everything that makes it a SACCO: the deposit rate carries
+/// its ON DEPOSITS label, the dividend rides as its own labelled chip, and the
+/// lock chip is there. It is ranked like a fund and it does not pretend to be
+/// one.
+///
+/// The net figure handed to the tile is the very number the list SORTED by, not
+/// a recomputation, so the ranking and the rendering cannot disagree.
+Widget _mergedSliver(
+  BuildContext context,
+  WidgetRef ref,
+  AsyncValue<List<MarketRow>> rows,
+  int limit,
+) {
+  return rows.when(
+    loading: () => SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.all(40),
+        child: Center(
+          child: CircularProgressIndicator(color: context.c.accent),
+        ),
+      ),
+    ),
+    error: (e, _) => SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Text(
+          t('markets.loadError', {'error': '$e'}),
+          style: TextStyle(color: context.c.muted),
+        ),
+      ),
+    ),
+    data: (list) {
+      if (list.isEmpty) {
+        return SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.all(40),
+            child: Center(
+              child: Text(
+                t('markets.noMatch'),
+                style: TextStyle(color: context.c.muted),
+              ),
+            ),
+          ),
+        );
+      }
+      final n = list.length < limit ? list.length : limit;
+      return SliverList.separated(
+        itemCount: n,
+        separatorBuilder: (_, _) => const SizedBox.shrink(),
+        itemBuilder: (context, i) => switch (list[i]) {
+          FundRow(:final fund) => FundTile(
+            fund,
+            rank: i + 1,
+            onTap: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => CompanyPage(fund))),
+            brandColor: ref.watch(brandColorProvider(fund.id)),
+            delta: ref.watch(fundDeltaProvider(fund.id)),
+          ),
+          SaccoRow(:final sacco, :final netRate) => SaccoTile(
+            sacco,
+            rank: i + 1,
+            netRate: netRate,
+            onTap: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => SaccoPage(sacco))),
+          ),
+        },
       );
     },
   );

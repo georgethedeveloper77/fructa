@@ -9,6 +9,7 @@ import 'models/learn.dart';
 import 'models/market_event.dart';
 import 'models/post.dart';
 import 'models/remote_config.dart';
+import 'models/sacco.dart';
 import 'models/stock.dart';
 
 /// Everything in the v2 snapshot beyond `funds` (which keeps flowing through
@@ -30,6 +31,7 @@ class SnapshotExtras {
   final List<Post> posts; // D3 blog posts (articles + briefs)
   final List<Stock> stocks; // NSE-listed equities (0047)
   final List<Broker> brokers; // CMA-licensed stockbrokers (0047)
+  final List<Sacco> saccos; // SASRA co-operative societies (0062)
   final DateTime? generatedAt; // snapshot publish time, for the "Updated" stamp
 
   const SnapshotExtras({
@@ -48,6 +50,7 @@ class SnapshotExtras {
     this.posts = const [],
     this.stocks = const [],
     this.brokers = const [],
+    this.saccos = const [],
     this.generatedAt,
   }) : _deltas = deltas,
        _composition = composition;
@@ -158,6 +161,17 @@ class SnapshotExtras {
         .map((e) => Broker.fromJson((e as Map).cast<String, dynamic>()))
         .toList();
 
+    // SACCOs (0062). Empty unless the publisher had `saccos.enabled` on, so
+    // nothing here needs to know about the switch: a snapshot with SACCOs off
+    // simply carries none and every SACCO surface hides itself.
+    //
+    // A society with no declared rate still arrives. It is a real licensed
+    // institution and the directory is worth something on its own; it is kept
+    // out of ranked lists by Sacco.hasDepositRate rather than ranked at zero.
+    final saccos = (m['saccos'] as List? ?? const [])
+        .map((e) => Sacco.fromJson((e as Map).cast<String, dynamic>()))
+        .toList();
+
     final generatedAt = DateTime.tryParse(
       (m['generated_at'] ?? '') as String,
     )?.toLocal();
@@ -168,6 +182,7 @@ class SnapshotExtras {
       posts: posts,
       stocks: stocks,
       brokers: brokers,
+      saccos: saccos,
       generatedAt: generatedAt,
       companies: companies,
       agents: agents,

@@ -2,8 +2,11 @@ import 'package:hive/hive.dart';
 
 import '../models/holding.dart';
 
-// On-device holdings (Hive). Keyed by fundId  one holding per fund; deposits
-// and withdrawals are recorded as transactions.
+// On-device holdings (Hive). Keyed by the subject id  one holding per fund or
+// SACCO; deposits and withdrawals are recorded as transactions.
+//
+// The key stays the bare id (not 'sacco:<id>') so every holding already written
+// to an installed device keeps resolving. `Holding.kind` carries the table.
 class HoldingsRepository {
   final Box box;
   HoldingsRepository(this.box);
@@ -19,11 +22,16 @@ class HoldingsRepository {
         : Holding.fromMap(Map<String, dynamic>.from(v as Map));
   }
 
+  /// [kind] is only consulted when the holding is NEW. On an edit the existing
+  /// kind is preserved: a holding cannot change what it is held in, and reading
+  /// the caller's argument on every save is how a stray default silently
+  /// rewrites a SACCO into a fund.
   Future<void> setBalance(
     String fundId,
     String currency,
-    double newBalance,
-  ) async {
+    double newBalance, {
+    HoldingKind kind = HoldingKind.fund,
+  }) async {
     final now = DateTime.now();
     final existing = byFund(fundId);
     if (existing == null) {
@@ -31,6 +39,7 @@ class HoldingsRepository {
         fundId,
         Holding(
           fundId: fundId,
+          kind: kind,
           balance: newBalance,
           currency: currency,
           openedAt: now,
@@ -43,6 +52,7 @@ class HoldingsRepository {
         fundId,
         Holding(
           fundId: fundId,
+          kind: existing.kind,
           balance: newBalance,
           currency: currency,
           openedAt: existing.openedAt,

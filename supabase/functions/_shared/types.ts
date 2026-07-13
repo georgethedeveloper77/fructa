@@ -349,3 +349,100 @@ export interface StockPriceAdapter {
   id: string;
   fetchRows(): Promise<StockPriceRow[]>;
 }
+
+// ── SACCOs (0062) ───────────────────────────────────────────────────────────
+// SASRA-regulated co-operative societies. Deliberately NOT modelled as funds.
+//
+// A SACCO carries TWO rates, and they are paid on two different pots of money:
+//
+//   interest_on_deposits       paid on member savings. Uncapped, and it is what
+//                              secures a member's borrowing. This is the number
+//                              the app ranks on, because it is the one that
+//                              decides how much money a member actually
+//                              receives.
+//   dividend_on_share_capital  paid on member share capital, which is capped.
+//                              It is almost always the bigger percentage and
+//                              almost always the smaller cheque. Display only.
+//                              NEVER sorted on, never shown as a bare number.
+//
+// A member with 500,000 in deposits at 13% and 50,000 in shares at 20% earns
+// 65,000 from the 13% and 10,000 from the 20%. Leading a tile with the 20% is
+// not a rounding error, it is telling someone the wrong thing about their money.
+// So the two rates are separate fields with separate names and there is no
+// single field called "rate" that could be either one.
+
+export interface SnapshotSaccoRate {
+  financial_year: number;                    // the year that ENDED, e.g. 2025
+  interest_on_deposits: number | null;       // %, paid on savings
+  dividend_on_share_capital: number | null;  // %, paid on shares
+  declared_on: string | null;                // AGM date
+  source_url: string | null;
+  source_doc: string | null;
+}
+
+export interface SnapshotSacco {
+  // Identity and regulation.
+  id: string;
+  name: string;                    // verbatim from the SASRA register
+  display_name: string;            // short form for tiles
+  sasra_licensed_until: string | null;
+  tier: number | null;             // 1, 2 or 3, from the supervision report
+
+  // Membership. `bond` decides whether a user can join AT ALL, which matters
+  // more than the rate: a SACCO you cannot join has no business outranking one
+  // you can. 'unknown' is treated as not joinable, never as open.
+  bond: string;                    // 'open' | 'closed' | 'unknown'
+  bond_note: string | null;        // e.g. 'University of Nairobi staff'
+  joinable: boolean;               // bond === 'open'
+
+  // Location and contact.
+  county: string | null;
+  physical_location: string | null;
+  branches: number | null;
+  website: string | null;
+  phone: string | null;
+  email: string | null;
+
+  // Brand.
+  logo_url: string | null;
+  brand_color: string | null;
+  about: string | null;
+
+  // THE LOCK. Required, not optional, and always true.
+  //
+  // A SACCO deposit rate and a money market yield are the same shape as numbers
+  // and are NOT the same shape as promises. The fund returns your money in two
+  // working days. The SACCO returns it when you resign your membership. If a
+  // SACCO enters the All league table without this rendered, the app is quietly
+  // telling people that locked money beats liquid money.
+  //
+  // It is a field rather than something the app derives from the row's type
+  // because a derived flag is one refactor away from being dropped. The app
+  // treats a missing `locked` as an error, not as false.
+  locked: true;
+
+  // Rates. Two of them. Named so they cannot be confused for one another.
+  interest_on_deposits: number | null;       // the ranked number
+  dividend_on_share_capital: number | null;  // display only
+  rate_year: number | null;                  // financial year of the above
+  rate_declared_on: string | null;
+  rate_source_url: string | null;
+  rate_source_doc: string | null;
+  // Every declared year, newest first. Drives the AGM history chart.
+  rate_history: SnapshotSaccoRate[];
+
+  // Joining terms, from the SACCO's own published terms.
+  registration_fee_kes: number | null;
+  min_share_capital_kes: number | null;
+  min_monthly_deposit_kes: number | null;
+  loan_multiple: number | null;      // borrow up to Nx your deposits
+  deposit_notice_days: number | null;
+  has_fosa: boolean | null;
+
+  // The institution, from the SASRA Sacco Supervision Annual Report.
+  total_assets_kes: number | null;
+  deposits_kes: number | null;
+  members: number | null;
+  registered_year: number | null;
+  financials_as_of: string | null;
+}
