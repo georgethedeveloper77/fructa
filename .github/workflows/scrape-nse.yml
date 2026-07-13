@@ -4,13 +4,29 @@ name: scrape-nse
 #
 # Two steps, on purpose:
 #
-#   1. Chromium (Playwright) FETCHES the board. It has to be a real browser: afx
-#      does not answer plain fetch() calls. We watched it hang from Supabase's
-#      edge (killed at 150s) and from this same GitHub runner (aborted at 30s),
-#      with an honest bot user agent and with a real Chrome string. Never a 403,
-#      never a 429, never a challenge page: silence. That is bot protection
-#      dropping the connection on the TLS fingerprint, before any HTTP happens.
-#      A refusal has a status code; this had none.
+#   1. Chromium (Playwright) FETCHES the board.
+#
+#      A NOTE ON WHY, BECAUSE THE FIRST EXPLANATION HERE WAS WRONG.
+#
+#      This comment used to say afx was fingerprinting our TLS handshake and that
+#      a real browser would get through. That was a guess, it was stated with
+#      more confidence than it had earned, and Playwright disproved it: real
+#      Chromium, real headers, real browser handshake, and afx still timed out at
+#      45 seconds from this runner.
+#
+#      Four attempts, two networks, three client types, always silence and never
+#      a status code:
+#
+#        Deno fetch, bot UA      Supabase edge     hung, killed at 150s
+#        Deno fetch, Chrome UA   Supabase edge     hung, killed at 150s
+#        Deno fetch, Chrome UA   GitHub runner     hung, aborted at 30s
+#        Chromium (Playwright)   GitHub runner     hung, timed out at 45s
+#
+#      afx blocks DATACENTER IP RANGES. Not headers, not handshakes: the address.
+#      No client-side cleverness fixes that, and afx cannot be our source from any
+#      cloud runner. The replacement source comes from probe-sources.yml, which
+#      tests reachability and freshness from this exact runner before anyone
+#      writes a parser.
 #
 #   2. Deno PARSES and POSTS it to the scrape-nse edge function, which still owns
 #      ticker mapping, the sanity band, prev_close from our own stored series,

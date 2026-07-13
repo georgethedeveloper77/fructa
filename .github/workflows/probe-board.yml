@@ -1,0 +1,25 @@
+name: probe-board
+
+# Which mystocks URL serves the full public board? Writes nothing, touches no
+# database. afx is blocked from every cloud IP we have (four attempts, two
+# networks, three clients, always silence), so mystocks is the replacement. This
+# finds its board before anyone writes a parser for it.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Chromium
+        run: |
+          npm install playwright@1.48.0
+          npx playwright install --with-deps chromium
+      - name: Probe the board
+        run: node scrapers/probe-board.mjs
