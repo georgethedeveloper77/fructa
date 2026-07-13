@@ -1,7 +1,7 @@
 import { adminClient } from "../_shared/supabase.ts";
 import { publishSnapshot } from "../_shared/snapshot.ts";
 import type { StockPriceAdapter, StockPriceRow } from "../_shared/types.ts";
-import { afxNseAdapter } from "./adapters/afx-nse.ts";
+import { mystocksAdapter, MYSTOCKS_URL } from "./adapters/mystocks-nse.ts";
 
 // NSE end-of-day price ingestion.
 //
@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
   // to go and get one:
   //
   //   { "rows": [{ "ticker": "SCOM", "close": 34.2, "prevClose": 34.05 }, ...],
-  //     "source": "afx-nse", "trigger": "cron" }
+  //     "source": "mystocks-nse", "trigger": "cron" }
   //
   // This exists because afx BLOCKS SUPABASE'S EGRESS. The edge functions run in
   // eu-central-1, and afx drops those packets silently: no 403, no 429, just no
@@ -102,7 +102,7 @@ Deno.serve(async (req) => {
   const postedRows = Array.isArray(body?.rows)
     ? (body.rows as StockPriceRow[])
     : null;
-  const postedSource = typeof body?.source === "string" ? body.source : "afx-nse";
+  const postedSource = typeof body?.source === "string" ? body.source : "mystocks-nse";
 
   const db = adminClient();
   const source = "ke-nse";
@@ -159,7 +159,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  const feedUrl = Deno.env.get("NSE_PRICES_URL") ?? "https://afx.kwayisi.org/nse/";
+  const feedUrl = Deno.env.get("NSE_PRICES_URL") ?? MYSTOCKS_URL;
 
   // ticker -> stock_id. Exact, uppercase, no fuzzy matching: a ticker is an
   // identifier, not a label. A ticker we do not hold is REPORTED, never
@@ -173,18 +173,23 @@ Deno.serve(async (req) => {
     idByTicker[String(s.ticker).trim().toUpperCase()] = s.id;
   }
 
-  // The chain. Tried IN ORDER; we stop at the first source that returns a usable
-  // board. This is a FAILOVER, not a merge. Two sources that disagree are a
-  // problem to surface, not a pair of numbers to average: an average is a third
-  // number that no source published and no trade ever happened at, which is the
-  // most confidently wrong thing this system could produce.
+  // The chain. Tried IN ORDER; first usable board wins and we stop.
   //
-  // Adding a source is one entry here plus an adapter file. Every new source is
-  // freshness-checked against a known-current fact BEFORE a parser is written
-  // for it. african-markets.com passed every structural check we had while
-  // serving dividend dates from 2020: a source that is confidently STALE is
-  // worse than one that is honestly blocked.
-  const adapters: StockPriceAdapter[] = [afxNseAdapter(feedUrl)];
+  // A FAILOVER, never a merge. Two sources that disagree are a problem to
+  // surface, not a pair of numbers to average: an average is a third number that
+  // no source published and no trade ever happened at.
+  //
+  // afx is NOT here, and is not coming back. It blocks datacenter IP ranges:
+  // four attempts across two networks (Supabase eu-central-1, a GitHub runner)
+  // and three clients (Deno fetch with a bot UA, Deno fetch with a Chrome UA,
+  // and real Chromium). Always silence, never once a status code.
+  //
+  // mystocks replaced it ON EVIDENCE. Probed from the exact runner that scrapes
+  // it: HTTP 200 in 1.9s, no auth wall, 30 of 30 known tickers, SCOM at 35.05,
+  // which is the same price afx quoted. Two of its sibling URLs were rejected in
+  // the same probe, and both would have passed a naive check: /price_list/
+  // returned 200 and bounced to a login, and /m/ quoted SCOM at 1.44.
+  const adapters: StockPriceAdapter[] = [mystocksAdapter(feedUrl)];
 
   type PxRow = {
     stock_id: string;
@@ -245,6 +250,28 @@ Deno.serve(async (req) => {
 
   if (postedRows) {
     // A runner already did the fetching. Nothing to time out, nothing to block.
+    // The board carries its OWN date, and we store prices under that date, not
+    // under today's. The NSE shuts on public holidays and mystocks leaves the
+    // last session's board up when it does. Stamping that with today would
+    // invent a trading day that never happened, and prev_close would then
+    // compute a day move across a seam where nobody traded.
+    //
+    // But an old board is also how a dead source kills you quietly, so: if the
+    // board is more than a week stale, refuse it. A source that keeps serving
+    // last month's prices with a straight face is worse than one that is down.
+    const boardDate = postedRows[0]?.asOf ?? null;
+    if (boardDate) {
+      const ageDays =
+        (Date.parse(asOf) - Date.parse(boardDate)) / 86_400_000;
+      if (ageDays > 7) {
+        errors.push(
+          `${postedSource}: board is dated ${boardDate}, which is ${Math.round(ageDays)} ` +
+            "days old. Refusing it. The source may be frozen.",
+        );
+        postedRows.length = 0;
+      }
+    }
+
     if (postedRows.length < 40) {
       errors.push(
         `${postedSource}: only ${postedRows.length} rows posted, expected 60 or ` +

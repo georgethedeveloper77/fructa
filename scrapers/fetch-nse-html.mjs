@@ -35,7 +35,7 @@
 import { chromium } from "playwright";
 import { writeFileSync } from "node:fs";
 
-const URL = process.env.NSE_PRICES_URL ?? "https://afx.kwayisi.org/nse/";
+const URL = process.env.NSE_PRICES_URL ?? "https://live.mystocks.co.ke/m/pricelist";
 const OUT = process.env.NSE_HTML_FILE ?? "/tmp/nse.html";
 
 const browser = await chromium.launch();
@@ -85,11 +85,26 @@ try {
   // traded counter on the exchange; if it is not on the page, we did not get the
   // board, whatever else we got.
   const hasScom = /\bSCOM\b/.test(html);
-  console.log(`wrote ${html.length} bytes to ${OUT}, SCOM present: ${hasScom}`);
+  const dated = html.match(/Market\s+Pricelist[^0-9]{0,12}(\d{1,2}\s+[A-Za-z]{3}\w*\s+20\d{2})/i);
+  console.log(`wrote ${html.length} bytes to ${OUT}`);
+  console.log(`  SCOM present : ${hasScom}`);
+  console.log(`  board dated  : ${dated ? dated[1] : "NOT FOUND"}`);
+
+  // Two ways this page can be the wrong page, and both return HTTP 200.
+  //
+  // The probe caught both: /price_list/ answered 200 and bounced to a LOGIN, and
+  // /m/ answered 200 with 30 tickers and quoted SCOM at 1.44. Structurally
+  // perfect, completely wrong. So check the VALUES, not just the shape.
   if (!hasScom) {
     throw new Error(
-      "SCOM is not on the page. This is not the NSE board (a challenge page, a " +
-        "cookie wall, or a moved layout). Refusing to hand it to the parser.",
+      "SCOM is not on the page. This is not the board (a login wall, a cookie " +
+        "page, or a moved layout). Refusing to hand it to the parser.",
+    );
+  }
+  if (!dated) {
+    throw new Error(
+      "No board date on the page. A price without a trading day is not " +
+        "something we should be storing.",
     );
   }
 } finally {

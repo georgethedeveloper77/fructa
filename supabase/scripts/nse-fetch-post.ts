@@ -25,9 +25,9 @@
 //
 // Run:  deno run --allow-net --allow-env supabase/scripts/nse-fetch-post.ts
 
-import { parseAfxTable } from "../functions/scrape-nse/adapters/afx-nse.ts";
+import { parseMystocksBoard, MYSTOCKS_URL } from "../functions/scrape-nse/adapters/mystocks-nse.ts";
 
-const FEED = Deno.env.get("NSE_PRICES_URL") ?? "https://afx.kwayisi.org/nse/";
+const FEED = Deno.env.get("NSE_PRICES_URL") ?? MYSTOCKS_URL;
 
 // When set, read the board from a FILE that a real browser already fetched
 // (scrapers/fetch-nse-html.mjs), instead of fetching it here.
@@ -91,8 +91,8 @@ async function main() {
     }
   }
 
-  const rows = parseAfxTable(html);
-  console.log(`parsed ${rows.length} rows`);
+  const rows = parseMystocksBoard(html);
+  console.log(`parsed ${rows.length} rows, board dated ${rows[0]?.asOf ?? "unknown"}`);
 
   // The same floor the adapter enforces. If the runner is ALSO blocked, or afx
   // has moved its layout, fail here and write nothing rather than posting a
@@ -114,7 +114,7 @@ async function main() {
     },
     body: JSON.stringify({
       trigger: Deno.env.get("TRIGGER") ?? "cron",
-      source: "afx-nse",
+      source: "mystocks-nse",
       rows,
     }),
   });
