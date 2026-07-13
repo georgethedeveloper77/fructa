@@ -46,3 +46,8 @@ env:
     secret: cron-secret
     availability:
       - RUNTIME
+
+  - variable: GITHUB_REPO
+    value: georgethedeveloper77/fructa
+    availability:
+      - RUNTIME
