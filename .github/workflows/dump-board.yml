@@ -1,0 +1,36 @@
+name: dump-board
+
+# Print the mystocks pricelist table exactly as it is, and keep the HTML as an
+# artifact. Writes nothing, touches no database.
+#
+# The board is confirmed: live.mystocks.co.ke/m/pricelist, no auth wall, 30 of 30
+# known tickers, SCOM at 35.05, dated 10 Jul 2026. What is NOT confirmed is the
+# column layout, and the last NSE parser in this repo guessed at that and got it
+# wrong. This is the last look before the adapter is written.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Chromium
+        run: |
+          npm install playwright@1.48.0
+          npx playwright install --with-deps chromium
+      - name: Dump the board
+        env:
+          BOARD_HTML_FILE: /tmp/board.html
+        run: node scrapers/dump-board.mjs
+      - name: Keep the HTML
+        uses: actions/upload-artifact@v4
+        with:
+          name: board-html
+          path: /tmp/board.html
+          retention-days: 7
