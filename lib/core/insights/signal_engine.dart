@@ -20,6 +20,27 @@ class Signal {
   const Signal(this.tag, this.text);
 }
 
+/// Minimum-ticket thresholds, in each currency's OWN units. A fund at or under
+/// [low] is the easy first position in its class; at or over [high] it prices
+/// out smaller savers and the yield is the compensation.
+///
+/// Not derived from an exchange rate on purpose. These are editorial bands (what
+/// counts as an accessible ticket to someone who earns and thinks in that
+/// currency), and they must not shift the day the shilling moves.
+class _MinBand {
+  const _MinBand(this.low, this.high);
+  final double low;
+  final double high;
+}
+
+const _minBands = <String, _MinBand>{
+  'KES': _MinBand(1000, 100000),
+  'USD': _MinBand(100, 5000),
+  'GBP': _MinBand(100, 5000),
+  'EUR': _MinBand(100, 5000),
+  'ZAR': _MinBand(500, 15000),
+};
+
 // Full v5 bank (kept complete for when C1 enables the remaining keys).
 const _bank = <String, List<String>>{
   'upBig': [
@@ -57,8 +78,8 @@ const _bank = <String, List<String>>{
     'A <b>{min}</b> minimum makes this the easiest first position here.',
   ],
   'minHigh': [
-    'Entry needs <b>KES {min}</b>  the steepest minimum in the set.',
-    'The <b>KES {min}</b> ticket prices out smaller savers; the yield is the compensation.',
+    'Entry needs <b>{min}</b>  the steepest minimum in the set.',
+    'The <b>{min}</b> ticket prices out smaller savers; the yield is the compensation.',
   ],
   'feeHigh': [
     'Management fee of <b>{fee}</b> runs above the 2.00% peer norm  it eats into the net.',
@@ -120,9 +141,12 @@ List<Signal> buildSignals(
         .replaceAll('{n}', f.name)
         .replaceAll('{r}', (r ?? 0).toStringAsFixed(2))
         .replaceAll('{net}', net.toStringAsFixed(2))
+        // {min} carries its own CURRENCY. A minimum ticket without one means
+        // nothing, and the minHigh template used to hardcode "KES {min}", which
+        // would have printed "KES 100" for a fund whose minimum is USD 100.
         .replaceAll(
           '{min}',
-          f.minInvest != null ? withCommas(f.minInvest!) : '',
+          f.minInvest != null ? money(f.currency, f.minInvest!) : '',
         )
         .replaceAll(
           '{fee}',
@@ -136,21 +160,43 @@ List<Signal> buildSignals(
     out.add(Signal(tag, _strip(fill(list[(seed + off) % list.length]))));
   }
 
-  // Class leader (needs peers).
-  final cls = peers.where(
-    (x) => x.category == f.category && x.currentRate != null,
-  );
-  if (r != null && cls.length > 1) {
+  // Class leader. The cohort is same fund_type + same currency + retail +
+  // yielding: the SAME predicate the rank line and the peer bars already use,
+  // so the three can never tell the user three different stories.
+  //
+  // This used to cohort on the legacy `category`. Fund.fromJson coerces a null
+  // category to '', and only the legacy instruments ever carried one, so every
+  // equity / balanced / fixed-income / special fund fell into a single shared
+  // '' bucket and was ranked against funds of a different TYPE and a different
+  // CURRENCY. Money market funds survived it only by accident, because
+  // mmf_kes / mmf_usd happen to encode the currency in the category string.
+  final cls = peers
+      .where(
+        (x) =>
+            x.id != f.id &&
+            x.retail &&
+            x.fundType != null &&
+            x.fundType == f.fundType &&
+            x.currency == f.currency &&
+            x.showsYield &&
+            x.currentRate != null,
+      )
+      .toList();
+  if (r != null && f.showsYield && cls.isNotEmpty) {
     final best = cls.map((x) => x.currentRate!).reduce((a, b) => a > b ? a : b);
     if (r >= best) add(SignalTag.strength, 'top1', 6);
   }
 
-  // Minimum ticket.
-  final mv = f.minInvest ?? 0;
-  if (mv > 0 && mv <= 1000 && f.currency == 'KES') {
-    add(SignalTag.strength, 'minLow', 8);
+  // Minimum ticket, in the currency's own units. The old gate was hard-wired to
+  // KES with KES thresholds, so a USD fund could never earn a minimum-ticket
+  // signal at all: Lofty's USD 100 is genuinely the most accessible ticket in
+  // the USD class and the app had no way to say so.
+  final mv = (f.minInvest ?? 0).toDouble();
+  final band = _minBands[f.currency];
+  if (band != null && mv > 0) {
+    if (mv <= band.low) add(SignalTag.strength, 'minLow', 8);
+    if (mv >= band.high) add(SignalTag.watch, 'minHigh', 9);
   }
-  if (mv >= 100000 && f.currency == 'KES') add(SignalTag.watch, 'minHigh', 9);
 
   // Fee.
   if ((f.mgmtFee ?? 0) >= 2.25) add(SignalTag.watch, 'feeHigh', 10);
@@ -158,8 +204,9 @@ List<Signal> buildSignals(
   // Tax-free.
   if (f.taxFree) add(SignalTag.strength, 'taxfree', 11);
 
-  // Class notes.
-  if (f.category == 'mmf_usd') add(SignalTag.note, 'usd', 14);
+  // Class notes. Currency drives the dollar note, not the legacy category: a
+  // USD fund created today carries fund_type + currency and no category at all.
+  if (f.currency == 'USD') add(SignalTag.note, 'usd', 14);
   if (f.category == 'sacco') add(SignalTag.watch, 'sacco', 15);
   if (f.category == 'bond') add(SignalTag.note, 'bondLock', 16);
 

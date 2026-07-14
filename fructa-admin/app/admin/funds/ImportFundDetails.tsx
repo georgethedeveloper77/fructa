@@ -14,21 +14,56 @@ import { IconChevronRight, IconArrowRight } from "../_icons";
 // Accepts "name,rate,min,fee,aum" lines. Numbers tolerate a "KES" prefix and
 // K/M/B suffixes on min/AUM. A header row (starts with "name") is skipped.
 
-function parseAmount(s: string | undefined): number | null {
-  const t = (s ?? "").replace(/kes/i, "").replace(/\s/g, "").replace(/,/g, "").trim();
-  if (!t) return null;
-  const m = t.match(/^([\d.]+)\s*([kmb])?$/i);
+const CCY_CODES = new Set(["KES", "USD", "GBP", "EUR", "ZAR"]);
+
+/** An amount, and the currency the author wrote NEXT to it.
+ *
+ *  The old parser ran `.replace(/kes/i, "")` on every input, which threw the
+ *  author's currency away before anyone could check it against the fund. Paste
+ *  "KES 5M" on a dollar fund and it imported five million DOLLARS, silently, and
+ *  then stamped the text column "KES 5M" on the way out. The currency now rides
+ *  out of the parse so the preview can refuse the row rather than guess which
+ *  unit was meant. */
+type Amount = { value: number | null; ccy: string | null };
+
+function parseAmount(s: string | undefined): Amount {
+  const raw = (s ?? "").trim();
+  if (!raw) return { value: null, ccy: null };
+
+  // A leading three-letter code is the author telling us the unit. Keep it.
+  const head = raw.match(/^([A-Za-z]{3})[\s.]/);
+  const ccy = head && CCY_CODES.has(head[1].toUpperCase()) ? head[1].toUpperCase() : null;
+
+  const body = (ccy ? raw.slice(3) : raw).replace(/\s/g, "").replace(/,/g, "");
+  if (!body) return { value: null, ccy };
+
+  // 3.8billion / 6.2B / 450m / 900k / 12500000
+  const m = body.match(/^([\d.]+)\s*(billion|million|thousand|bn|[kmb])?$/i);
   if (!m) {
-    const n = Number(t);
-    return Number.isFinite(n) ? n : null;
+    const n = Number(body);
+    return { value: Number.isFinite(n) ? n : null, ccy };
   }
   let n = parseFloat(m[1]);
-  const suf = (m[2] || "").toLowerCase();
-  if (suf === "k") n *= 1e3;
-  else if (suf === "m") n *= 1e6;
-  else if (suf === "b") n *= 1e9;
-  return Number.isFinite(n) ? n : null;
+  switch ((m[2] || "").toLowerCase()) {
+    case "k":
+    case "thousand":
+      n *= 1e3;
+      break;
+    case "m":
+    case "million":
+      n *= 1e6;
+      break;
+    case "b":
+    case "bn":
+    case "billion":
+      n *= 1e9;
+      break;
+  }
+  return { value: Number.isFinite(n) ? n : null, ccy };
 }
+
+/** Minimum investment never carries a currency, so it only wants the number. */
+const amountOf = (s: string | undefined): number | null => parseAmount(s).value;
 function parsePct(s: string | undefined): number | null {
   const t = (s ?? "").replace("%", "").trim();
   if (!t) return null;
@@ -43,19 +78,21 @@ function parseRows(text: string): ImportRow[] {
     const p = line.split(",").map((s) => s.trim());
     if (p.length < 2) continue;
     if (/^name$/i.test(p[0])) continue; // header
+    const aum = parseAmount(p[4]);
     out.push({
       name: p[0],
       rate: parsePct(p[1]),
-      min: parseAmount(p[2]),
+      min: amountOf(p[2]),
       fee: parsePct(p[3]),
-      aumKes: parseAmount(p[4]),
+      aumNative: aum.value,
+      aumCcy: aum.ccy,
     });
   }
   return out;
 }
 
 // ── formatting ──────────────────────────────────────────────────────────────
-function fmtKes(v: number | null): string {
+function fmtAmount(v: number | null): string {
   if (v == null) return "—";
   if (v >= 1e9) {
     const b = v / 1e9;
@@ -132,11 +169,18 @@ export function ImportFundDetails() {
       if (m.rate.write && m.rate.to != null) a.rate = m.rate.to;
       if (m.min.write && m.min.to != null) a.min = m.min.to;
       if (m.fee.write && m.fee.to != null) a.fee = m.fee.to;
-      if (m.aum.write && m.aum.to != null) a.aumKes = m.aum.to;
-      if (a.rate != null || a.min != null || a.fee != null || a.aumKes != null) out.push(a);
+      // A mismatched currency never writes. Rate, minimum and fee on the same
+      // row still can: only the AUM's unit is in doubt.
+      if (m.aum.write && m.aum.to != null && !m.aumCcyMismatch) a.aumNative = m.aum.to;
+      if (a.rate != null || a.min != null || a.fee != null || a.aumNative != null) out.push(a);
     }
     return out;
   }, [matched, skip]);
+
+  const blocked = useMemo(
+    () => matched.filter((m) => m.aumCcyMismatch && !skip.has(m.fundId)),
+    [matched, skip],
+  );
 
   function apply() {
     start(async () => {
@@ -169,7 +213,13 @@ export function ImportFundDetails() {
           <p className="text-xs leading-relaxed text-mute">
             Attach a <code className="text-faint">name,rate,min,fee,aum</code> CSV (or paste rows). Min/AUM accept
             K/M/B, e.g. <code className="text-faint">100K</code>, <code className="text-faint">6.2B</code>. Preview shows
-            which fund each row lands on and what changes — nothing is written until you apply.
+            which fund each row lands on and what changes; nothing is written until you apply.
+          </p>
+          <p className="text-xs leading-relaxed text-mute">
+            <span className="text-gold">AUM is read in the fund&rsquo;s own currency.</span> A bare{" "}
+            <code className="text-faint">1.15M</code> on a USD fund means USD 1.15M. You may spell the currency out
+            (<code className="text-faint">USD 1.15M</code>) and it is checked against the fund; if it disagrees, that
+            AUM is refused rather than guessed at.
           </p>
 
           <label className="flex flex-col gap-1">
@@ -178,7 +228,7 @@ export function ImportFundDetails() {
           </label>
           {fileName && (
             <p className="text-xs text-mute">
-              Loaded <code className="text-gold">{fileName}</code> — file takes precedence over pasted rows.
+              Loaded <code className="text-gold">{fileName}</code>. File takes precedence over pasted rows.
             </p>
           )}
 
@@ -261,9 +311,9 @@ export function ImportFundDetails() {
                               </div>
                             </td>
                             <Cell d={m.rate} fmt={fmtPct} />
-                            <Cell d={m.min} fmt={fmtKes} />
+                            <Cell d={m.min} fmt={fmtAmount} />
                             <Cell d={m.fee} fmt={fmtPct} />
-                            <Cell d={m.aum} fmt={fmtKes} />
+                            <AumCell d={m.aum} mismatch={m.aumCcyMismatch} currency={m.currency} />
                           </tr>
                         );
                       })}
@@ -275,7 +325,7 @@ export function ImportFundDetails() {
               {unmatched.length > 0 && (
                 <div className="rounded-lg border border-warn/30 bg-warn/5 px-3 py-2">
                   <div className="mb-1 text-[10px] uppercase tracking-wider text-warn">
-                    {unmatched.length} unmatched — rename to the exact fund and re-preview
+                    {unmatched.length} unmatched, rename to the exact fund and re-preview
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {unmatched.map((n) => (
@@ -284,6 +334,19 @@ export function ImportFundDetails() {
                       </span>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {blocked.length > 0 && (
+                <div className="rounded-lg border border-bad/40 bg-bad/5 px-3 py-2">
+                  <div className="mb-1 text-[10px] uppercase tracking-wider text-bad">
+                    {blocked.length} AUM {blocked.length === 1 ? "value" : "values"} not written, wrong currency
+                  </div>
+                  <p className="text-[11px] leading-relaxed text-mute">
+                    The pasted value names a currency the fund is not denominated in, so its unit is in doubt and it
+                    will not be written. Rate, minimum and fee on those rows still apply. Fix the currency in the CSV,
+                    or drop it: a bare number is read as the fund&rsquo;s own currency.
+                  </p>
                 </div>
               )}
 
@@ -303,6 +366,29 @@ export function ImportFundDetails() {
       )}
     </div>
   );
+}
+
+/** AUM cell. When the pasted value names a currency the fund is not denominated
+ *  in, the value is refused outright and says so. Guessing which unit the author
+ *  meant is the entire bug this replaces. */
+function AumCell({
+  d,
+  mismatch,
+  currency,
+}: {
+  d: { from: number | null; to: number | null; write: boolean };
+  mismatch: boolean;
+  currency: string;
+}) {
+  if (mismatch) {
+    return (
+      <td className="px-2 py-2">
+        <span className="rounded border border-bad/40 bg-bad/10 px-1.5 py-0.5 text-[10px] text-bad">wrong currency</span>
+        <div className="mt-0.5 text-[10px] text-faint">fund is {currency}</div>
+      </td>
+    );
+  }
+  return <Cell d={d} fmt={fmtAmount} />;
 }
 
 /** One before→after cell. Gold when it will write, faint "keep" otherwise. */

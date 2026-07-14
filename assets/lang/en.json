@@ -595,5 +595,8 @@
   "insure.motor.h1Tpo": "Third party only",
   "insure.motor.subTpo": "The legal minimum. Pays for damage you cause to others, nothing for your own car.",
   "insure.travel.kicker": "{n} insurers",
-  "insure.travel.sub": "Cover for one trip, priced per traveller and per day."
+  "insure.travel.sub": "Cover for one trip, priced per traveller and per day.",
+  "follow.alertsOff": "You are following this fund, but alerts are off on this phone. Turn on notifications to hear when the rate moves.",
+  "follow.alertsOffAction": "Turn on",
+  "settings.notif.blocked": "Notifications are blocked for Fructa in your phone's settings. Alerts cannot reach you until you allow them there."
 }

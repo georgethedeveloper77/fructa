@@ -26,6 +26,14 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<!-- remote-notification lets iOS wake the app for a silent/content-available
+	     push. OneSignal uses it for confirmed-delivery receipts and badge sync.
+	     Without it those are dropped, which is part of why a notification could
+	     be "sent" server-side with nothing to show for it on the device. -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

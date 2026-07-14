@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../i18n.dart';
+import '../push.dart';
 import '../theme.dart';
 
 /// App-bar follow control. A watchlist star that fills with the subject's brand
@@ -14,6 +15,17 @@ import '../theme.dart';
 /// page needs exactly the same control, and a second copy would have drifted:
 /// the star is the only thing standing between a user and a push notification,
 /// and two implementations of that is one too many.
+///
+/// The star also OWNS the delivery promise. Filling it used to write a tag and
+/// nothing else, which on a device with no notification permission, or with the
+/// push subscription opted out from "All alerts off", meant the app cheerfully
+/// showed a followed fund that could never notify anyone. The promise was made
+/// in the UI and broken silently three layers down.
+///
+/// So: turning a follow ON prompts for permission if it is missing, re-opts the
+/// subscription in, and if the user still declines, keeps the follow (they do
+/// want to watch this fund) while telling them plainly that alerts are off and
+/// where to change it. The one thing it never does again is fail quietly.
 class FollowStar extends StatefulWidget {
   const FollowStar({
     super.key,
@@ -24,6 +36,10 @@ class FollowStar extends StatefulWidget {
 
   final bool following;
   final Color tint;
+
+  /// Fires on every tap. May be async: the widget upcasts, so an existing
+  /// `() => ref.read(subscriptionsProvider.notifier).toggle(id)` call site keeps
+  /// compiling untouched even though `toggle` now returns a Future.
   final VoidCallback onToggle;
 
   @override
@@ -54,15 +70,70 @@ class _FollowStarState extends State<FollowStar>
     ),
   ]).animate(_ctrl);
 
+  /// Guards against a double tap racing the permission dialog.
+  bool _busy = false;
+
   @override
   void dispose() {
     _ctrl.dispose();
     super.dispose();
   }
 
-  void _tap() {
+  Future<void> _tap() async {
+    if (_busy) return;
+
+    final turningOn = !widget.following;
+
+    // Optimistic: the star pops and the state flips immediately. Making the user
+    // wait on a round trip to OneSignal to see their own tap land would be worse
+    // than the bug this is fixing.
     widget.onToggle();
     _ctrl.forward(from: 0);
+
+    if (!turningOn) return;
+
+    _busy = true;
+    try {
+      final deliverable = await Push.ensureDeliverable();
+      if (!mounted || deliverable) return;
+      _sayAlertsAreOff();
+    } finally {
+      _busy = false;
+    }
+  }
+
+  /// The follow stands. The notification does not. Say so.
+  void _sayAlertsAreOff() {
+    final c = context.c;
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    if (messenger == null) return;
+
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          backgroundColor: c.s3,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 6),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          content: Text(
+            t('follow.alertsOff'),
+            style: TextStyle(color: c.text, fontSize: 13.5, height: 1.4),
+          ),
+          action: SnackBarAction(
+            label: t('follow.alertsOffAction'),
+            textColor: c.accent,
+            onPressed: () {
+              // Re-raises the OS dialog. If the user has already hard-denied,
+              // the OS declines to show it again and this is a no-op, which is
+              // why the Settings panel also offers a route to system settings.
+              Push.promptPermission();
+            },
+          ),
+        ),
+      );
   }
 
   @override

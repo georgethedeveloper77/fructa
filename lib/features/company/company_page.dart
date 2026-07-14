@@ -40,6 +40,51 @@ const _typeNames = {
 };
 String _typeName(Fund f) => _typeNames[f.fundType] ?? categoryLabel(f.category);
 
+/// Slider scale for the projection, per currency.
+///
+/// These are UI affordances (a sane range for someone who thinks in that
+/// currency), NOT financial data, so they are a fixed table rather than an FX
+/// conversion. The slider has to have a sensible range even when no exchange
+/// rate has been published, and it must not silently re-scale itself the day
+/// one is.
+///
+/// Before this existed the whole table was KES-shaped, so a USD fund opened on
+/// a default monthly top-up of USD 10,000, roughly KES 1.3m a month, against a
+/// USD 100 minimum. Every figure in the ledger below it was then built on a
+/// contribution nobody would ever make.
+class _ProjScale {
+  const _ProjScale({
+    required this.topUp,
+    required this.maxTopUp,
+    required this.step,
+  });
+
+  final double topUp; // default monthly top-up
+  final double maxTopUp; // slider ceiling
+  final double step; // slider increment
+
+  int get divisions => (maxTopUp / step).round();
+}
+
+const _projScales = <String, _ProjScale>{
+  'KES': _ProjScale(topUp: 10000, maxTopUp: 100000, step: 5000),
+  'USD': _ProjScale(topUp: 100, maxTopUp: 1000, step: 50),
+  'GBP': _ProjScale(topUp: 100, maxTopUp: 1000, step: 50),
+  'EUR': _ProjScale(topUp: 100, maxTopUp: 1000, step: 50),
+  'ZAR': _ProjScale(topUp: 1000, maxTopUp: 10000, step: 500),
+};
+
+/// Scale for [f]'s currency. An unlisted currency anchors on the fund's own
+/// minimum rather than falling back to the KES table, so a currency added
+/// tomorrow is never handed a range two orders of magnitude out.
+_ProjScale _projScaleFor(Fund f) {
+  final known = _projScales[f.currency];
+  if (known != null) return known;
+  final min = (f.minInvest ?? 1000).toDouble().abs();
+  final base = min > 0 ? min : 1000.0;
+  return _ProjScale(topUp: base, maxTopUp: base * 20, step: base);
+}
+
 // Human labels for the stated-benchmark key (funds.benchmark_key, 0026). Used
 // by the benchmark-relative line and the terms card.
 const _benchLabels = {
@@ -288,7 +333,15 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
 
     final rate = fund.currentRate;
     final netPct = fund.taxFree ? (rate ?? 0) : Tax.net(rate ?? 0);
-    final realPct = fund.realRate(cfg.inflationPct);
+
+    // Real return is the NET rate deflated by the inflation of the fund's OWN
+    // currency: benchmark.inflation for KES, benchmark.inflation_usd for USD.
+    // A currency with no seeded CPI yields null here and the cell renders a
+    // dash rather than a number deflated by the wrong country's prices.
+    final inflation = cfg.inflationFor(fund.currency);
+    final realPct = inflation == null
+        ? null
+        : fund.realRate(inflation, whtPct: cfg.whtPct);
     final invest = fund.investUrl ?? fund.siteUrl;
 
     // Benchmark-relative: gross fund yield vs its stated benchmark (same basis
@@ -752,26 +805,34 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
         ? t('company.atTaxFree', {'net': netPct.toStringAsFixed(2)})
         : t('company.atNet', {'net': netPct.toStringAsFixed(2)});
 
-    if (held.currency == 'USD') {
-      final kesNote = v.valueKes != null
-          ? '\u2248 ${money('KES', v.valueKes!.round())} \u00b7 $netLbl'
-          : netLbl;
-      return PositionBlock(
-        value: '\$${v.valueNative.toStringAsFixed(2)}',
-        delta: v.gainNative >= 0.005
-            ? '+\$${v.gainNative.toStringAsFixed(2)} \u00b7 since $since'
-            : 'Added $since',
-        deltaColor: c.up,
-        sub: kesNote,
-      );
-    }
+    // Everything is labelled in the HOLDING's own currency. This used to branch
+    // on 'USD' and format every other currency as KES, so a GBP or EUR holding
+    // would have carried a KES label on a correct GBP number. Admin already
+    // offers GBP, EUR and ZAR, so that was a mislabel waiting for its first
+    // fund. Decimals follow the unit: minor units matter on a 100-dollar
+    // position and are noise on a 100,000-shilling one.
+    final cur = held.currency;
+    final decimals = cur == 'KES' ? 0 : 2;
+    String amt(double x) => '$cur ${groupedAmount(x, decimals: decimals)}';
+
+    // The KES equivalent is a CONVERSION, so it appears only when the app
+    // actually holds a rate. PortfolioMath returns a null valueKes rather than a
+    // fabricated one when FX is unknown, and this line stays away when it does.
+    final kesNote = (cur != 'KES' && v.valueKes != null)
+        ? '\u2248 ${money('KES', v.valueKes!.round())} \u00b7 $netLbl'
+        : netLbl;
+
+    // Below one minor unit there is nothing to report, so say when it was added
+    // instead of printing a gain of zero.
+    final showGain = v.gainNative >= (decimals == 0 ? 1 : 0.005);
+
     return PositionBlock(
-      value: money('KES', v.valueNative),
-      delta: v.gainNative >= 1
-          ? '+${money('KES', v.gainNative.round())} \u00b7 since $since'
+      value: amt(v.valueNative),
+      delta: showGain
+          ? '+${amt(v.gainNative)} \u00b7 since $since'
           : 'Added $since',
       deltaColor: c.up,
-      sub: netLbl,
+      sub: kesNote,
     );
   }
 
@@ -1104,12 +1165,15 @@ class _ProjectionSection extends StatefulWidget {
 
 class _ProjectionSectionState extends State<_ProjectionSection> {
   late final TextEditingController _initial;
-  double _topUp = 10000;
+  late final _ProjScale _scale;
+  late double _topUp;
   int _months = 24;
 
   @override
   void initState() {
     super.initState();
+    _scale = _projScaleFor(widget.fund);
+    _topUp = _scale.topUp;
     final seed = widget.fund.minInvest;
     _initial =
         TextEditingController(text: seed != null ? _commas(seed) : '');
@@ -1146,18 +1210,36 @@ class _ProjectionSectionState extends State<_ProjectionSection> {
     final initial = _initialAmt;
     final contributed = initial + _topUp * _months;
 
-    final projNet = ProjectionEngine.project(initial, rate, _months,
+    // ONE simulated path, the net one. WHT is withheld from interest as it
+    // accrues, so the balance genuinely compounds net of tax and that is the
+    // only path the money ever actually takes.
+    //
+    // Gross and tax are DERIVED from it, never simulated separately. The
+    // engine's recurrence is  B <- B * (1 + m * (1 - wht)) + topUp,  so in every
+    // month  tax = B * m * wht  and  net = B * m * (1 - wht). That pins
+    // tax / net = wht / (1 - wht) in each month, and a ratio held in every term
+    // survives the sum, so  gross = net / (1 - wht)  recovers the tax withheld
+    // over the whole horizon exactly. The tax row is therefore exactly wht% of
+    // the gross row above it, at every rate and every horizon.
+    //
+    // The old code simulated a SECOND, gross path and called the gap between the
+    // two "withholding tax". That path is a counterfactual, a world where the
+    // tax was never taken, so it compounds on a base the tax never touched and
+    // the gap it leaves is the tax PLUS the compounding the tax cost you. Under
+    // a row that says 15%, it printed 15.5% of gross at two years and 21.8% at
+    // ten. The projected value was never wrong; the story told about it was.
+    final projected = ProjectionEngine.project(initial, rate, _months,
         monthlyTopUp: _topUp, net: !taxFree);
-    final projGross = ProjectionEngine.project(initial, rate, _months,
-        monthlyTopUp: _topUp, net: false);
-    final grossInterest = projGross - contributed;
-    final netInterest = projNet - contributed;
-    final whtPaid = (grossInterest - netInterest).clamp(0, double.infinity);
+    final netInterest = projected - contributed;
+    final grossInterest = taxFree ? netInterest : netInterest / (1 - Tax.wht);
+    final whtPaid = grossInterest - netInterest;
 
     final series = ProjectionEngine.series(initial, rate, _months,
         monthlyTopUp: _topUp, net: !taxFree);
 
-    String kes(num v) => money(cur, v.round());
+    // Formats in the FUND's currency, not KES. The old name of this closure
+    // was `kes`, which is exactly the assumption this delivery is unpicking.
+    String amt(num v) => money(cur, v.round());
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1172,7 +1254,7 @@ class _ProjectionSectionState extends State<_ProjectionSection> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // headline projected value
-                Text(kes(projNet),
+                Text(amt(projected),
                     style: TextStyle(
                         color: c.text,
                         fontFamily: fructaFonts.mono,
@@ -1185,7 +1267,7 @@ class _ProjectionSectionState extends State<_ProjectionSection> {
                     Icon(Icons.arrow_drop_up, size: 18, color: c.up),
                     Flexible(
                       child: Text(
-                        '${kes(netInterest < 0 ? 0 : netInterest)} net growth \u00b7 over ${_horizonLabel(_months)}',
+                        '${amt(netInterest < 0 ? 0 : netInterest)} net growth \u00b7 over ${_horizonLabel(_months)}',
                         style: TextStyle(
                             color: c.up,
                             fontFamily: fructaFonts.mono,
@@ -1206,12 +1288,12 @@ class _ProjectionSectionState extends State<_ProjectionSection> {
                 _sliderRow(
                   c,
                   label: t('company.proj.topUp'),
-                  valueText: kes(_topUp),
+                  valueText: amt(_topUp),
                   slider: Slider(
-                    value: _topUp,
+                    value: _topUp.clamp(0, _scale.maxTopUp),
                     min: 0,
-                    max: 100000,
-                    divisions: 20,
+                    max: _scale.maxTopUp,
+                    divisions: _scale.divisions,
                     onChanged: (v) => setState(() => _topUp = v),
                   ),
                 ),
@@ -1247,12 +1329,12 @@ class _ProjectionSectionState extends State<_ProjectionSection> {
                 _LedgerRow(
                   k: 'You contribute',
                   sub:
-                      '${kes(initial)} + ${kes(_topUp)} \u00d7 $_months',
-                  v: kes(contributed),
+                      '${amt(initial)} + ${amt(_topUp)} \u00d7 $_months',
+                  v: amt(contributed),
                 ),
                 _LedgerRow(
                   k: 'Gross interest',
-                  v: '+${kes(grossInterest)}',
+                  v: '+${amt(grossInterest)}',
                   vColor: c.up,
                 ),
                 if (taxFree)
@@ -1264,17 +1346,17 @@ class _ProjectionSectionState extends State<_ProjectionSection> {
                 else
                   _LedgerRow(
                     k: 'Less ${(Tax.wht * 100).toStringAsFixed(0)}% withholding tax',
-                    v: '\u2212${kes(whtPaid)}',
+                    v: '\u2212${amt(whtPaid)}',
                     vColor: c.muted,
                   ),
                 _LedgerRow(
                   k: 'Net interest earned',
-                  v: '+${kes(netInterest < 0 ? 0 : netInterest)}',
+                  v: '+${amt(netInterest < 0 ? 0 : netInterest)}',
                   vColor: c.up,
                 ),
                 _LedgerRow(
                   k: 'Projected value',
-                  v: kes(projNet),
+                  v: amt(projected),
                   total: true,
                   accent: tint,
                   last: true,

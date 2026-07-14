@@ -32,7 +32,7 @@ export interface SnapshotFund {
   category: string;
   fund_type: string | null;   // mmf | fixed_income | equity | balanced | special
   currency: string;
-  basis: string | null;       // yield | nav | none — drives whether a rate shows
+  basis: string | null;       // yield | nav | none, drives whether a rate shows
   retail: boolean;            // consumer-visible cut
   current_rate: number | null;
   tax_free: boolean;
@@ -46,7 +46,7 @@ export interface SnapshotFund {
   featured: boolean;
   company_id: string | null;
 
-  // Profile & terms (migration 0026) — static per-fund facts from fact sheets.
+  // Profile & terms (migration 0026): static per-fund facts from fact sheets.
   inception_date: string | null;  // YYYY-MM-DD; "operating since" trust signal
   benchmark_key: string | null;   // tbill_91 | tbill_182 | tbill_364 | cbr
   expense_ratio: number | null;   // all-in TER, % p.a.
@@ -55,7 +55,7 @@ export interface SnapshotFund {
   top_up_min: number | null;      // subsequent top-up minimum
   objective: string | null;       // one-line fund aim
 
-  // Trailing performance (migration 0027) — latest standing from the manager's
+  // Trailing performance (migration 0027): latest standing from the manager's
   // monthly fact sheet. Per-horizon benchmark so vs-benchmark is on-basis.
   return_ytd: number | null;      // fund, % year to date
   return_1y: number | null;       // fund, annualised %
@@ -76,9 +76,29 @@ export interface SnapshotFund {
   price_as_of: string | null;       // YYYY-MM-DD, quote date
   distribution_pct: number | null;  // income distribution / interest %
 
+  // Fund size, in the fund's OWN currency (see `currency`), never KES-converted.
+  // Replaces `aum` (free text with the currency baked into the string) and
+  // `aum_kes` (numeric, named for a currency it did not enforce). Converting at
+  // write time would freeze an FX rate into the column, and a dollar fund's
+  // recorded size would drift every day the shilling moved.
+  aum_native: number | null;
+
+  // Bond-fund fields (0070). Duration is THE number for a bond fund: it is why
+  // one paying 5.1% income can post a NEGATIVE total return while one paying
+  // 4.4% posts +12.6%. Null renders as unknown, never as zero, because a bond
+  // fund insensitive to rates essentially does not exist.
+  duration_years: number | null;
+  credit_quality: Record<string, number> | null;
+
   // C2 sparkline, attached by the builder (not a column). Absent when the
   // fund has fewer than 2 history points in the window.
   spark?: number[];
+
+  // The price series for a basis='nav' fund, from nav_history. A separate field
+  // from `spark`, which holds rates. One field cannot hold both: a percent and a
+  // shilling price are not interchangeable, and a field whose unit depends on a
+  // neighbouring column is the defect this codebase keeps paying for.
+  nav_spark?: number[];
 }
 
 export interface SnapshotCompany {
@@ -97,7 +117,7 @@ export interface SnapshotCompany {
   rank: number | null;
   aum_as_of: string | null;
 
-  // Custody chain (migration 0026) — manager-family trust signals.
+  // Custody chain (migration 0026): manager-family trust signals.
   trustee: string | null;
   custodian: string | null;
   auditor: string | null;
@@ -226,7 +246,7 @@ export interface SnapshotLearn {
 // inside the snapshot next to learn. `kind` discriminates: 'article' (evergreen,
 // hero + reading time) vs 'brief' (short, timely, optional fund/company link).
 // Only published rows are serialised; pinned first, newest first. There is no
-// news scraper — briefs are authored in admin. The builder maps the DB's 0035
+// news scraper; briefs are authored in admin. The builder maps the DB's 0035
 // names (excerpt -> summary, cover_url -> hero_image_url) into this app shape;
 // slug is the identity (no separate id).
 

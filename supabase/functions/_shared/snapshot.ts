@@ -38,7 +38,7 @@ const FUND_FIELDS =
   "id,name,manager,category,fund_type,currency,basis,retail,current_rate,tax_free,min_invest,mgmt_fee,site_url,invest_url,contact_url,logo_domain,verified,featured,company_id," +
   "inception_date,benchmark_key,expense_ratio,redemption_fee,lock_in_months,top_up_min,objective," +
   "return_ytd,return_1y,return_3y,return_5y,bench_1y,bench_3y,bench_5y,best_month,worst_month,returns_as_of," +
-  "price_per_unit,price_as_of,distribution_pct";
+  "price_per_unit,price_as_of,distribution_pct,aum_native,duration_years,credit_quality";
 
 const INSURER_FIELDS =
   "id,name,company_id,currency,plans,min_premium,excess_pct,excess_min,claims_days,rating,motor_rate,benefits,logo_domain," +
@@ -46,7 +46,7 @@ const INSURER_FIELDS =
 
 // Sibling composition array (migration 0017: funds.composition jsonb +
 // aum_kes + aum_as_of + composition_source_url). Keyed by fund_id and kept
-// OUT of the funds rows — mirrors the deltas pattern, so the app's Fund
+// OUT of the funds rows, mirroring the deltas pattern, so the app's Fund
 // model and rates path stay untouched.
 type SnapshotComposition = {
   fund_id: string;
@@ -61,7 +61,7 @@ export async function publishSnapshot(
 ): Promise<{ count: number; url: string }> {
   const asOf = new Date(Date.now() + 3 * 3_600_000).toISOString().slice(0, 10); // EAT day
 
-  // Funds (kind='fund') — the app's rate list.
+  // Funds (kind='fund'), the app's rate list.
   const { data: funds, error } = await db
     .from("funds")
     .select(FUND_FIELDS)
@@ -76,7 +76,7 @@ export async function publishSnapshot(
     .returns<SnapshotFund[]>();
   if (error) throw new Error(`snapshot funds query failed: ${error.message}`);
 
-  // C2 — compact per-fund sparkline (≤20 points, trailing 180 days) attached
+  // C2, a compact per-fund sparkline (≤20 points, trailing 180 days) attached
   // to each fund row, so app tiles stop fetching per-fund history on scroll.
   // Full-resolution history stays behind getHistory for hero/Company/Compare.
   // 180d (not 90d): while marks are sparse (Apr/Jun 2026 backfill + scrapes),
@@ -106,12 +106,39 @@ export async function publishSnapshot(
     }
     return out;
   };
+  // The NAV series (0070). A SEPARATE field from `spark`, not the same one
+  // reused, because `spark` holds a rate and this holds a price. Letting one
+  // field carry a percent for some funds and a shilling figure for others would
+  // be a number whose unit is decided by a neighbouring column, which is exactly
+  // the defect that put "KES 3.80 billion" on one fund and a naked "1150000" on
+  // another. Two series, two names, and no widget can draw a price against a
+  // percent axis by accident.
+  //
+  // Same descending-then-reverse dance as the rate query above: with an ascending
+  // order the row cap silently drops the NEWEST marks.
+  const { data: navRows } = await db
+    .from("nav_history")
+    .select("fund_id,price,as_of")
+    .gte("as_of", cutoff)
+    .order("as_of", { ascending: false })
+    .limit(20000);
+  const navByFund = new Map<string, number[]>();
+  for (const h of [...(navRows ?? [])].reverse()) {
+    const arr = navByFund.get(h.fund_id) ?? [];
+    arr.push(Number(h.price));
+    navByFund.set(h.fund_id, arr);
+  }
+
   const fundsWithSpark = (funds ?? []).map((f) => {
+    const out: Record<string, unknown> = { ...f };
     const h = histByFund.get(f.id);
-    return h && h.length >= 2 ? { ...f, spark: downsample(h) } : f;
+    if (h && h.length >= 2) out.spark = downsample(h);
+    const nv = navByFund.get(f.id);
+    if (nv && nv.length >= 2) out.nav_spark = downsample(nv);
+    return out;
   });
 
-  // Insurers (kind='insurance') — separate array, kept out of the rate list.
+  // Insurers (kind='insurance'), a separate array, kept out of the rate list.
   const { data: insurers } = await db
     .from("funds")
     .select(INSURER_FIELDS)
@@ -144,7 +171,7 @@ export async function publishSnapshot(
     company_ids: byAgent.get(a.id) ?? [],
   }));
 
-  // FX — latest row per pair.
+  // FX, latest row per pair.
   const { data: fxRows } = await db
     .from("fx_rates")
     .select("pair,rate,as_of")
@@ -171,7 +198,7 @@ export async function publishSnapshot(
     (configRows ?? []).map((r) => [r.key, r.value]),
   );
 
-  // Composition — only funds that actually carry a breakdown.
+  // Composition, only funds that actually carry a breakdown.
   const { data: compRows } = await db
     .from("funds")
     .select("id,composition,aum_kes,aum_as_of,composition_source_url")
@@ -193,7 +220,7 @@ export async function publishSnapshot(
       source_url: r.composition_source_url ?? null,
     }));
 
-  // Insurance types (0041) — admin-managed grid on the Insure home. Active,
+  // Insurance types (0041), an admin-managed grid on the Insure home. Active,
   // ordered. Motor and Travel route to live flows; other keys render as
   // coming-soon cards until their pricing tables land.
   const { data: insTypes } = await db
@@ -202,7 +229,7 @@ export async function publishSnapshot(
     .eq("active", true)
     .order("ord", { ascending: true });
 
-  // Learn (D2) — units → lessons → steps, nested for the app. Published in the
+  // Learn (D2): units → lessons → steps, nested for the app. Published in the
   // snapshot so a content edit reaches devices on the next rebuild (like config).
   const { data: lUnits } = await db
     .from("learn_units")
@@ -248,7 +275,7 @@ export async function publishSnapshot(
     })),
   };
 
-  // Posts (D3) — blog articles + curated market briefs from the unified posts
+  // Posts (D3): blog articles + curated market briefs from the unified posts
   // table (0035 + 0037). Published rows only, riding in the snapshot like learn
   // so a content edit reaches devices on the next rebuild. Bodies are
   // first-party (no copyright weight). Pinned first, newest first. The DB uses

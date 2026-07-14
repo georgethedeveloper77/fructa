@@ -24,8 +24,14 @@ class BrokerRow extends StatelessWidget {
   static Future<void> open(String url) async {
     final uri = Uri.tryParse(url);
     if (uri == null) return;
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    try {
+      final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!ok) {
+        await launchUrl(uri, mode: LaunchMode.platformDefault);
+      }
+    } catch (_) {
+      // No handler on the device at all. Nothing useful to do here, but the
+      // button must not look broken, so the caller should surface it.
     }
   }
 

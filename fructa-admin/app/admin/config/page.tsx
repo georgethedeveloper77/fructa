@@ -50,14 +50,10 @@ export default async function ConfigPage() {
   const publishedAt =
     all.reduce<string | null>((mx, r) => (!mx || r.updated_at > mx ? r.updated_at : mx), null);
 
+  // The workspace owns its own header, because the stale and due counts are
+  // derived from the staged models on the client, not from the database rows.
   return (
     <div className="-m-6">
-      <div className="flex h-16 items-center gap-3 border-b border-line bg-panel px-4">
-        <h1 className="text-[13.5px] font-semibold">Remote config</h1>
-        <span className="border-l border-line2 pl-3 text-[11.5px] text-faint">
-          Machine values in the app snapshot. Devices pick changes up on their next refresh, no release.
-        </span>
-      </div>
       <ConfigWorkspace rows={rows} board={board} publishedAt={publishedAt} />
     </div>
   );

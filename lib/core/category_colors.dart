@@ -1,5 +1,19 @@
 import 'package:flutter/material.dart';
 
+/// Legacy `category` keys. Kept because tiles, filters and the compare matrix
+/// still key off category for the instrument rows (T-bill, bond, SACCO, stock,
+/// insurance).
+///
+/// THE CIS KEYS HERE MUST AGREE WITH [fundTypeColors], AND THEY DID NOT.
+///
+/// 'equity' was amber (0xFFF0A24C) here and iris (0xFF9A8BF3) in fundTypeColors,
+/// so one equity fund could render in two different colours depending on which
+/// map the surface happened to reach for. Worse, 'balanced' here was 0xFF9A8BF3,
+/// which is EXACTLY the colour fundTypeColors gives to 'equity': a balanced fund
+/// keyed by category was indistinguishable from an equity fund keyed by
+/// fund_type. Since fund_type is the authoritative column and the four new asset
+/// classes all key on it, the CIS entries below now defer to fundTypeColors and
+/// there is one colour per fund type, whichever door a widget comes in by.
 const categoryColors = <String, Color>{
   'mmf_kes': Color(0xFFE0B34C), // gold
   'mmf_usd': Color(0xFF6AA6F0), // blue
@@ -7,8 +21,8 @@ const categoryColors = <String, Color>{
   'bond': Color(0xFFA99BF5), // purple
   'sacco': Color(0xFF34D399), // green
   'stock': Color(0xFFFB6B6B), // red
-  'equity': Color(0xFFF0A24C), // amber
-  'balanced': Color(0xFF9A8BF3), // iris
+  'equity': Color(0xFF9A8BF3), // iris   (matches fundTypeColors['equity'])
+  'balanced': Color(0xFFE7784C), // ember  (matches fundTypeColors['balanced'])
   'islamic': Color(0xFF2FB5A0), // emerald
   'reit': Color(0xFF31B7C2), // cyan
   'insurance': Color(0xFF4E8FE8), // sky
@@ -36,7 +50,7 @@ Color fundTypeColor(String? t) =>
 /// `market.asset_classes`. Data colours, centralised like [fundTypeColors] so
 /// no widget carries raw hex.
 const assetClassColors = <String, Color>{
-  'gok': Color(0xFFE0B34C), // gold  — government securities
+  'gok': Color(0xFFE0B34C), // gold, government securities
   'fixed_deposits': Color(0xFF4E8FE8), // sky
   'cash': Color(0xFF34D399), // green
   'unlisted': Color(0xFF9A8BF3), // iris

@@ -1,5 +1,3 @@
-import 'dart:ui' show FontFeature;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -65,7 +63,15 @@ class BestFundHero extends ConsumerWidget {
 
     final rate = fund.currentRate ?? 0;
     final net = fund.netRate(wht);
-    final real = fund.realRate(cfg.inflationPct);
+
+    // Real deflates the NET rate by the inflation of the fund's OWN currency.
+    // Null when that currency has no seeded CPI, so the caller hides the figure
+    // rather than deflate a dollar fund by Kenyan prices.
+    final inflation = cfg.inflationFor(fund.currency);
+    final real = inflation == null
+        ? null
+        : fund.realRate(inflation, whtPct: wht);
+
     final tag =
         '${_typeNames[fund.fundType] ?? fund.category} \u00b7 ${fund.currency}';
     final d = delta;
@@ -78,9 +84,10 @@ class BestFundHero extends ConsumerWidget {
     // The fund's OWN stated benchmark (0026), replacing the hardcoded 91-day.
     // Falls back to the 91-day so the reference line always renders (matches
     // the prior behaviour, and every MMF was backfilled to tbill_91 anyway).
-    final benchRate =
-        cfg.benchmarkRate(fund.benchmarkConfigKey ?? 'benchmark.tbill_91',
-            cfg.tbill91Pct);
+    final benchRate = cfg.benchmarkRate(
+      fund.benchmarkConfigKey ?? 'benchmark.tbill_91',
+      cfg.tbill91Pct,
+    );
     final benchLabel =
         _benchLabels[fund.benchmarkKey ?? 'tbill_91'] ?? '91-day T-bill';
     // Explicit gross-vs-benchmark spread (same basis as the fact sheet). Null
@@ -101,9 +108,13 @@ class BestFundHero extends ConsumerWidget {
               end: Alignment.bottomRight,
               colors: [
                 Color.alphaBlend(
-                    tint.withValues(alpha: c.isDark ? 0.20 : 0.08), base),
+                  tint.withValues(alpha: c.isDark ? 0.20 : 0.08),
+                  base,
+                ),
                 Color.alphaBlend(
-                    tint.withValues(alpha: c.isDark ? 0.05 : 0.0), base),
+                  tint.withValues(alpha: c.isDark ? 0.05 : 0.0),
+                  base,
+                ),
               ],
             ),
             borderRadius: BorderRadius.circular(20),
@@ -137,7 +148,7 @@ class BestFundHero extends ConsumerWidget {
                     gradient: RadialGradient(
                       colors: [
                         tint.withValues(alpha: c.isDark ? 0.34 : 0.26),
-                        Colors.transparent
+                        Colors.transparent,
                       ],
                     ),
                   ),
@@ -150,46 +161,58 @@ class BestFundHero extends ConsumerWidget {
                   Row(
                     children: [
                       FundLogo(
-                          domain: fund.logoDomain,
-                          logoUrl: logoUrl,
-                          seed: fund.manager,
-                          size: 34,
-                          brandColor: brandColor),
+                        domain: fund.logoDomain,
+                        logoUrl: logoUrl,
+                        seed: fund.manager,
+                        size: 34,
+                        brandColor: brandColor,
+                      ),
                       const SizedBox(width: 11),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(fund.name,
-                                style: TextStyle(
-                                    color: c.text,
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w600)),
+                            Text(
+                              fund.name,
+                              style: TextStyle(
+                                color: c.text,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                             const SizedBox(height: 2),
-                            Text(tag,
-                                style: TextStyle(
-                                    color: tint,
-                                    fontFamily: fructaFonts.mono,
-                                    fontSize: 10.5,
-                                    letterSpacing: 0.5)),
+                            Text(
+                              tag,
+                              style: TextStyle(
+                                color: tint,
+                                fontFamily: fructaFonts.mono,
+                                fontSize: 10.5,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
                           ],
                         ),
                       ),
                       const SizedBox(width: 10),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 9, vertical: 5),
+                          horizontal: 9,
+                          vertical: 5,
+                        ),
                         decoration: BoxDecoration(
                           color: c.accent,
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: Text('BEST RATE',
-                            style: TextStyle(
-                                color: c.onAccent,
-                                fontFamily: fructaFonts.mono,
-                                fontSize: 9.5,
-                                letterSpacing: 1,
-                                fontWeight: FontWeight.w600)),
+                        child: Text(
+                          'BEST RATE',
+                          style: TextStyle(
+                            color: c.onAccent,
+                            fontFamily: fructaFonts.mono,
+                            fontSize: 9.5,
+                            letterSpacing: 1,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -213,7 +236,7 @@ class BestFundHero extends ConsumerWidget {
                               fontWeight: FontWeight.w600,
                               letterSpacing: -1,
                               fontFeatures: const [
-                                FontFeature.tabularFigures()
+                                FontFeature.tabularFigures(),
                               ],
                             ),
                           ),
@@ -221,11 +244,14 @@ class BestFundHero extends ConsumerWidget {
                         const SizedBox(width: 6),
                         Padding(
                           padding: const EdgeInsets.only(bottom: 5),
-                          child: Text('% gross',
-                              style: TextStyle(
-                                  color: c.muted,
-                                  fontFamily: fructaFonts.mono,
-                                  fontSize: 18)),
+                          child: Text(
+                            '% gross',
+                            style: TextStyle(
+                              color: c.muted,
+                              fontFamily: fructaFonts.mono,
+                              fontSize: 18,
+                            ),
+                          ),
                         ),
                         if (d != null && d != 0) ...[
                           const Spacer(),
@@ -235,17 +261,21 @@ class BestFundHero extends ConsumerWidget {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
-                                    d > 0
-                                        ? Icons.arrow_drop_up
-                                        : Icons.arrow_drop_down,
-                                    size: 18,
-                                    color: c.delta(d)),
-                                Text('${d.abs().toStringAsFixed(2)} \u00b7 7d',
-                                    style: TextStyle(
-                                        color: c.delta(d),
-                                        fontFamily: fructaFonts.mono,
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600)),
+                                  d > 0
+                                      ? Icons.arrow_drop_up
+                                      : Icons.arrow_drop_down,
+                                  size: 18,
+                                  color: c.delta(d),
+                                ),
+                                Text(
+                                  '${d.abs().toStringAsFixed(2)} \u00b7 7d',
+                                  style: TextStyle(
+                                    color: c.delta(d),
+                                    fontFamily: fructaFonts.mono,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -312,13 +342,14 @@ class BestFundHero extends ConsumerWidget {
                           Text(
                             '${benchDelta >= 0 ? '+' : ''}${benchDelta.toStringAsFixed(2)} pts',
                             style: TextStyle(
-                                color: c.delta(benchDelta),
-                                fontFamily: fructaFonts.mono,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                fontFeatures: const [
-                                  FontFeature.tabularFigures()
-                                ]),
+                              color: c.delta(benchDelta),
+                              fontFamily: fructaFonts.mono,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
+                            ),
                           ),
                         ],
                       ],
@@ -334,11 +365,11 @@ class BestFundHero extends ConsumerWidget {
   }
 
   Widget _vline(fructaColors c) => Container(
-        width: 1,
-        height: 30,
-        margin: const EdgeInsets.symmetric(horizontal: 14),
-        color: c.line,
-      );
+    width: 1,
+    height: 30,
+    margin: const EdgeInsets.symmetric(horizontal: 14),
+    color: c.line,
+  );
 }
 
 class _TriadCell extends StatelessWidget {
@@ -354,21 +385,27 @@ class _TriadCell extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(k,
-              style: TextStyle(
-                  color: c.faint,
-                  fontFamily: fructaFonts.mono,
-                  fontSize: 9.5,
-                  letterSpacing: 1,
-                  fontWeight: FontWeight.w600)),
+          Text(
+            k,
+            style: TextStyle(
+              color: c.faint,
+              fontFamily: fructaFonts.mono,
+              fontSize: 9.5,
+              letterSpacing: 1,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const SizedBox(height: 3),
-          Text(v,
-              style: TextStyle(
-                  color: color ?? c.text,
-                  fontFamily: fructaFonts.mono,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  fontFeatures: const [FontFeature.tabularFigures()])),
+          Text(
+            v,
+            style: TextStyle(
+              color: color ?? c.text,
+              fontFamily: fructaFonts.mono,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
         ],
       ),
     );
@@ -394,12 +431,20 @@ class _Lg extends StatelessWidget {
               ? CustomPaint(painter: _DashLegend(color))
               : DecoratedBox(
                   decoration: BoxDecoration(
-                      color: color, borderRadius: BorderRadius.circular(2))),
+                    color: color,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
         ),
         const SizedBox(width: 5),
-        Text(label,
-            style: TextStyle(
-                color: c.muted, fontFamily: fructaFonts.mono, fontSize: 10)),
+        Text(
+          label,
+          style: TextStyle(
+            color: c.muted,
+            fontFamily: fructaFonts.mono,
+            fontSize: 10,
+          ),
+        ),
       ],
     );
   }
@@ -419,7 +464,10 @@ class _DashLegend extends CustomPainter {
     var x = 0.0;
     while (x < size.width) {
       canvas.drawLine(
-          Offset(x, y), Offset((x + dash).clamp(0, size.width), y), p);
+        Offset(x, y),
+        Offset((x + dash).clamp(0, size.width), y),
+        p,
+      );
       x += dash + gap;
     }
   }
@@ -462,7 +510,10 @@ class _HeroSpark extends CustomPainter {
       var x = 0.0;
       while (x < size.width) {
         canvas.drawLine(
-            Offset(x, by), Offset((x + dash).clamp(0, size.width), by), p);
+          Offset(x, by),
+          Offset((x + dash).clamp(0, size.width), by),
+          p,
+        );
         x += dash + gap;
       }
     }
@@ -489,10 +540,7 @@ class _HeroSpark extends CustomPainter {
         ..shader = LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [
-            color.withValues(alpha: 0.22),
-            color.withValues(alpha: 0.0)
-          ],
+          colors: [color.withValues(alpha: 0.22), color.withValues(alpha: 0.0)],
         ).createShader(Offset.zero & size),
     );
     canvas.drawPath(

@@ -87,6 +87,28 @@ class RemoteConfig {
   double get tbill364Pct => benchmarkRate('benchmark.tbill_364', 8.87);
   double get whtPct => benchmarkRate('benchmark.wht_pct', 15);
 
+  /// Inflation for a given CURRENCY, or null when none is published for it.
+  ///
+  /// KES reads `benchmark.inflation`, the long-standing key, unrenamed because
+  /// the snapshot contract is shared with the admin registry and the landing
+  /// page. Every other currency reads `benchmark.inflation_<ccy>`, so USD reads
+  /// `benchmark.inflation_usd` (BLS CPI-U, all items, 12-month).
+  ///
+  /// A foreign currency with no seeded CPI returns null and the caller shows
+  /// nothing. It deliberately does NOT fall back to the Kenyan figure: a
+  /// dollar yield deflated by Kenyan inflation silently assumes the shilling is
+  /// pegged to the dollar, and it is not, having run from 160 to 129 inside
+  /// eighteen months. The number that would answer the question in KES terms
+  /// needs the exchange-rate move as well, which is a fact with a date on it and
+  /// never a forecast. A missing figure is honest. A wrong one is not.
+  ///
+  /// KES keeps its baked fallback, so an old snapshot still renders a real
+  /// return on every Kenyan fund.
+  double? inflationFor(String currency) {
+    if (currency == 'KES') return inflationPct;
+    return benchmark('benchmark.inflation_${currency.toLowerCase()}')?.rate;
+  }
+
   /// Withholding tax on DIVIDENDS from a listed company: 5% for a resident,
   /// and it is a FINAL tax.
   ///

@@ -87,6 +87,56 @@ export async function setRate(formData: FormData) {
   refresh(id);
 }
 
+/// The NAV twin of [setRate]. A priced fund's mark goes into nav_history AND
+/// onto the row, exactly as a yield goes into rate_history and onto the row.
+///
+/// This exists because updatePricing only ever wrote price_per_unit, a single
+/// scalar. One point. You cannot draw a line through one point, so a NAV fund
+/// had no chart, no sparkline and no way to show what it already did. Every
+/// fact sheet you enter from here on adds a point to a real series.
+///
+/// The price is in the FUND'S OWN currency and is never converted. A USD fund's
+/// NAV is in dollars, and the column is called `price` rather than `price_kes`
+/// for the same reason `aum_native` is not `aum_kes`.
+export async function setPrice(formData: FormData) {
+  const id = String(formData.get("id"));
+  const price = Number(formData.get("price"));
+  // A price of zero is not a low price, it is a missing one.
+  if (!id || !Number.isFinite(price) || price <= 0) return;
+
+  // The as-of date is the FACT SHEET'S date, not today's. A June NAV entered in
+  // July is a June mark, and stamping it "today" would bend the series.
+  const asOf =
+    strOrNull(formData.get("as_of")) ??
+    new Date(Date.now() + 3 * 3_600_000).toISOString().slice(0, 10); // EAT
+
+  const db = supabaseAdmin();
+  await db.from("nav_history").upsert(
+    { fund_id: id, as_of: asOf, price, source: "manual" },
+    { onConflict: "fund_id,as_of" },
+  );
+
+  // The row carries the LATEST mark. An older fact sheet keyed in after a newer
+  // one still lands in the series, but it must not overwrite the current price,
+  // so the row is only touched when this mark is at least as recent as the one
+  // already on it.
+  const { data: cur } = await db
+    .from("funds")
+    .select("price_as_of")
+    .eq("id", id)
+    .maybeSingle();
+  const prev = (cur?.price_as_of as string | null) ?? null;
+  if (prev == null || asOf >= prev) {
+    await db
+      .from("funds")
+      .update({ price_per_unit: price, price_as_of: asOf, status: "live" })
+      .eq("id", id);
+  }
+
+  await republishSnapshot();
+  refresh(id);
+}
+
 export async function toggleFlag(formData: FormData) {
   const id = String(formData.get("id"));
   const field = String(formData.get("field")); // "verified" | "featured"
@@ -115,7 +165,7 @@ export async function toggleRetail(formData: FormData) {
   refresh(id);
 }
 
-// Auto vs manual sourcing (admin metadata only — no snapshot change).
+// Auto vs manual sourcing (admin metadata only, no snapshot change).
 export async function setSourceType(formData: FormData) {
   const id = String(formData.get("id"));
   const type = String(formData.get("type"));
@@ -124,7 +174,7 @@ export async function setSourceType(formData: FormData) {
   refresh(id);
 }
 
-// Full metadata edit (does not touch current_rate — use setRate for that).
+// Full metadata edit (does not touch current_rate; use setRate for that).
 export async function updateFund(formData: FormData) {
   const id = String(formData.get("id"));
   if (!id) return;
@@ -133,7 +183,7 @@ export async function updateFund(formData: FormData) {
   // Benchmark: only accept a known key, else clear it (constraint-safe).
   const bkRaw = strOrNull(formData.get("benchmark_key"));
   const benchmark_key = bkRaw && BENCHMARK_KEYS.includes(bkRaw) ? bkRaw : null;
-  // Lock-in is an int column — round any stray decimal.
+  // Lock-in is an int column, so round any stray decimal.
   const lockRaw = numOrNull(formData.get("lock_in_months"));
   const lock_in_months = lockRaw == null ? null : Math.round(lockRaw);
 
@@ -144,7 +194,11 @@ export async function updateFund(formData: FormData) {
     tax_free: formData.get("tax_free") === "on",
     min_invest: numOrNull(formData.get("min_invest")),
     mgmt_fee: numOrNull(formData.get("mgmt_fee")),
-    aum: strOrNull(formData.get("aum")),
+    // AUM in the fund's OWN currency. It used to be `aum`, a free-text box, and
+    // it held whatever anyone typed: 'KES 3.80 billion' on one fund and a naked
+    // '1150000' on another. The currency does not belong in the value; the row
+    // already carries it.
+    aum_native: numOrNull(formData.get("aum_native")),
     withdraw_note: strOrNull(formData.get("withdraw_note")),
     site_url: strOrNull(formData.get("site_url")),
     invest_url: strOrNull(formData.get("invest_url")),
@@ -194,12 +248,38 @@ export async function updatePricing(formData: FormData) {
   const basis = basisRaw && BASES.includes(basisRaw) ? basisRaw : "yield";
   const isNav = basis === "nav";
 
+  // Credit quality arrives as five numbers and is stored as one jsonb, shaped
+  // like funds.composition. Zero-weight classes are dropped rather than stored as
+  // 0, so "no unrated paper" and "we did not check" stay distinguishable.
+  const CREDIT_KEYS = ["gov", "aa", "a", "bbb", "unrated"];
+  const credit: Record<string, number> = {};
+  for (const k of CREDIT_KEYS) {
+    const v = numOrNull(formData.get(`credit_${k}`));
+    if (v != null && v > 0) credit[k] = v;
+  }
+
   const patch: Record<string, unknown> = {
     basis,
-    price_per_unit: isNav ? numOrNull(formData.get("price_per_unit")) : null,
-    price_as_of: isNav ? strOrNull(formData.get("price_as_of")) : null,
     distribution_pct: isNav ? numOrNull(formData.get("distribution_pct")) : null,
+    // Duration and credit belong to a fund that holds bonds, which is a NAV fund.
+    // Flip a fund off NAV and they clear with the price, so nothing stale is left
+    // claiming a rate sensitivity the fund no longer has.
+    duration_years: isNav ? numOrNull(formData.get("duration_years")) : null,
+    credit_quality: isNav && Object.keys(credit).length > 0 ? credit : null,
   };
+
+  // This form no longer SETS a price. setPrice is the only writer that does,
+  // because a price on the row with no dated mark behind it is a point that never
+  // joins the series, and a fund whose chart disagrees with its headline is worse
+  // than a fund with no chart.
+  //
+  // It can still CLEAR one. Flipping a fund off NAV must not leave a stale unit
+  // price standing on a fund that no longer quotes one. The history is left
+  // intact: a mis-click and a flip back should not destroy a series.
+  if (!isNav) {
+    patch.price_per_unit = null;
+    patch.price_as_of = null;
+  }
 
   await supabaseAdmin().from("funds").update(patch).eq("id", id);
   await republishSnapshot();
@@ -250,7 +330,9 @@ export interface ImportRow {
   rate: number | null;
   min: number | null;
   fee: number | null;
-  aumKes: number | null;
+  aumNative: number | null;
+  /** Currency code found IN the pasted value, if any. Null when bare. */
+  aumCcy: string | null;
 }
 export interface FieldDiff {
   from: number | null;
@@ -268,6 +350,8 @@ export interface MatchRow {
   min: FieldDiff;
   fee: FieldDiff;
   aum: FieldDiff;
+  /** The pasted value named a currency this fund is not denominated in. */
+  aumCcyMismatch: boolean;
 }
 export interface ImportPreview {
   matched: MatchRow[];
@@ -278,21 +362,21 @@ export interface ApplyRow {
   rate?: number;
   min?: number;
   fee?: number;
-  aumKes?: number;
+  aumNative?: number;
 }
 
 type FundLite = {
   id: string; name: string; manager: string; currency: string;
   fund_type: string | null; retail: boolean;
   current_rate: number | null; min_invest: number | null;
-  mgmt_fee: number | null; aum_kes: number | null;
+  mgmt_fee: number | null; aum_native: number | null;
 };
 
 // Normalise for matching: lowercase, strip accents/punctuation, and drop
 // trailing currency tokens so "KCB Money Market Fund KES" matches "KCB Money
 // Market Fund". Collisions (KES + USD sharing a base name) are resolved by
 // pickCandidate, which uses the row's currency hint (see currencyHint) and
-// falls back to the retail KES fund — the one the weekly MMF rows mean.
+// falls back to the retail KES fund, the one the weekly MMF rows mean.
 const CCY_TOKENS = new Set(["kes", "usd", "gbp", "eur", "zar"]);
 function normName(s: string): string {
   return s
@@ -346,7 +430,7 @@ async function loadFundIndex(): Promise<Map<string, FundLite[]>> {
   const db = supabaseAdmin();
   const { data } = await db
     .from("funds")
-    .select("id,name,manager,currency,fund_type,retail,current_rate,min_invest,mgmt_fee,aum_kes")
+    .select("id,name,manager,currency,fund_type,retail,current_rate,min_invest,mgmt_fee,aum_native")
     .eq("kind", "fund");
   const idx = new Map<string, FundLite[]>();
   for (const f of (data ?? []) as FundLite[]) {
@@ -368,7 +452,7 @@ export async function previewFundImport(
   // Resolve each row to a single fund via its currency hint, then dedupe by
   // fundId. Two rows collapsing onto one fund (e.g. a USD row with no USD fund
   // in the DB falling back to the KES fund) keep the row whose currency
-  // actually matches the fund — so a USD figure never overwrites the KES fund,
+  // actually matches the fund, so a USD figure never overwrites the KES fund,
   // and the preview never emits two children with the same key.
   type Resolved = { f: FundLite; r: ImportRow; hintMatch: boolean };
   const byFund = new Map<string, Resolved>();
@@ -400,19 +484,15 @@ export async function previewFundImport(
       rate: diff(f.current_rate, r.rate, fillOnly),
       min: diff(f.min_invest, r.min, fillOnly),
       fee: diff(f.mgmt_fee, r.fee, fillOnly),
-      aum: diff(f.aum_kes, r.aumKes, fillOnly),
+      aum: diff(f.aum_native, r.aumNative, fillOnly),
+      // A row naming a currency the fund is not denominated in is never written.
+      // The old importer stripped /kes/i from every input, so pasting 'KES 5M'
+      // against a dollar fund imported five million DOLLARS, then stamped the
+      // text column 'KES 5M' for good measure.
+      aumCcyMismatch: r.aumCcy != null && r.aumCcy !== f.currency,
     });
   }
   return { matched, unmatched };
-}
-
-function aumText(kes: number): string {
-  if (kes >= 1e9) {
-    const b = kes / 1e9;
-    return `KES ${b >= 10 ? Math.round(b) : b.toFixed(1)}B`;
-  }
-  if (kes >= 1e6) return `KES ${Math.round(kes / 1e6)}M`;
-  return `KES ${Math.round(kes)}`;
 }
 
 export async function applyFundImport(rows: ApplyRow[]): Promise<{ written: number }> {
@@ -423,10 +503,9 @@ export async function applyFundImport(rows: ApplyRow[]): Promise<{ written: numb
     const patch: Record<string, unknown> = {};
     if (r.min != null) patch.min_invest = r.min;
     if (r.fee != null) patch.mgmt_fee = r.fee;
-    if (r.aumKes != null) {
-      patch.aum_kes = r.aumKes;
-      patch.aum = aumText(r.aumKes);
-    }
+    // One column, in the fund's own currency. No text twin, and no currency
+    // stamped onto the value: aumText() hardcoded 'KES' whatever the fund was.
+    if (r.aumNative != null) patch.aum_native = r.aumNative;
     if (r.rate != null && Number.isFinite(r.rate) && r.rate > 0 && r.rate < 30) {
       await db.from("rate_history").upsert(
         { fund_id: r.fundId, rate: r.rate, as_of: asOf, source: "import" },

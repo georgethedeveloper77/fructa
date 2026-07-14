@@ -3,8 +3,8 @@
 import { useMemo, useState, useTransition } from "react";
 import { deleteConfig, publishConfig, type ConfigRow } from "./actions";
 import { Detail } from "./Detail";
-import { computeImpact, type Board } from "./impact";
-import { freshness, groupTone, KIND_LABEL } from "./config-meta";
+import { type Board } from "./impact";
+import { freshDot, freshness, needsReprint } from "./config-meta";
 import {
   CONFIG_SCHEMA,
   type Field,
@@ -21,6 +21,10 @@ import {
 } from "./schema";
 import { IconSearch } from "../_icons";
 
+/* Colour rule for this page: COLOUR IS STATE, SHAPE IS IDENTITY.
+ * The dot is freshness and only freshness. Staged is a gold BAR, never a dot.
+ * Groups carry no hue, they carry order and a label. */
+
 type Entry = {
   key: string;
   field: Field;
@@ -29,6 +33,8 @@ type Entry = {
   isNew: boolean;
   updatedAt: string | null;
 };
+
+type Filter = "all" | "reprint" | "unset";
 
 /** A one-line summary of a value, for the list column. */
 function preview(field: Field, model: Model): string {
@@ -44,7 +50,7 @@ function preview(field: Field, model: Model): string {
     case "table":
       return `${(model as TableModel).rows.length} rows`;
     case "text":
-      return "text";
+      return "copy";
     default:
       return "json";
   }
@@ -85,7 +91,7 @@ export function ConfigWorkspace({
 
   const [selected, setSelected] = useState<string>(entries[0]?.key ?? "");
   const [q, setQ] = useState("");
-  const [filter, setFilter] = useState<"all" | "stale" | "unset">("all");
+  const [filter, setFilter] = useState<Filter>("all");
   const [staged, setStaged] = useState<Record<string, Model>>({});
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -104,36 +110,43 @@ export function ConfigWorkspace({
     return e.isNew ? true : serializeValue(e.field, m) !== base;
   };
 
+  /** as_of on screen for a key, or null when the kind carries no date. */
+  const asOfOf = (e: Entry): string | null => {
+    const m = modelOf(e);
+    const dated = (e.field.kind === "rate" && e.field.showMeta !== false) || e.field.kind === "table";
+    return dated ? (m as RateModel | TableModel).as_of || null : null;
+  };
+
+  const freshOf = (e: Entry) => freshness(e.key, asOfOf(e));
+
   const dirtyKeys = useMemo(
     () => entries.filter(isDirty).map((e) => e.key),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [entries, staged],
   );
 
-  const staleKeys = useMemo(
-    () =>
-      entries.filter((e) => {
-        const m = modelOf(e);
-        const asOf =
-          e.field.kind === "rate" || e.field.kind === "table"
-            ? (m as RateModel | TableModel).as_of || null
-            : null;
-        return freshness(e.key, asOf).kind === "stale";
-      }),
+  const reprintKeys = useMemo(
+    () => entries.filter((e) => !e.isNew && needsReprint(freshOf(e))),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [entries, staged],
   );
+  const staleCount = useMemo(
+    () => reprintKeys.filter((e) => freshOf(e).kind === "stale").length,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [reprintKeys, staged],
+  );
+  const dueCount = reprintKeys.length - staleCount;
   const unsetKeys = useMemo(() => entries.filter((e) => e.isNew), [entries]);
 
   const visible = useMemo(() => {
     const needle = q.trim().toLowerCase();
     return entries.filter((e) => {
-      if (filter === "stale" && !staleKeys.includes(e)) return false;
+      if (filter === "reprint" && !reprintKeys.includes(e)) return false;
       if (filter === "unset" && !e.isNew) return false;
       if (needle && !`${e.key} ${e.field.label}`.toLowerCase().includes(needle)) return false;
       return true;
     });
-  }, [entries, q, filter, staleKeys]);
+  }, [entries, q, filter, reprintKeys]);
 
   const grouped = useMemo(() => {
     const g = new Map<string, Entry[]>();
@@ -184,20 +197,7 @@ export function ConfigWorkspace({
     });
   }
 
-  const Dot = ({ e }: { e: Entry }) => {
-    if (e.isNew) return <span className="h-1.5 w-1.5 rounded-full border border-line2" />;
-    const m = modelOf(e);
-    const asOf =
-      e.field.kind === "rate" || e.field.kind === "table"
-        ? (m as RateModel | TableModel).as_of || null
-        : null;
-    const f = freshness(e.key, asOf);
-    const tone =
-      f.kind === "stale" ? "bg-bad" : f.kind === "due" ? "bg-warn" : f.kind === "constant" || f.kind === "undated" ? "bg-line2" : "bg-live";
-    return <span className={"h-1.5 w-1.5 rounded-full " + tone} />;
-  };
-
-  const Chip = ({ id, label, n }: { id: typeof filter; label: string; n: number }) => (
+  const Chip = ({ id, label, n, dot }: { id: Filter; label: string; n: number; dot?: string }) => (
     <button
       onClick={() => setFilter(id)}
       className={
@@ -205,15 +205,38 @@ export function ConfigWorkspace({
         (filter === id ? "border-line2 bg-panel2 text-ink" : "border-line text-faint hover:text-ink")
       }
     >
-      {id === "stale" && n > 0 && <span className="h-1.5 w-1.5 rounded-full bg-warn" />}
+      {dot && n > 0 && <span className={"h-1.5 w-1.5 rounded-full " + dot} />}
       {label} <span className="tnum text-faint">{n}</span>
     </button>
   );
 
+  const Count = ({ n, tone, label }: { n: number; tone: string; label: string }) =>
+    n === 0 ? null : (
+      <span className={"inline-flex items-center gap-1.5 rounded-md border px-2 py-1 font-mono text-[11px] " + tone}>
+        <span className={"h-1.5 w-1.5 rounded-full " + (label === "stale" ? "bg-bad" : "bg-warn")} />
+        {n} {label}
+      </span>
+    );
+
   return (
-    <div className="flex h-[calc(100vh-64px)] flex-col">
-      <div className="grid min-h-0 flex-1 grid-cols-[298px_1fr]">
-        {/* keys */}
+    <div className="flex h-screen flex-col">
+      {/* header: the answer to "what needs reprinting today", before any click */}
+      <div className="flex h-16 flex-none items-center gap-3 border-b border-line bg-panel px-4">
+        <h1 className="text-[13.5px] font-semibold text-ink">Remote config</h1>
+        <span className="border-l border-line2 pl-3 text-[11.5px] text-faint">
+          Machine values in the app snapshot. Devices pick changes up on their next refresh, no release.
+        </span>
+        <div className="ml-auto flex items-center gap-2.5">
+          <Count n={staleCount} tone="border-bad/40 text-bad" label="stale" />
+          <Count n={dueCount} tone="border-warn/40 text-warn" label="due" />
+          <span className="font-mono text-[11.5px] text-faint">
+            {publishedAt ? `snapshot published ${new Date(publishedAt).toLocaleString()}` : "never published"}
+          </span>
+        </div>
+      </div>
+
+      <div className="grid min-h-0 flex-1 grid-cols-[300px_1fr]">
+        {/* rail */}
         <div className="flex min-h-0 flex-col border-r border-line bg-panel">
           <div className="border-b border-line p-2.5">
             <div className="relative">
@@ -229,7 +252,7 @@ export function ConfigWorkspace({
             </div>
             <div className="mt-2 flex gap-1.5">
               <Chip id="all" label="All" n={entries.length} />
-              <Chip id="stale" label="Stale" n={staleKeys.length} />
+              <Chip id="reprint" label="Needs reprint" n={reprintKeys.length} dot="bg-warn" />
               <Chip id="unset" label="Unset" n={unsetKeys.length} />
             </div>
           </div>
@@ -238,16 +261,14 @@ export function ConfigWorkspace({
             {grouped.map(([group, items]) => (
               <div key={group}>
                 <div className="flex items-center gap-2 px-3 pb-1.5 pt-4">
-                  <span className={"h-2.5 w-0.5 rounded-full " + groupTone(group).solid} />
-                  <span className={"text-[10px] font-semibold uppercase tracking-wider " + groupTone(group).text}>
-                    {group}
-                  </span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-faint">{group}</span>
                   <span className="tnum text-[10px] text-line2">{items.length}</span>
+                  <span className="h-px flex-1 bg-line" />
                 </div>
                 {items.map((e) => {
                   const on = e.key === selected;
                   const dirty = isDirty(e);
-                  const tone = groupTone(e.field.group);
+                  const f = freshOf(e);
                   return (
                     <button
                       key={e.key}
@@ -255,12 +276,13 @@ export function ConfigWorkspace({
                       className={
                         "grid w-full grid-cols-[6px_1fr_auto] items-center gap-2.5 border-l-2 px-3 py-1.5 text-left " +
                         (on
-                          ? `${tone.border.replace("border-", "border-l-")} bg-panel2`
-                          : "border-l-transparent hover:bg-raise") +
-                        (dirty && !on ? " bg-gold/[0.05]" : "")
+                          ? dirty
+                            ? "border-l-gold bg-panel2"
+                            : "border-l-line2 bg-panel2"
+                          : "border-l-transparent hover:bg-raise")
                       }
                     >
-                      <Dot e={e} />
+                      <span className={"h-1.5 w-1.5 rounded-full " + freshDot(f)} />
                       <span className="min-w-0">
                         <span className={"block text-[12.5px] font-medium " + (on ? "text-ink" : "text-mute")}>
                           {e.field.label}
@@ -269,12 +291,13 @@ export function ConfigWorkspace({
                       </span>
                       <span
                         className={
-                          "flex items-center gap-1.5 font-mono text-[11.5px] " +
-                          (e.isNew ? "text-faint" : on ? tone.text : "text-mute")
+                          "flex items-center gap-2 font-mono text-[11.5px] " +
+                          (e.isNew ? "text-faint" : on ? "text-ink" : "text-mute")
                         }
                       >
                         {e.isNew ? "not set" : preview(e.field, modelOf(e))}
-                        {dirty && <span className="h-1.5 w-1.5 rounded-full bg-gold" />}
+                        {/* staged is a bar, never a dot: it must not read as a freshness state */}
+                        {dirty && <span className="h-3 w-[3px] rounded-sm bg-gold" />}
                       </span>
                     </button>
                   );
@@ -299,6 +322,7 @@ export function ConfigWorkspace({
               isNew={current.isNew}
               updatedAt={current.updatedAt}
               board={board}
+              dirty={isDirty(current)}
               onChange={(m) => setStaged((s) => ({ ...s, [current.key]: m }))}
               onReset={() =>
                 setStaged((s) => {
@@ -316,21 +340,19 @@ export function ConfigWorkspace({
       </div>
 
       {/* publish */}
-      <div className="flex h-[52px] flex-none items-center gap-3.5 border-t border-line2 bg-panel px-4">
+      <div className="flex h-[54px] flex-none items-center gap-3.5 border-t border-line2 bg-panel px-4">
         {dirtyKeys.length === 0 ? (
           <span className="flex items-center gap-2 text-[12.5px] text-faint">
             <span className="h-1.5 w-1.5 rounded-full bg-live" />
             {msg ? (
               <span className={msg.ok ? "text-live" : "text-bad"}>{msg.text}</span>
-            ) : publishedAt ? (
-              <>Snapshot published {new Date(publishedAt).toLocaleString()}</>
             ) : (
               <>No staged changes</>
             )}
           </span>
         ) : (
           <>
-            <span className="flex flex-none items-center gap-2 text-[12.5px] font-medium">
+            <span className="flex flex-none items-center gap-2 text-[12.5px] font-medium text-ink">
               <span className="rounded bg-gold px-1.5 py-px font-mono text-[11px] font-bold text-[#191204]">
                 {dirtyKeys.length}
               </span>

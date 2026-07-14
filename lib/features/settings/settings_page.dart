@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/i18n.dart';
-import '../../core/push.dart';
 import '../../core/settings_prefs.dart';
 import '../../core/theme.dart';
 import '../../core/widgets/kit.dart';
@@ -12,6 +11,7 @@ import '../backup/backup_ui.dart';
 import '../learn/learn_home_page.dart';
 import '../blog/blog_page.dart';
 import 'widgets/appearance_section.dart';
+import 'widgets/notification_diagnostics.dart';
 
 /// v5 `.pg-settings` - flat rows from the kit, no cards. Sections: Learn
 /// (stub until D2, no fabricated streak/star stats), Notifications (master
@@ -19,6 +19,42 @@ import 'widgets/appearance_section.dart';
 /// (mode segmented + accent swatches), Security & data.
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
+
+  /// The master switch used to flip a bool and call Push.setEnabled. On a phone
+  /// that never granted the OS notification permission that was a no-op dressed
+  /// up as a control: the toggle went green, and every alert kept being dropped
+  /// silently by the OS. It now prompts, and if the user declines, says so
+  /// rather than leaving a green switch that means nothing.
+  Future<void> _setMaster(
+    BuildContext context,
+    WidgetRef ref,
+    bool on,
+  ) async {
+    final deliverable =
+        await ref.read(settingsControllerProvider.notifier).setMasterAlerts(on);
+
+    // The panel below reads the live device state, so it has to re-read.
+    ref.invalidate(pushDiagnosticsProvider);
+
+    if (!context.mounted || !on || deliverable) return;
+
+    final c = context.c;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          backgroundColor: c.s3,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 6),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          content: Text(
+            t('settings.notif.blocked'),
+            style: TextStyle(color: c.text, fontSize: 13.5, height: 1.4),
+          ),
+        ),
+      );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -43,7 +79,7 @@ class SettingsPage extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
 
-            // ── Learn (D2 stub - honest copy, no fake streaks) ────────────
+            // Learn (D2 stub - honest copy, no fake streaks)
             LearnCard(
               title: cfg.string('learn.card.title', t('settings.learn.title')),
               subtitle: cfg.string(
@@ -71,10 +107,11 @@ class SettingsPage extends ConsumerWidget {
               sub: t('settings.notif.masterSub'),
               trailing: fructaToggle(
                 value: master,
-                onChanged: (v) {
-                  ctrl.setMasterAlerts(v);
-                  Push.setEnabled(v); // opt the device in/out at OneSignal
-                },
+                // setMasterAlerts already drives Push.setEnabled and the OS
+                // prompt. The old duplicate Push.setEnabled(v) call that used to
+                // sit here is gone: two owners of one side effect is how they
+                // drift.
+                onChanged: (v) => _setMaster(context, ref, v),
               ),
             ),
             _Gated(
@@ -114,6 +151,13 @@ class SettingsPage extends ConsumerWidget {
               ]),
             ),
 
+            // Four independent things have to be true for an alert to land, and
+            // when any of them is false it fails SILENTLY. Every toggle above is
+            // a statement of intent; this is the only thing on the page that
+            // reports what is actually true of this handset.
+            const SizedBox(height: 8),
+            const NotificationDiagnostics(),
+
             SectionHeader(title: t('settings.appearance')),
             const Padding(
               padding: EdgeInsets.fromLTRB(20, 12, 20, 4),
@@ -129,7 +173,12 @@ class SettingsPage extends ConsumerWidget {
               trailing: fructaToggle(
                 value: lockOn,
                 onChanged: (v) {
-                  ref.read(appLockProvider.notifier).state = v;
+                  // Was `ref.read(appLockProvider.notifier).state = v`, which
+                  // reaches into a protected member from outside the notifier
+                  // (two analyzer warnings) and, worse, bypassed AppLockNotifier
+                  // .set() so the value never persisted to Hive. The pref line
+                  // below was the only thing saving it. set() does both.
+                  ref.read(appLockProvider.notifier).set(v);
                   ctrl.setBiometricLock(v); // persisted mirror
                 },
               ),
@@ -139,8 +188,7 @@ class SettingsPage extends ConsumerWidget {
               title: t('settings.security.hideBalances'),
               sub: t('settings.security.hideBalancesSub'),
               trailing: fructaToggle(
-                  value: prefs.hideBalances,
-                  onChanged: ctrl.setHideBalances),
+                  value: prefs.hideBalances, onChanged: ctrl.setHideBalances),
             ),
             SettingsRow(
               icon: Icons.cloud_upload_outlined,

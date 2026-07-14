@@ -6,7 +6,9 @@ import 'app/app_root.dart';
 import 'app/deep_link.dart';
 import 'app/lock_gate.dart';
 import 'core/i18n.dart';
+import 'core/local_notify.dart';
 import 'core/push.dart';
+import 'core/settings_prefs.dart';
 import 'core/theme.dart';
 import 'core/theme_controller.dart';
 
@@ -20,31 +22,97 @@ Future<void> main() async {
   await L10n.load();
 
   await Push.init();
-  Push.onOpenTarget = handlePushTarget; // route notification taps
+  await LocalNotify.init();
 
-  final subs = (settings.get('subs', defaultValue: <String>[]) as List)
-      .cast<String>()
-      .toSet();
-  Push.sync(subs);
+  // Both paths route identically. A tap on a server push and a tap on the local
+  // fallback should land the user on the same screen, and if these two ever
+  // diverge one of them is a dead end.
+  Push.onOpenTarget = handlePushTarget;
+  LocalNotify.onOpenTarget = handlePushTarget;
 
-  // Weekly-digest tag mirrors the persisted preference (default on), so the
-  // server segment is correct from first launch without opening Settings.
-  Push.setDigest(settings.get('pref_weeklyDigest', defaultValue: true) as bool);
+  // Fire and forget on cold start. Reconcile hits the network, and blocking
+  // first paint on it would trade one bug for a worse one.
+  unawaitedReconcile(settings);
 
   runApp(
     ProviderScope(
       // Hand the opened box to the theme controller (and settings prefs).
       overrides: [settingsBoxProvider.overrideWithValue(settings)],
-      child: const fructaApp(),
+      child: const FructaApp(),
     ),
   );
 }
 
-class fructaApp extends ConsumerWidget {
-  const fructaApp({super.key});
+/// Bring OneSignal's tags into line with what this device believes it follows.
+///
+/// This replaces the old `Push.sync(subs)` call, which only ever ADDED tags and
+/// only ever ran once at cold start. That left two holes:
+///
+///   - a follow whose tag write never reached OneSignal stayed broken forever,
+///     because the next launch re-queued the same write into the same hole and
+///     nothing ever checked whether it had landed;
+///   - an unfollow performed offline never reached OneSignal at all, so the user
+///     kept getting alerts for a fund they had dropped.
+///
+/// Reconcile reads the tags OneSignal actually holds, and writes only the
+/// difference. Running it on resume as well as launch means a device self-heals
+/// within one app open rather than never.
+void unawaitedReconcile(Box settings) {
+  final funds =
+      ((settings.get('subs', defaultValue: <String>[]) as List).cast<String>())
+          .toSet();
+  final stocks =
+      ((settings.get('stockSubs', defaultValue: <String>[]) as List)
+              .cast<String>())
+          .toSet();
+
+  // The mute set is derived by SettingsPrefs.muteTagsFrom so main() never
+  // hand-rolls the tag key names. main() runs before the ProviderScope exists,
+  // so it cannot read settingsControllerProvider and has to go to the box
+  // directly, but there is still exactly one definition of what a mute tag is.
+  Push.reconcile(
+    funds: funds,
+    stocks: stocks,
+    digest: settings.get('pref_weeklyDigest', defaultValue: true) as bool,
+    mutes: SettingsPrefs.muteTagsFrom(settings),
+  );
+}
+
+class FructaApp extends ConsumerStatefulWidget {
+  const FructaApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<FructaApp> createState() => _FructaAppState();
+}
+
+class _FructaAppState extends ConsumerState<FructaApp>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Resume is the one moment we know the user is present, the process is
+    // alive, and the network is probably up. It is the cheapest place to notice
+    // that a tag never landed and fix it. It also catches the case that matters
+    // most: the user went to system settings, turned notifications ON, and came
+    // back. Without this the app would not know until the next cold start.
+    if (state == AppLifecycleState.resumed) {
+      unawaitedReconcile(Hive.box('settings'));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final t = ref.watch(themeControllerProvider);
     return MaterialApp(
       title: 'Fructa',

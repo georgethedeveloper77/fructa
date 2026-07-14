@@ -78,7 +78,13 @@ class MarketContextCard extends ConsumerWidget {
     final nets = mmf.map((f) => f.netRate(wht)).whereType<double>().toList();
     if (nets.isEmpty) return const SizedBox.shrink();
     final avgNet = nets.reduce((a, b) => a + b) / nets.length;
-    final diff = avgNet - inflation;
+
+    // Fisher, not subtraction: (1 + net) / (1 + infl) - 1. The naive difference
+    // overstates the real gap by roughly 15bp at these rates, and the fund
+    // detail page deflates properly, so the two screens would have quietly
+    // disagreed about the very same fund. The MMF set above is already filtered
+    // to KES, so the Kenyan CPI is the right deflator here.
+    final diff = ((1 + avgNet / 100) / (1 + inflation / 100) - 1) * 100;
     final beating = diff >= 0;
     final verdict = t('markets.context.verdict', {
       'yn': beating ? t('common.yes') : t('common.no'),

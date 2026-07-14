@@ -102,6 +102,20 @@ bool _isNavType(Fund f) =>
     f.fundType == 'balanced' ||
     f.fundType == 'special';
 
+/// THE consumer cut. The one predicate that decides whether a fund exists at
+/// all as far as the Markets screen is concerned.
+///
+/// It lives here, alone, because the list, the tab row and the currency chips
+/// must agree about it, and they did not. `streamFundsProvider` filtered on
+/// `retail`; `moneyMarketCurrenciesProvider` did not. So the chip row was
+/// derived from a different population than the list it filters, and a currency
+/// could earn itself a chip on the strength of funds the list then refused to
+/// show. Tap USD, get a list with the USD funds missing from it.
+///
+/// Any rule that decides membership of the stream belongs in this function and
+/// nowhere else. Adding one anywhere else reopens the same hole.
+bool _inStream(Fund f) => f.retail;
+
 /// Tabs that actually have something to show. A fund earns its tab when it's
 /// retail and either quotes a rate OR is a NAV-priced type (which shows on AUM
 /// alone). `all` is always present. This keeps genuinely-empty yield tabs
@@ -124,7 +138,7 @@ final visibleMarketTabsProvider = Provider<List<MarketTab>>((ref) {
     MarketTab.all => true,
     MarketTab.stock => hasStocks,
     MarketTab.sacco => hasSaccos,
-    _ => funds.any((f) => f.retail && t.matches(f) && hasData(f)),
+    _ => funds.any((f) => _inStream(f) && t.matches(f) && hasData(f)),
   };
   return MarketTab.values.where(populated).toList();
 });
@@ -140,6 +154,10 @@ final moneyMarketCurrenciesProvider = Provider<List<String>>((ref) {
   final funds = ref.watch(ratesProvider).valueOrNull ?? const [];
   final set = <String>{};
   for (final f in funds) {
+    // The consumer cut, applied HERE too. Without it this loop saw funds the
+    // list does not, so a currency whose funds are all off-app still earned a
+    // chip, and tapping it landed the user on a short or empty list.
+    if (!_inStream(f)) continue;
     if (!MarketTab.moneyMarket.matches(f)) continue;
     final ccy = f.currency;
     if (ccy.isNotEmpty) set.add(ccy);
@@ -175,9 +193,16 @@ final streamFundsProvider = Provider<AsyncValue<List<Fund>>>((ref) {
   final wht = ref.watch(remoteConfigProvider).whtPct;
 
   return rates.whenData((funds) {
-    // Consumer list shows the retail cut only  the dormant/institutional tail
-    // (tiny AUM, USD-only duplicates) is hidden but still in the data.
-    var list = funds.where((f) => f.retail).where(tab.matches);
+    // The consumer cut: the dormant/institutional tail (tiny AUM, dead share
+    // classes) is hidden but still in the data.
+    //
+    // This used to hide "USD-only duplicates" as well, which is how a live USD
+    // money market fund with a real rate and its own detail page ended up
+    // absent from the USD list. A USD fund is not a duplicate of its KES
+    // sibling: different currency, different yield, different inflation, and
+    // since D2, a different real return. If a USD fund is off-app it is because
+    // someone set retail = false on it, not because this filter is doing it.
+    var list = funds.where(_inStream).where(tab.matches);
     // currency sub-filter only applies within Money Market
     if (tab == MarketTab.moneyMarket && ccy != null) {
       list = list.where((f) => f.currency == ccy);
@@ -209,13 +234,18 @@ final bestMmfProvider = Provider<Fund?>((ref) {
   final wht = ref.watch(remoteConfigProvider).whtPct;
   // Strictly the best retail KES money-market fund  never a bond/equity, so
   // the "best MMF" label can't lie. Null hides the hero.
+  //
+  // KES-scoped on purpose. Ranking a 6% USD yield against a 10% KES yield on
+  // the nominal number is not a comparison at all: they are earned in different
+  // currencies and eaten by different inflations. A USD hero would need its own
+  // board, not a seat at this one.
   final mmf =
       funds
           .where(
             (f) =>
                 f.fundType == 'mmf' &&
                 f.currency == 'KES' &&
-                f.retail &&
+                _inStream(f) &&
                 f.currentRate != null,
           )
           .toList()

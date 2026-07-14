@@ -31,9 +31,13 @@ export default async function FundDetail({ params }: { params: Promise<{ id: str
   const { id } = await params;
   const db = supabaseAdmin();
 
-  const [{ data: fund }, { data: history }] = await Promise.all([
+  const [{ data: fund }, { data: history }, { data: navHistory }] = await Promise.all([
     db.from("funds").select("*").eq("id", id).maybeSingle(),
     db.from("rate_history").select("as_of,rate,source").eq("fund_id", id).order("as_of", { ascending: false }).limit(20),
+    // The NAV series (0070). A priced fund has no rate history at all, so without
+    // this its Pricing card is a scalar with nowhere to go and its chart cannot
+    // exist.
+    db.from("nav_history").select("as_of,price,source").eq("fund_id", id).order("as_of", { ascending: false }).limit(20),
   ]);
   if (!fund) notFound();
 
@@ -67,7 +71,7 @@ export default async function FundDetail({ params }: { params: Promise<{ id: str
             <Select name="currency" label="Currency" defaultValue={fund.currency} options={CURRENCIES} />
             <Field name="min_invest" label="Min invest" type="number" defaultValue={fund.min_invest ?? ""} />
             <Field name="mgmt_fee" label="Mgmt fee %" type="number" defaultValue={fund.mgmt_fee ?? ""} />
-            <Field name="aum" label="AUM" defaultValue={fund.aum ?? ""} />
+            <AumField currency={fund.currency} defaultValue={fund.aum_native ?? ""} />
             <Field name="withdraw_note" label="Withdraw note" defaultValue={fund.withdraw_note ?? ""} />
             <Field name="site_url" label="Site URL" defaultValue={fund.site_url ?? ""} />
             <Field name="invest_url" label="Invest URL" defaultValue={fund.invest_url ?? ""} />
@@ -87,7 +91,7 @@ export default async function FundDetail({ params }: { params: Promise<{ id: str
                 Profile &amp; terms
               </span>
               <p style={{ fontSize: 11.5, color: "var(--faint)", marginTop: 4 }}>
-                Static facts from the fund fact sheet. Custody chain (trustee · custodian · auditor) is manager-level — set on the company.
+                Static facts from the fund fact sheet. Custody chain (trustee · custodian · auditor) is manager-level, so it is set on the company.
               </p>
             </div>
 
@@ -143,10 +147,14 @@ export default async function FundDetail({ params }: { params: Promise<{ id: str
 
           <FundPricing
             id={fund.id}
+            currency={fund.currency}
             basis={fund.basis ?? null}
             pricePerUnit={fund.price_per_unit ?? null}
             priceAsOf={fund.price_as_of ?? null}
             distributionPct={fund.distribution_pct ?? null}
+            durationYears={fund.duration_years ?? null}
+            creditQuality={fund.credit_quality ?? null}
+            navHistory={navHistory ?? []}
           />
 
           <div className="panelc">
@@ -181,6 +189,29 @@ function Field({ name, label, defaultValue, type = "text" }: { name: string; lab
       <span>{label}</span>
       <input name={name} type={type} step={type === "number" ? "any" : undefined} defaultValue={defaultValue}
         className={"input" + (type === "number" ? " num-input" : "")} />
+    </label>
+  );
+}
+
+// AUM in the fund's OWN currency. The currency is a fixed adornment read off the
+// row, not something the operator types, so entering a KES figure on a dollar
+// fund is impossible rather than merely discouraged.
+//
+// This replaces a free-text box that accepted anything. It held 'KES 3.80
+// billion' on one fund and a naked '1150000' on another: two incompatible
+// representations of one fact, neither sortable, summable, nor checkable against
+// the currency sitting one field away.
+function AumField({ currency, defaultValue }: { currency: string; defaultValue: string | number }) {
+  return (
+    <label className="field">
+      <span>AUM ({currency})</span>
+      <div style={{ position: "relative" }}>
+        <span className="num" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", fontSize: 13, color: "var(--faint)", pointerEvents: "none" }}>
+          {currency}
+        </span>
+        <input name="aum_native" type="number" step="any" min="0" defaultValue={defaultValue}
+          placeholder="3800000000" className="input num-input" style={{ paddingLeft: 48 }} />
+      </div>
     </label>
   );
 }

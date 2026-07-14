@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive/hive.dart';
 
+import '../core/local_notify.dart';
 import '../core/push.dart';
+import '../core/settings_prefs.dart';
 import 'models/alert.dart';
 import 'models/fund.dart';
 import 'models/holding.dart';
@@ -12,13 +16,17 @@ import 'repositories/rates_repository.dart';
 import 'sources/local/rates_cache.dart';
 import 'sources/remote/rates_api.dart';
 
-// ── rates ────────────────────────────────────────────────────────────
+// rates ----------------------------------------------------------------------
 final ratesApiProvider = Provider((ref) => RatesApi());
 final ratesCacheProvider = Provider((ref) => RatesCache(Hive.box('rates')));
 final ratesRepositoryProvider = Provider(
   (ref) =>
       RatesRepository(ref.read(ratesApiProvider), ref.read(ratesCacheProvider)),
 );
+
+/// Above this many followed funds moving in one refresh, collapse to a single
+/// summary notification instead of buzzing the phone once per fund.
+const _kMaxIndividualRateNotifications = 3;
 
 class RatesNotifier extends AsyncNotifier<List<Fund>> {
   RatesRepository get _repo => ref.read(ratesRepositoryProvider);
@@ -44,11 +52,25 @@ class RatesNotifier extends AsyncNotifier<List<Fund>> {
   // On a fresh snapshot, raise an alert for any followed fund whose rate moved.
   // Held funds are auto-followed (HoldingsNotifier.setBalance -> ensureFollow),
   // so this single `subs` check already covers "alerts on funds I hold".
+  //
+  // This detection is local and deterministic, and it has never been the flaky
+  // part. What WAS flaky is the four-hop chain that had to succeed for the same
+  // fact to reach the drawer: tag lands at OneSignal, filter matches, FCM
+  // delivers, Doze does not eat it. So the app knew a followed fund had moved
+  // and said nothing, while a far more fragile path was the only thing that
+  // could tell the user.
+  //
+  // It now raises a drawer notification directly. LocalNotify de-duplicates on
+  // (fund, resulting rate), so re-detecting the same move across a cold start
+  // does not notify twice.
   void _detectAlerts(List<Fund> old, List<Fund> fresh) {
     final subs = ref.read(subscriptionsProvider);
     if (subs.isEmpty) return;
+
     final oldById = {for (final f in old) f.id: f};
     final alerts = ref.read(alertsProvider.notifier);
+    final moved = <({Fund fund, double oldRate, double newRate})>[];
+
     for (final f in fresh) {
       if (!subs.contains(f.id)) continue;
       final pr = oldById[f.id]?.currentRate;
@@ -57,7 +79,35 @@ class RatesNotifier extends AsyncNotifier<List<Fund>> {
         alerts.add(
           RateAlert(fundId: f.id, oldRate: pr, newRate: nr, at: DateTime.now()),
         );
+        moved.add((fund: f, oldRate: pr, newRate: nr));
       }
+    }
+
+    if (moved.isEmpty) return;
+
+    // The in-app alerts feed above is populated unconditionally: it is a list
+    // the user chose to open, not an interruption. The DRAWER notification is an
+    // interruption, so it obeys the same two switches the server-side push now
+    // obeys. Before this the local path would have buzzed a user who had turned
+    // rate-move alerts off, which is precisely the bug this delivery is fixing
+    // on the server, reintroduced on the client.
+    final prefs = ref.read(settingsControllerProvider);
+    if (!prefs.masterAlerts || !prefs.rateMoves) return;
+
+    if (moved.length > _kMaxIndividualRateNotifications) {
+      unawaited(LocalNotify.rateChangeSummary(moved.length));
+      return;
+    }
+
+    for (final m in moved) {
+      unawaited(
+        LocalNotify.rateChange(
+          fundId: m.fund.id,
+          name: m.fund.name,
+          oldRate: m.oldRate,
+          newRate: m.newRate,
+        ),
+      );
     }
   }
 
@@ -85,7 +135,7 @@ final stockHistoryProvider = FutureProvider.autoDispose
       return ref.read(ratesApiProvider).getStockHistory(stockId);
     });
 
-// ── holdings ─────────────────────────────────────────────────────────
+// holdings -------------------------------------------------------------------
 final holdingsRepositoryProvider = Provider(
   (ref) => HoldingsRepository(Hive.box('holdings')),
 );
@@ -121,7 +171,7 @@ class HoldingsNotifier extends Notifier<List<Holding>> {
   Future<void> remove(String fundId) async {
     await _repo.remove(fundId);
     state = _repo.all();
-    // Intentionally does NOT unfollow  removing a holding leaves the follow in
+    // Intentionally does NOT unfollow: removing a holding leaves the follow in
     // place so a re-add or a "still watching it" case keeps working.
   }
 }
@@ -130,7 +180,7 @@ final holdingsProvider = NotifierProvider<HoldingsNotifier, List<Holding>>(
   HoldingsNotifier.new,
 );
 
-// ── subscriptions (followed funds) ───────────────────────────────────
+// subscriptions (followed funds) ---------------------------------------------
 class SubscriptionsNotifier extends Notifier<Set<String>> {
   @override
   Set<String> build() =>
@@ -138,20 +188,25 @@ class SubscriptionsNotifier extends Notifier<Set<String>> {
               .cast<String>())
           .toSet();
 
-  Future<void> toggle(String fundId) async {
+  /// Returns true when the fund is now followed, false when it was unfollowed.
+  /// The caller needs to know which, because turning a follow ON is the moment
+  /// the app has to make sure it can actually deliver on the promise.
+  Future<bool> toggle(String fundId) async {
     final s = {...state};
     final added = s.add(fundId);
     if (!added) s.remove(fundId);
     await Hive.box('settings').put('subs', s.toList());
     state = s;
+
     if (added) {
-      Push.follow(fundId);
+      await Push.follow(fundId);
     } else {
-      Push.unfollow(fundId);
+      await Push.unfollow(fundId);
     }
+    return added;
   }
 
-  /// Add-only follow  no-op if already following. Used by auto-follow on
+  /// Add-only follow: no-op if already following. Used by auto-follow on
   /// add-holding and by the first-open follow coach, so neither can
   /// accidentally toggle a fund OFF.
   Future<void> ensureFollow(String fundId) async {
@@ -159,7 +214,7 @@ class SubscriptionsNotifier extends Notifier<Set<String>> {
     final s = {...state}..add(fundId);
     await Hive.box('settings').put('subs', s.toList());
     state = s;
-    Push.follow(fundId);
+    await Push.follow(fundId);
   }
 }
 
@@ -168,7 +223,7 @@ final subscriptionsProvider =
       SubscriptionsNotifier.new,
     );
 
-// ── stock follows ────────────────────────────────────────────────────────────
+// stock follows --------------------------------------------------------------
 /// Followed STOCKS, kept in their own Hive key and their own OneSignal tag
 /// namespace (`follow_stock_<id>`, see Push.stockTagKey).
 ///
@@ -189,17 +244,19 @@ class StockSubscriptionsNotifier extends Notifier<Set<String>> {
               .cast<String>())
           .toSet();
 
-  Future<void> toggle(String stockId) async {
+  Future<bool> toggle(String stockId) async {
     final s = {...state};
     final added = s.add(stockId);
     if (!added) s.remove(stockId);
     await Hive.box('settings').put('stockSubs', s.toList());
     state = s;
+
     if (added) {
-      Push.followStock(stockId);
+      await Push.followStock(stockId);
     } else {
-      Push.unfollowStock(stockId);
+      await Push.unfollowStock(stockId);
     }
+    return added;
   }
 }
 
@@ -208,7 +265,7 @@ final stockSubscriptionsProvider =
       StockSubscriptionsNotifier.new,
     );
 
-// ── alerts feed ──────────────────────────────────────────────────────
+// alerts feed ----------------------------------------------------------------
 class AlertsNotifier extends Notifier<List<RateAlert>> {
   Box get _box => Hive.box('alerts');
 
@@ -242,7 +299,15 @@ final unreadAlertsProvider = Provider<int>((ref) {
   return ref.watch(alertsProvider).where((a) => a.at.isAfter(seen)).length;
 });
 
-// ── settings ─────────────────────────────────────────────────────────
+// push delivery state --------------------------------------------------------
+/// Reads what OneSignal actually holds for this device. autoDispose so the
+/// Settings panel gets a fresh read every time it is opened rather than a stale
+/// one from an hour ago.
+final pushDiagnosticsProvider = FutureProvider.autoDispose<PushDiagnostics>(
+  (ref) => Push.diagnostics(),
+);
+
+// settings -------------------------------------------------------------------
 class AppLockNotifier extends Notifier<bool> {
   @override
   bool build() =>
