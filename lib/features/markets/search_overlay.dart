@@ -44,7 +44,7 @@ class _SearchOverlayState extends ConsumerState<SearchOverlay> {
   Widget build(BuildContext context) {
     final c = context.c;
     final cfg = ref.watch(remoteConfigProvider);
-    final funds = ref.watch(ratesProvider).valueOrNull ?? const <Fund>[];
+    final funds = ref.watch(ratesProvider).value ?? const <Fund>[];
     final insurers = ref.watch(insurersProvider);
     final stocks = ref.watch(stocksProvider);
     // Every published society, joinable or not. The open-bond filter belongs on

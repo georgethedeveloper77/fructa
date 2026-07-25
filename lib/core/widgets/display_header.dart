@@ -35,7 +35,7 @@ class DisplayHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+          padding: const EdgeInsets.fromLTRB(20, 2, 20, 0),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -58,7 +58,7 @@ class DisplayHeader extends StatelessWidget {
         ),
         if (sub != null)
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 6, 20, 0),
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
             child: Text(
               sub!,
               style: TextStyle(color: c.muted, fontSize: 12, height: 1.35),
@@ -173,20 +173,45 @@ class SectionHeader extends StatelessWidget {
 /// v5 `.disc`. Faint fine-print. [center] supports the centred disclaimers on
 /// the Company page.
 class Disclaimer extends StatelessWidget {
-  const Disclaimer(this.text, {super.key, this.center = false});
+  const Disclaimer(this.text, {super.key, this.center = false, this.onTap});
 
   final String text;
   final bool center;
 
+  /// When set, the disclaimer becomes tappable and shows a small info icon, used
+  /// to open an explainer (e.g. how yields are shown). Left null, it stays a
+  /// plain line, so only the callers that pass it become interactive.
+  final VoidCallback? onTap;
+
   @override
   Widget build(BuildContext context) {
     final c = context.c;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(22, 16, 22, 18),
-      child: Text(
-        text,
-        textAlign: center ? TextAlign.center : TextAlign.start,
-        style: TextStyle(color: c.faint, fontSize: 10.5, height: 1.6),
+    final body = Text(
+      text,
+      textAlign: center ? TextAlign.center : TextAlign.start,
+      style: TextStyle(color: c.faint, fontSize: 10.5, height: 1.6),
+    );
+    if (onTap == null) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(22, 16, 22, 18),
+        child: body,
+      );
+    }
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(22, 16, 22, 18),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: body),
+            const SizedBox(width: 8),
+            Padding(
+              padding: const EdgeInsets.only(top: 1),
+              child: Icon(Icons.info_outline, size: 15, color: c.accent),
+            ),
+          ],
+        ),
       ),
     );
   }

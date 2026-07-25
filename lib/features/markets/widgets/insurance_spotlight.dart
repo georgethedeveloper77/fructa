@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart' show Ticker, TickerCallback;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme.dart';
@@ -6,19 +7,18 @@ import '../../../data/models/insurer.dart';
 import '../../../data/snapshot_providers.dart';
 import '../../insure/insure_common.dart';
 
-/// Insurance spotlight on Markets, rebuilt to the house card pattern.
+/// Insurance spotlight on Markets, V10.
 ///
-/// It previously used its own shape (transparent fill, line2 border, radius 20,
-/// eyebrow inside the card) while every other Markets card uses an external
-/// mono eyebrow above an s1 panel with a line border at radius 18. That is why
-/// it read as though it came from a different app. It now matches
-/// MarketAllocationDonut and MarketContextCard exactly.
+/// Matches the house card pattern (external mono eyebrow, s1 panel, line border,
+/// radius 18) and now shares the home screen's signature: a compact
+/// price-distribution strip. A tap from here lands on a screen that already
+/// looks familiar.
 ///
-/// The headline is the SPREAD, not a slogan. "Compare motor and travel cover"
-/// asks the user to take our word for it; "the same car costs 2.3x more at one
-/// insurer than another" hands them the reason and lets them check it. The
-/// figure is computed from the same tariffs the quote screen prices with, so
-/// the card can never promise a spread the app does not then show.
+/// The eyebrow is just "INSURANCE". We carry more than motor, so the card must
+/// not brand itself around one class or a fixed licensed count. The body is
+/// data-driven: when the market publishes a comprehensive spread we lead with
+/// it, otherwise we fall back to the plainest true statement and a logo stack.
+/// The old radial gradient wash is gone.
 class InsuranceSpotlight extends ConsumerWidget {
   const InsuranceSpotlight({super.key, required this.onTap});
 
@@ -28,7 +28,7 @@ class InsuranceSpotlight extends ConsumerWidget {
   /// quote screen reprices against the user's own value.
   static const double _refValue = 3450000;
 
-  static String _compact(num v) {
+  static String compact(num v) {
     final d = v.toDouble();
     if (d >= 1e6) {
       final m = d / 1e6;
@@ -72,7 +72,7 @@ class InsuranceSpotlight extends ConsumerWidget {
         : 'Compare cover from ${flow.length} insurers';
 
     final sub = hasSpread
-        ? 'KES ${_compact(cheapest!)} to KES ${_compact(dearest!)} '
+        ? 'KES ${compact(cheapest!)} to KES ${compact(dearest!)} '
               'for identical comprehensive cover'
         : 'Published rates only, never an estimate';
 
@@ -81,7 +81,8 @@ class InsuranceSpotlight extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // External eyebrow, matching MARKET BY AUM and MARKET CONTEXT.
+          // External eyebrow. Just the class name and the action: no fixed
+          // licensed count, no motor-only framing.
           Row(
             children: [
               Text(
@@ -92,15 +93,6 @@ class InsuranceSpotlight extends ConsumerWidget {
                   fontSize: 10.5,
                   letterSpacing: 1.6,
                   fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'IRA \u00b7 ${insurers.length} licensed',
-                style: TextStyle(
-                  color: c.faint,
-                  fontFamily: fructaFonts.mono,
-                  fontSize: 10.5,
                 ),
               ),
               const Spacer(),
@@ -121,35 +113,14 @@ class InsuranceSpotlight extends ConsumerWidget {
             borderRadius: BorderRadius.circular(18),
             child: Container(
               padding: const EdgeInsets.all(16),
-              clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
                 color: c.s1,
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(color: c.line),
               ),
-              child: Stack(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Ambient accent wash, kept inside the panel now that the
-                  // panel actually has a fill to sit on.
-                  Positioned(
-                    left: -90,
-                    top: -70,
-                    bottom: -70,
-                    child: IgnorePointer(
-                      child: Container(
-                        width: 210,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: RadialGradient(
-                            colors: [
-                              c.accent.withValues(alpha: 0.10),
-                              c.accent.withValues(alpha: 0.0),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
                   Row(
                     children: [
                       Container(
@@ -185,20 +156,201 @@ class InsuranceSpotlight extends ConsumerWidget {
                                 height: 1.4,
                               ),
                             ),
-                            if (flow.length >= 3) ...[
-                              const SizedBox(height: 11),
-                              _AvatarStack(insurers: flow),
-                            ],
                           ],
                         ),
                       ),
                     ],
                   ),
+                  // The signature strip when we can prove a spread, otherwise a
+                  // logo stack so the card is never empty.
+                  if (hasSpread)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 14),
+                      child: _CompactStrip(premiums: premiums),
+                    )
+                  else if (flow.length >= 3)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 11),
+                      child: _AvatarStack(insurers: flow),
+                    ),
                 ],
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// The home screen's distribution strip, shrunk to a card. Endpoints only,
+/// interior insurers as hairline ticks. Nodes ring in the PANEL colour (s1),
+/// not the page colour, so they do not draw a dark halo on the card fill.
+///
+/// The same car sprite as the home strip drives slowly start to end. Its
+/// controller is driven by a hand-rolled TickerProvider, never
+/// SingleTickerProviderStateMixin, so a card scrolling out of the list cannot
+/// re-run the ticker lookup that crashes on teardown.
+class _CompactStrip extends StatefulWidget {
+  const _CompactStrip({required this.premiums});
+  final List<double> premiums;
+
+  @override
+  State<_CompactStrip> createState() => _CompactStripState();
+}
+
+class _CompactStripState extends State<_CompactStrip>
+    implements TickerProvider {
+  Ticker? _ticker;
+  late final AnimationController _drive;
+  late final Animation<double> _t;
+  bool _kicked = false;
+
+  @override
+  Ticker createTicker(TickerCallback onTick) {
+    _ticker = Ticker(onTick, debugLabel: 'fructa.spread.car.card');
+    return _ticker!;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _drive = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2800),
+    );
+    _t = CurvedAnimation(parent: _drive, curve: Curves.easeInOut);
+  }
+
+  @override
+  void dispose() {
+    _drive.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    final reduce = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    if (!_kicked) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_kicked || !mounted) return;
+        _kicked = true;
+        if (reduce) {
+          _drive.value = 0.12;
+        } else {
+          _drive.repeat(reverse: true);
+        }
+      });
+    }
+
+    final premiums = widget.premiums;
+    final lo = premiums.first;
+    final hi = premiums.last;
+    final span = hi - lo;
+    final interior = premiums.length > 2
+        ? premiums.sublist(1, premiums.length - 1)
+        : const <double>[];
+
+    return SizedBox(
+      height: 40,
+      child: LayoutBuilder(
+        builder: (context, cons) {
+          final w = cons.maxWidth;
+          const node = 9.0;
+          double px(double v) => span <= 0 ? w / 2 : ((v - lo) / span) * w;
+          double clampX(double x, double size) => x.clamp(0.0, w - size);
+
+          return Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned(
+                left: 0,
+                top: 0,
+                child: Text(
+                  InsuranceSpotlight.compact(lo),
+                  style: TextStyle(
+                    color: c.accent,
+                    fontFamily: fructaFonts.mono,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Positioned(
+                right: 0,
+                top: 0,
+                child: Text(
+                  InsuranceSpotlight.compact(hi),
+                  style: TextStyle(
+                    color: c.down,
+                    fontFamily: fructaFonts.mono,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                top: 30,
+                child: Container(height: 1, color: c.line2),
+              ),
+              for (final v in interior)
+                Positioned(
+                  left: px(v) - 0.75,
+                  top: 26,
+                  child: Container(
+                    width: 1.5,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: c.faint.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(1),
+                    ),
+                  ),
+                ),
+              Positioned(
+                left: clampX(px(hi) - node / 2, node),
+                top: 30 - node / 2,
+                child: _dot(c.down, c.s1),
+              ),
+              Positioned(
+                left: clampX(px(lo) - node / 2, node),
+                top: 30 - node / 2,
+                child: _dot(c.accent, c.s1),
+              ),
+              AnimatedBuilder(
+                animation: _t,
+                builder: (context, _) {
+                  final v = _t.value.clamp(0.0, 1.0);
+                  final x = px(lo) + (px(hi) - px(lo)) * v;
+                  const carSize = 16.0;
+                  return Positioned(
+                    left: clampX(x - carSize / 2, carSize),
+                    top: 30 - carSize,
+                    child: Icon(
+                      Icons.directions_car_filled,
+                      size: carSize,
+                      color: Color.lerp(c.accent, c.down, v),
+                    ),
+                  );
+                },
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _dot(Color fill, Color ring) {
+    return Container(
+      width: 9,
+      height: 9,
+      decoration: BoxDecoration(
+        color: fill,
+        shape: BoxShape.circle,
+        border: Border.all(color: ring, width: 1.5),
       ),
     );
   }

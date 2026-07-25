@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme.dart';
+import '../../../core/widgets/app_loader.dart';
 import '../../../core/widgets/range_bar.dart';
 import '../../../data/models/stock_history.dart';
 import '../../../data/providers.dart';
@@ -62,7 +63,7 @@ class _StockChartState extends ConsumerState<StockChart> {
     return async.when(
       loading: () => SizedBox(
         height: 180,
-        child: Center(child: CircularProgressIndicator(color: line)),
+        child: Center(child: AppLoader(color: line)),
       ),
       // A failed fetch shows nothing rather than an empty axis. An axis with no
       // line on it reads as "this share is worth nothing", which is a lie.

@@ -20,8 +20,26 @@ class CompositionPie extends StatefulWidget {
   State<CompositionPie> createState() => _CompositionPieState();
 }
 
-class _CompositionPieState extends State<CompositionPie> {
+class _CompositionPieState extends State<CompositionPie>
+    with SingleTickerProviderStateMixin {
   int _touched = -1;
+  late final AnimationController _c;
+
+  @override
+  void initState() {
+    super.initState();
+    _c = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+    _c.forward();
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +73,11 @@ class _CompositionPieState extends State<CompositionPie> {
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    PieChart(
+                    AnimatedBuilder(
+                      animation: _c,
+                      builder: (context, _) {
+                        final g = Curves.easeOutCubic.transform(_c.value);
+                        return PieChart(
                       PieChartData(
                         sectionsSpace: 2,
                         centerSpaceRadius: 42,
@@ -78,11 +100,14 @@ class _CompositionPieState extends State<CompositionPie> {
                             PieChartSectionData(
                               value: slices[i].value,
                               color: slices[i].key.color,
-                              radius: i == _touched ? 26 : 22,
+                              radius: (i == _touched ? 26 : 22) * g,
                               showTitle: false,
                             ),
                         ],
                       ),
+                      duration: Duration.zero,
+                        );
+                      },
                     ),
                     Column(
                       mainAxisSize: MainAxisSize.min,

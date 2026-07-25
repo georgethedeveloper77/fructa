@@ -9,16 +9,6 @@ import '../../data/models/remote_config.dart';
 import '../../data/providers.dart';
 import '../../data/snapshot_providers.dart';
 
-/// Full-page breakdown behind the Markets "Market by AUM" donut.
-///
-/// Two authoritative CMA views, toggled: the market split by fund type (AUM),
-/// and where the whole market's money actually sits (asset class). Both come
-/// from remote config (`market.aum_by_fund_type`, `market.asset_classes`) with
-/// baked Q1-2026 fallbacks, so the page always renders. Tapping a slice or a
-/// legend row lifts that slice and swaps the centre readout; the two stay in
-/// sync. This is the *market*, not the funds fructa tracks  a coverage line
-/// notes how many retail funds the app watches against it.
-
 enum _View { fundType, assetClass }
 
 const _fundTypeLabels = {
@@ -41,8 +31,18 @@ const _assetClassLabels = {
 };
 
 const _months = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
 ];
 
 /// One slice: label + colour + share, plus AUM where the view has it
@@ -133,8 +133,9 @@ class _MarketByAumPageState extends ConsumerState<MarketByAumPage> {
     final cfg = ref.watch(remoteConfigProvider);
     final slices = _slices(cfg);
 
-    final asOf =
-        _view == _View.fundType ? cfg.marketAsOf : cfg.marketAssetsAsOf;
+    final asOf = _view == _View.fundType
+        ? cfg.marketAsOf
+        : cfg.marketAssetsAsOf;
     final tag = asOf != null ? _asOfTag(asOf) : null;
 
     return Scaffold(
@@ -349,8 +350,7 @@ class _MarketByAumPageState extends ConsumerState<MarketByAumPage> {
                     style: TextStyle(
                       color: selected ? c.text : c.muted,
                       fontSize: 13.5,
-                      fontWeight:
-                          selected ? FontWeight.w600 : FontWeight.w500,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
                     ),
                   ),
                 ),
@@ -414,13 +414,12 @@ class _MarketByAumPageState extends ConsumerState<MarketByAumPage> {
   }
 
   Widget _sourceCard(fructaColors c, RemoteConfig cfg, String? asOf) {
-    final source = (_view == _View.fundType
-            ? cfg.marketSource
-            : cfg.marketAssetsSource) ??
+    final source =
+        (_view == _View.fundType ? cfg.marketSource : cfg.marketAssetsSource) ??
         'CMA CIS Quarterly Report';
     final dated = asOf != null ? ', as of ${_prettyDate(asOf)}' : '';
 
-    final funds = ref.watch(ratesProvider).valueOrNull ?? const <Fund>[];
+    final funds = ref.watch(ratesProvider).value ?? const <Fund>[];
     final tracked = funds.where((f) => f.retail).length;
 
     return Container(
@@ -451,11 +450,7 @@ class _MarketByAumPageState extends ConsumerState<MarketByAumPage> {
           Text(
             '$source$dated. SACCOs sit in a separate SASRA market and are not '
             'part of this CIS set.',
-            style: TextStyle(
-              color: c.muted,
-              fontSize: 12.5,
-              height: 1.55,
-            ),
+            style: TextStyle(color: c.muted, fontSize: 12.5, height: 1.55),
           ),
           if (tracked > 0) ...[
             const SizedBox(height: 8),

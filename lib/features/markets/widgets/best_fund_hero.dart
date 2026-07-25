@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -77,9 +78,11 @@ class BestFundHero extends ConsumerWidget {
     final d = delta;
 
     // Dark s1 is nearly invisible against bg, so the hero recedes. Lift the
-    // base to s2 in dark and carry a soft brand shadow (below) so the featured
-    // card clearly floats as the focal point. Light mode keeps s1.
-    final base = c.isDark ? c.s2 : c.s1;
+    // base to s3 in dark (a bigger luminance step off bg than s2 gave, matching
+    // the pop the white card has in light mode) and carry a soft brand shadow
+    // (below) so the featured card clearly floats as the focal point. Light
+    // mode keeps s1.
+    final base = c.isDark ? c.s3 : c.s1;
 
     // The fund's OWN stated benchmark (0026), replacing the hardcoded 91-day.
     // Falls back to the 91-day so the reference line always renders (matches
@@ -119,7 +122,13 @@ class BestFundHero extends ConsumerWidget {
             ),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: tint.withValues(alpha: c.isDark ? 0.44 : 0.30),
+              // A dark brand (Nabo's navy) at low alpha vanishes against bg and
+              // the card melts into the page. brandOnBg lifts it to a legible
+              // edge in dark; light mode keeps the plain tint, which already
+              // reads on the pale card.
+              color: c.isDark
+                  ? c.brandOnBg(tint).withValues(alpha: 0.60)
+                  : tint.withValues(alpha: 0.30),
               width: c.isDark ? 1.2 : 1,
             ),
             boxShadow: c.isDark
@@ -184,7 +193,8 @@ class BestFundHero extends ConsumerWidget {
                             Text(
                               tag,
                               style: TextStyle(
-                                color: tint,
+                                // Legible even when the brand is a dark navy.
+                                color: c.brandOnBg(tint),
                                 fontFamily: fructaFonts.mono,
                                 fontSize: 10.5,
                                 letterSpacing: 0.5,
@@ -290,28 +300,62 @@ class BestFundHero extends ConsumerWidget {
                     decoration: BoxDecoration(
                       border: Border(top: BorderSide(color: c.line)),
                     ),
-                    child: Row(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _TriadCell(
-                          k: 'NET (${wht.toStringAsFixed(0)}% WHT)',
-                          v: net != null
-                              ? '${net.toStringAsFixed(2)}%'
-                              : '\u2014',
+                        Row(
+                          children: [
+                            _TriadCell(
+                              k: 'NET (${wht.toStringAsFixed(0)}% WHT)',
+                              v: net != null
+                                  ? '${net.toStringAsFixed(2)}%'
+                                  : '\u2013',
+                            ),
+                            _vline(c),
+                            _TriadCell(
+                              k: 'REAL VS INFL.',
+                              v: real != null
+                                  ? '${real >= 0 ? '+' : ''}${real.toStringAsFixed(2)}%'
+                                  : '\u2013',
+                              color: real != null ? c.delta(real) : null,
+                            ),
+                          ],
                         ),
-                        _vline(c),
-                        _TriadCell(
-                          k: 'REAL VS INFL.',
-                          v: real != null
-                              ? '${real >= 0 ? '+' : ''}${real.toStringAsFixed(2)}%'
-                              : '\u2014',
-                          color: real != null ? c.delta(real) : null,
-                        ),
-                        _vline(c),
-                        _TriadCell(
-                          k: 'MIN INVEST',
-                          v: fund.minInvest != null
-                              ? '${fund.currency} ${_commas(fund.minInvest!)}'
-                              : '\u2014',
+                        Container(
+                          margin: const EdgeInsets.only(top: 12),
+                          padding: const EdgeInsets.only(top: 12),
+                          decoration: BoxDecoration(
+                            border: Border(top: BorderSide(color: c.line)),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'MIN INVEST',
+                                style: TextStyle(
+                                  color: c.faint,
+                                  fontFamily: fructaFonts.mono,
+                                  fontSize: 9.5,
+                                  letterSpacing: 1,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              Text(
+                                fund.minInvest != null
+                                    ? '${fund.currency} ${_commas(fund.minInvest!)}'
+                                    : '\u2013',
+                                style: TextStyle(
+                                  color: c.text,
+                                  fontFamily: fructaFonts.mono,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  fontFeatures: const [
+                                    FontFeature.tabularFigures(),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -322,19 +366,20 @@ class BestFundHero extends ConsumerWidget {
                     SizedBox(
                       height: 84,
                       width: double.infinity,
-                      child: CustomPaint(
-                        painter: _HeroSpark(
-                          fund.spark,
-                          tint,
-                          benchmark: benchRate,
-                          benchColor: c.muted,
-                        ),
+                      child: _AnimatedHeroSpark(
+                        fund.spark,
+                        // Raw brand tint (Nabo's navy) is swallowed by the dark
+                        // card; brandOnBg lifts the line and its fill to a
+                        // legible stroke, matching the border and tag.
+                        c.brandOnBg(tint),
+                        benchmark: benchRate,
+                        benchColor: c.muted,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        _Lg(color: tint, label: 'Fund rate'),
+                        _Lg(color: c.brandOnBg(tint), label: 'Fund rate'),
                         const SizedBox(width: 14),
                         _Lg(color: c.muted, label: benchLabel, dashed: true),
                         if (benchDelta != null) ...[
@@ -476,30 +521,116 @@ class _DashLegend extends CustomPainter {
   bool shouldRepaint(_DashLegend old) => old.color != color;
 }
 
-/// Brand area sparkline with an optional dashed horizontal benchmark line.
-/// The y-domain includes the benchmark so the reference always sits in view.
-class _HeroSpark extends CustomPainter {
-  _HeroSpark(this.pts, this.color, {this.benchmark, this.benchColor});
+/// Wraps [_HeroSpark] in a one-shot controller so the line draws itself in over
+/// ~1.4s the first time and replays when the plotted fund changes.
+class _AnimatedHeroSpark extends StatefulWidget {
+  const _AnimatedHeroSpark(
+    this.pts,
+    this.color, {
+    this.benchmark,
+    this.benchColor,
+  });
+
   final List<double> pts;
   final Color color;
   final double? benchmark;
   final Color? benchColor;
 
   @override
+  State<_AnimatedHeroSpark> createState() => _AnimatedHeroSparkState();
+}
+
+class _AnimatedHeroSparkState extends State<_AnimatedHeroSpark>
+    with SingleTickerProviderStateMixin {
+  // Built in initState, not lazily: a late controller first touched in dispose
+  // would run createTicker on a deactivated context.
+  late final AnimationController _c;
+
+  @override
+  void initState() {
+    super.initState();
+    _c = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    );
+    _c.forward();
+  }
+
+  @override
+  void didUpdateWidget(covariant _AnimatedHeroSpark old) {
+    super.didUpdateWidget(old);
+    if (!listEquals(old.pts, widget.pts)) _c.forward(from: 0);
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: _c,
+    builder: (_, __) => CustomPaint(
+      painter: _HeroSpark(
+        widget.pts,
+        widget.color,
+        benchmark: widget.benchmark,
+        benchColor: widget.benchColor,
+        t: Curves.easeInOutCubic.transform(_c.value),
+      ),
+    ),
+  );
+}
+
+/// Brand area sparkline with an optional dashed horizontal benchmark line.
+/// The y-domain is framed on the fund's own padded range so the line fills the
+/// band; a benchmark outside that range pins to the nearest edge rather than
+/// stretching the domain (which would squash the fund line).
+class _HeroSpark extends CustomPainter {
+  _HeroSpark(
+    this.pts,
+    this.color, {
+    this.benchmark,
+    this.benchColor,
+    this.t = 1.0,
+  });
+  final List<double> pts;
+  final Color color;
+  final double? benchmark;
+  final Color? benchColor;
+
+  /// Draw-on progress, 0..1. Defaults to 1 so a static paint is unaffected.
+  final double t;
+
+  @override
   void paint(Canvas canvas, Size size) {
     if (pts.length < 2) return;
+    // Frame the domain on the fund's OWN range, then pad, so a slow
+    // money-market series (a fraction of a point of movement over the window)
+    // still fills the band instead of collapsing into a flat line. We do NOT
+    // stretch the domain to reach the benchmark: an MMF near 11% charted
+    // against a 91-day bill near 9% used to drag lo down by ~2 points, which
+    // squashed the fund line into the top sliver of the well and left the rest
+    // empty. Now the benchmark draws in scale when it falls inside the padded
+    // fund window, and pins to the nearest edge (via the yOf clamp) when it is
+    // outside it. The exact gap is never lost: it rides in the legend as the
+    // explicit "+x.xx pts" spread.
     var lo = pts.first, hi = pts.first;
     for (final v in pts) {
       if (v < lo) lo = v;
       if (v > hi) hi = v;
     }
-    if (benchmark != null) {
-      if (benchmark! < lo) lo = benchmark!;
-      if (benchmark! > hi) hi = benchmark!;
-    }
+    final rawSpan = hi - lo;
+    final pad = (rawSpan == 0 ? 0.08 : rawSpan * 0.40).clamp(
+      0.05,
+      double.infinity,
+    );
+    lo -= pad;
+    hi += pad;
     final span = (hi - lo) == 0 ? 1.0 : (hi - lo);
     double yOf(double v) =>
-        size.height - ((v - lo) / span) * (size.height - 6) - 3;
+        size.height - ((v - lo) / span).clamp(0.0, 1.0) * (size.height - 6) - 3;
 
     if (benchmark != null && benchColor != null) {
       final by = yOf(benchmark!);
@@ -534,6 +665,18 @@ class _HeroSpark extends CustomPainter {
     }
     fill.lineTo(size.width, size.height);
     fill.close();
+
+    // Progressive draw-on: the line draws itself left to right and the fill is
+    // clipped to the drawing tip, matching the market pulse. t defaults to 1, so
+    // any static use is unchanged.
+    final metrics = line.computeMetrics().toList();
+    if (metrics.isEmpty) return;
+    final frac = t.clamp(0.0, 1.0);
+    final tan = metrics.first.getTangentForOffset(metrics.first.length * frac);
+    final tipX = tan?.position.dx ?? 0.0;
+
+    canvas.save();
+    canvas.clipRect(Rect.fromLTRB(0, 0, tipX <= 0 ? 0.001 : tipX, size.height));
     canvas.drawPath(
       fill,
       Paint()
@@ -543,8 +686,14 @@ class _HeroSpark extends CustomPainter {
           colors: [color.withValues(alpha: 0.22), color.withValues(alpha: 0.0)],
         ).createShader(Offset.zero & size),
     );
+    canvas.restore();
+
+    final drawn = Path();
+    for (final m in metrics) {
+      drawn.addPath(m.extractPath(0, m.length * frac), Offset.zero);
+    }
     canvas.drawPath(
-      line,
+      drawn,
       Paint()
         ..color = color
         ..style = PaintingStyle.stroke
@@ -556,5 +705,8 @@ class _HeroSpark extends CustomPainter {
 
   @override
   bool shouldRepaint(_HeroSpark old) =>
-      old.pts != pts || old.color != color || old.benchmark != benchmark;
+      old.pts != pts ||
+      old.color != color ||
+      old.benchmark != benchmark ||
+      old.t != t;
 }

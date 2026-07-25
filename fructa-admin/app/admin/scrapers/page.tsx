@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { runAggregator, runNseScraper, rebuildSnapshot } from "./actions";
 import { RunButton } from "./RunButton";
+import { FxHealth } from "./FxHealth";
 import { IconExternal, IconChevronRight, IconClock } from "../_icons";
 
 export const dynamic = "force-dynamic";
@@ -333,6 +334,14 @@ export default async function ScrapersPage() {
           </ul>
         </div>
       )}
+
+      {/* The FX lane, above the fleet because it is the one thing on this page
+          that fails SILENTLY. A scraper that stops writes nothing and the rows
+          below go red. Open Exchange Rates stops at 1,000 requests a month by
+          answering nothing at all: the last rate stays in fx_rates, the app
+          keeps rendering it, and a stale number is pixel identical to a fresh
+          one. This readout is the only warning that arrives before that. */}
+      <FxHealth />
 
       {/* The fleet. One row per scraper: what it writes, when it fires, whether
           it fired, what it produced, and a button to fire it now. */}

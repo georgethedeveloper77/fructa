@@ -3,11 +3,13 @@ import 'dart:io' show Platform;
 import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
 import '../core/config.dart';
 import 'models/holding.dart';
+import 'portfolio_codec.dart';
 import 'providers.dart';
 import 'repositories/holdings_repository.dart';
 
@@ -62,7 +64,9 @@ class BackupService {
   String _generateCode() {
     final rnd = Random.secure();
     String grp() => List.generate(
-        4, (_) => _alphabet[rnd.nextInt(_alphabet.length)]).join();
+      4,
+      (_) => _alphabet[rnd.nextInt(_alphabet.length)],
+    ).join();
     return 'AKB-${grp()}-${grp()}-${grp()}-${grp()}';
   }
 
@@ -72,7 +76,6 @@ class BackupService {
   /// Returns the server timestamp on success.
   Future<DateTime?> backup() async {
     final code = await ensureCode();
-    final items = _holdings.all().map((h) => h.toMap()).toList();
     final res = await http.post(
       Uri.parse('${Config.functionsBase}/portfolio-backup'),
       headers: _headers,
@@ -80,7 +83,7 @@ class BackupService {
         'code': code,
         'device': _device,
         'schema': _schema,
-        'data': {'schema': _schema, 'holdings': items},
+        'data': PortfolioCodec.buildPayload(_holdings.all()),
       }),
     );
     if (res.statusCode != 200) {
@@ -103,9 +106,7 @@ class BackupService {
     final m = jsonDecode(res.body) as Map<String, dynamic>;
     if (m['found'] != true) return null;
     final data = (m['data'] as Map).cast<String, dynamic>();
-    final holdings = ((data['holdings'] as List?) ?? const [])
-        .map((e) => Holding.fromMap((e as Map).cast<String, dynamic>()))
-        .toList();
+    final holdings = PortfolioCodec.parsePayload(data);
     return RestoreResult(
       holdings,
       DateTime.tryParse((m['updated_at'] ?? '') as String),
@@ -114,17 +115,19 @@ class BackupService {
   }
 
   /// Write a restored set into local storage (authoritative replace).
-  Future<void> applyRestore(List<Holding> items) =>
-      _holdings.importAll(items);
+  Future<void> applyRestore(List<Holding> items) => _holdings.importAll(items);
 }
 
-final _secureStorageProvider =
-    Provider<FlutterSecureStorage>((_) => const FlutterSecureStorage());
+final _secureStorageProvider = Provider<FlutterSecureStorage>(
+  (_) => const FlutterSecureStorage(),
+);
 
-final backupServiceProvider = Provider<BackupService>((ref) => BackupService(
-      ref.read(holdingsRepositoryProvider),
-      ref.read(_secureStorageProvider),
-    ));
+final backupServiceProvider = Provider<BackupService>(
+  (ref) => BackupService(
+    ref.read(holdingsRepositoryProvider),
+    ref.read(_secureStorageProvider),
+  ),
+);
 
 /// Last successful cloud backup time (session state; drives the Settings line).
 final lastBackupProvider = StateProvider<DateTime?>((ref) => null);

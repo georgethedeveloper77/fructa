@@ -38,7 +38,7 @@ class _CompareOverlayState extends ConsumerState<CompareOverlay> {
 
     final histories = <String, List<RateHistory>>{};
     for (final id in fundIds) {
-      final h = ref.watch(historyProvider(id)).valueOrNull;
+      final h = ref.watch(historyProvider(id)).value;
       if (h != null) histories[id] = h;
     }
 

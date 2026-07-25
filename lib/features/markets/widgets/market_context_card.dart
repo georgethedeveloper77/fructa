@@ -33,7 +33,7 @@ class MarketContextCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.c;
-    final funds = ref.watch(ratesProvider).valueOrNull ?? const <Fund>[];
+    final funds = ref.watch(ratesProvider).value ?? const <Fund>[];
     final cfg = ref.watch(remoteConfigProvider);
     final wht = cfg.whtPct;
     final inflation = cfg.inflationPct;
@@ -295,7 +295,7 @@ class _Legend extends StatelessWidget {
   }
 }
 
-class _MultiLine extends StatelessWidget {
+class _MultiLine extends StatefulWidget {
   const _MultiLine({
     required this.mmfAvg,
     required this.tbill,
@@ -308,7 +308,34 @@ class _MultiLine extends StatelessWidget {
   final Color mmfColor, tbColor, inflColor;
 
   @override
+  State<_MultiLine> createState() => _MultiLineState();
+}
+
+class _MultiLineState extends State<_MultiLine>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c;
+
+  @override
+  void initState() {
+    super.initState();
+    _c = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    );
+    _c.forward();
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final mmfAvg = widget.mmfAvg;
+    final tbill = widget.tbill;
+    final inflation = widget.inflation;
     final all = [...mmfAvg, ...tbill, ...inflation];
     final lo = all.reduce((a, b) => a < b ? a : b);
     final hi = all.reduce((a, b) => a > b ? a : b);
@@ -317,32 +344,57 @@ class _MultiLine extends StatelessWidget {
     List<FlSpot> spots(List<double> s) => [
       for (var i = 0; i < s.length; i++) FlSpot(i.toDouble(), s[i]),
     ];
-    LineChartBarData bar(List<double> s, Color col) => LineChartBarData(
-      spots: spots(s),
-      isCurved: true,
-      curveSmoothness: 0.28,
-      color: col,
-      barWidth: 2.2,
-      dotData: const FlDotData(show: false),
-      belowBarData: BarAreaData(show: false),
-    );
 
-    return LineChart(
-      LineChartData(
-        minX: 0,
-        maxX: (mmfAvg.length - 1).toDouble(),
-        minY: (lo - pad).clamp(0, double.infinity),
-        maxY: hi + pad,
-        gridData: const FlGridData(show: false),
-        borderData: FlBorderData(show: false),
-        titlesData: const FlTitlesData(show: false),
-        lineTouchData: const LineTouchData(enabled: false),
-        lineBarsData: [
-          bar(inflation, inflColor),
-          bar(tbill, tbColor),
-          bar(mmfAvg, mmfColor),
-        ],
-      ),
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (context, _) {
+        final t = Curves.easeInOutCubic.transform(_c.value);
+        LineChartBarData bar(List<double> s, Color col) => LineChartBarData(
+          spots: _reveal(spots(s), t),
+          isCurved: true,
+          curveSmoothness: 0.28,
+          color: col,
+          barWidth: 2.2,
+          dotData: const FlDotData(show: false),
+          belowBarData: BarAreaData(show: false),
+        );
+
+        return LineChart(
+          LineChartData(
+            minX: 0,
+            maxX: (mmfAvg.length - 1).toDouble(),
+            minY: (lo - pad).clamp(0, double.infinity),
+            maxY: hi + pad,
+            gridData: const FlGridData(show: false),
+            borderData: FlBorderData(show: false),
+            titlesData: const FlTitlesData(show: false),
+            lineTouchData: const LineTouchData(enabled: false),
+            lineBarsData: [
+              bar(inflation, widget.inflColor),
+              bar(tbill, widget.tbColor),
+              bar(mmfAvg, widget.mmfColor),
+            ],
+          ),
+          duration: Duration.zero,
+        );
+      },
     );
   }
+}
+
+/// The leading [t] fraction of [spots], with an interpolated tip so lines grow
+/// smoothly left to right.
+List<FlSpot> _reveal(List<FlSpot> spots, double t) {
+  final n = spots.length;
+  if (n < 2 || t >= 1) return spots;
+  if (t <= 0) return [spots.first, spots.first];
+  final k = t * (n - 1);
+  final whole = k.floor();
+  final out = spots.sublist(0, whole + 1);
+  if (whole < n - 1) {
+    final f = k - whole;
+    final a = spots[whole], b = spots[whole + 1];
+    out.add(FlSpot(a.x + (b.x - a.x) * f, a.y + (b.y - a.y) * f));
+  }
+  return out;
 }

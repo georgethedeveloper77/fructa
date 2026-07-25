@@ -27,7 +27,7 @@ class PeerCompare extends ConsumerWidget {
       return const SizedBox.shrink();
     }
     final wht = ref.watch(remoteConfigProvider).whtPct;
-    final all = ref.watch(ratesProvider).valueOrNull ?? const <Fund>[];
+    final all = ref.watch(ratesProvider).value ?? const <Fund>[];
 
     double net(Fund f) {
       final r = f.currentRate;
@@ -167,7 +167,7 @@ class _Bar extends StatelessWidget {
                       widthFactor: frac,
                       child: TweenAnimationBuilder<double>(
                         tween: Tween(begin: 0, end: 1),
-                        duration: const Duration(milliseconds: 500),
+                        duration: const Duration(milliseconds: 1300),
                         curve: Curves.easeOutCubic,
                         builder: (_, t, child) =>
                             FractionallySizedBox(widthFactor: t, child: child),

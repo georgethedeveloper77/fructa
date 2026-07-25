@@ -1,17 +1,8 @@
 import 'dart:convert';
 
 import 'package:flutter/services.dart' show rootBundle;
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 
-/// Lightweight i18n. Loads a flat key→string JSON from assets/lang/<code>.json
-/// once at startup and exposes a global `t(...)`. No extra dependencies, and it
-/// works outside the widget tree (engines, providers) as well as inside.
-///
-/// Convention going forward: **no bare UI string literals**  every visible
-/// string is `t('some.key')`, with the English copy in assets/lang/en.json.
-///
-/// Interpolation: `t('markets.fundCount', {'n': '12'})` against
-/// `"{n} funds"` → "12 funds".
 class L10n {
   L10n._();
 

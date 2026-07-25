@@ -6,6 +6,7 @@ import type {
   SnapshotEvent,
   SnapshotFund,
   SnapshotFx,
+  SnapshotFxSeries,
   SnapshotInsurer,
   SnapshotInsuranceType,
   SnapshotLearn,
@@ -26,6 +27,10 @@ import type {
 //
 // v2: adds companies/agents/insurers/fx/insight_templates/events. Every v1
 // field is preserved; the app reads `schema` and falls back to v1 parsing.
+//
+// Later additions ride alongside v2 rather than inside it (composition, config,
+// learn, posts, stocks, brokers, saccos, fx_series), so a reader that only
+// knows v2 still parses cleanly.
 
 const BUCKET = "snapshots";
 const FILE = "funds-snapshot.json";
@@ -171,14 +176,84 @@ export async function publishSnapshot(
     company_ids: byAgent.get(a.id) ?? [],
   }));
 
-  // FX, latest row per pair.
+  // FX: the latest row per pair, plus a monthly series per pair.
+  //
+  // This query used to be unbounded, which was harmless while fx_rates only
+  // held rows since the aggregator first ran. The CBK backfill puts years of
+  // daily quotes in the table, so an unbounded select would drag every one of
+  // them through memory on every publish in order to keep one row per pair.
+  // Bounded to the charting window, capped, and descending so the cap drops
+  // the OLDEST rows rather than the newest, the same way the rate and stock
+  // history queries above do it.
+  const FX_YEARS = 6;
+  const fxCutoff = new Date(Date.now() - FX_YEARS * 365 * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
   const { data: fxRows } = await db
     .from("fx_rates")
-    .select("pair,rate,as_of")
-    .order("as_of", { ascending: false });
+    .select("pair,rate,bid,ask,as_of")
+    .gte("as_of", fxCutoff)
+    .order("as_of", { ascending: false })
+    .limit(20000);
+
   const fxByPair = new Map<string, SnapshotFx>();
   for (const r of fxRows ?? []) {
-    if (!fxByPair.has(r.pair)) fxByPair.set(r.pair, r);
+    if (!fxByPair.has(r.pair)) {
+      fxByPair.set(r.pair, {
+        pair: r.pair,
+        rate: Number(r.rate),
+        as_of: r.as_of,
+        bid: r.bid == null ? null : Number(r.bid),
+        ask: r.ask == null ? null : Number(r.ask),
+      });
+    }
+  }
+
+  // Month-end sample per pair. Rows arrive newest first, so the FIRST row seen
+  // for a given month is that month's last quote, which is exactly what we
+  // want and means no sort is needed. Reversed at the end so the app receives
+  // the series oldest first, matching `spark`.
+  const fxSeries: SnapshotFxSeries[] = [];
+  {
+    const byPair = new Map<
+      string,
+      { months: Map<string, number>; spreads: number[] }
+    >();
+    for (const r of fxRows ?? []) {
+      const bucket = byPair.get(r.pair) ??
+        { months: new Map<string, number>(), spreads: [] };
+      const ym = String(r.as_of).slice(0, 7);
+      if (!bucket.months.has(ym)) bucket.months.set(ym, Number(r.rate));
+
+      // One-way spread, measured off the mean rather than off the midpoint of
+      // the legs, because the mean is the published figure the app quotes and
+      // the two are not always identical on the CBK sheet.
+      //
+      // Interbank, not retail. See the note on the field in types.ts before
+      // using this anywhere near a hurdle calculation.
+      const bid = r.bid == null ? null : Number(r.bid);
+      const ask = r.ask == null ? null : Number(r.ask);
+      const mean = Number(r.rate);
+      if (bid != null && ask != null && mean > 0 && ask >= bid) {
+        bucket.spreads.push(((ask - bid) / 2 / mean) * 100);
+      }
+      byPair.set(r.pair, bucket);
+    }
+
+    for (const [pair, b] of byPair) {
+      const months = [...b.months.keys()].reverse();
+      fxSeries.push({
+        pair,
+        months,
+        mean: months.map((m) => b.months.get(m)!),
+        interbank_spread_pct: b.spreads.length === 0
+          ? null
+          : Number(
+            (b.spreads.reduce((x, y) => x + y, 0) / b.spreads.length).toFixed(4),
+          ),
+        quoted_days: b.spreads.length,
+      });
+    }
   }
 
   const { data: templates } = await db
@@ -595,6 +670,7 @@ export async function publishSnapshot(
     & {
       composition: SnapshotComposition[];
       config: Record<string, unknown>;
+      fx_series: SnapshotFxSeries[];
       learn: SnapshotLearn;
       posts: SnapshotPost[];
       insurance_types: SnapshotInsuranceType[];
@@ -610,6 +686,7 @@ export async function publishSnapshot(
     companies: (companies ?? []) as SnapshotCompany[],
     agents,
     fx: [...fxByPair.values()],
+    fx_series: fxSeries,
     insight_templates: (templates ?? []) as SnapshotTemplate[],
     events: (events ?? []) as SnapshotEvent[],
     composition,

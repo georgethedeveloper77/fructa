@@ -177,8 +177,48 @@ export interface SnapshotInsuranceType {
 
 export interface SnapshotFx {
   pair: string;                 // 'USD/KES'
-  rate: number;
+  rate: number;                 // indicative mean
   as_of: string;
+
+  // The two legs of the quote (migration 0071). Null on every row written
+  // before the CBK backfill, and on any row that came from the keyless
+  // fallback API, which only publishes a mean. When both are null the app
+  // falls back to the modelled `fx.spread_pct` config key.
+  bid: number | null;           // bank BUYS a dollar from you at this rate
+  ask: number | null;           // bank SELLS a dollar to you at this rate
+}
+
+// Monthly history for one pair, for the currency comparison charts.
+//
+// A separate block from `fx` rather than an array on it, for the same reason
+// `nav_spark` is separate from `spark`: `fx` answers "what is the rate now" and
+// is read on every screen that converts a number, while this answers "what has
+// the rate done" and is read by one page. Bundling them would put five years of
+// history behind every currency conversion in the app.
+//
+// Month-end sampling, not an average: an average of daily means is a number
+// that never traded, and the charts compare entry and exit points rather than
+// periods.
+export interface SnapshotFxSeries {
+  pair: string;
+  months: string[];             // 'YYYY-MM', oldest first
+  mean: number[];               // month-end mean, index-aligned with `months`
+
+  // Mean one-way spread across every row that carried both legs, as a
+  // percentage. Null when no row in the window had a quote.
+  //
+  // THIS IS THE INTERBANK SPREAD AND IT IS NOT THE RETAIL SPREAD. CBK's buy
+  // and sell are the indicative wholesale legs, about a quarter of a percent
+  // each way. Nobody converts at those over a bank counter. The app's retail
+  // assumption stays in the `fx.spread_pct` config key, near 1.5, and must
+  // never be pointed at this field: doing so would drop the buying hurdle by
+  // roughly three points and understate the cost of converting.
+  //
+  // It is published because it is a real, useful FLOOR. The gap between it
+  // and what a user is actually quoted is the bank's retail margin, which is
+  // worth showing on the assumptions list.
+  interbank_spread_pct: number | null;
+  quoted_days: number;          // how many rows the spread was measured over
 }
 
 export interface SnapshotTemplate {

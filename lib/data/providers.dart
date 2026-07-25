@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:hive/hive.dart';
 
 import '../core/local_notify.dart';
@@ -39,7 +40,7 @@ class RatesNotifier extends AsyncNotifier<List<Fund>> {
   }
 
   Future<void> _refresh() async {
-    final old = state.valueOrNull;
+    final old = state.value;
     try {
       final fresh = await _repo.fetchIfChanged();
       if (fresh != null) {
@@ -119,7 +120,7 @@ final ratesProvider = AsyncNotifierProvider<RatesNotifier, List<Fund>>(
 );
 
 final fundsByIdProvider = Provider<Map<String, Fund>>((ref) {
-  final funds = ref.watch(ratesProvider).valueOrNull ?? const [];
+  final funds = ref.watch(ratesProvider).value ?? const [];
   return {for (final f in funds) f.id: f};
 });
 

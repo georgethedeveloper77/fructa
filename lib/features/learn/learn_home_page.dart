@@ -8,6 +8,7 @@ import '../../core/theme.dart';
 import '../../data/models/learn.dart';
 import '../../data/snapshot_providers.dart';
 import 'learn_progress.dart';
+import 'learn_reminder.dart';
 import 'lesson_player.dart';
 
 /// Learn home - matches fructa_learn_mock: "Money, decoded" header + streak/XP,
@@ -67,6 +68,7 @@ class LearnHomePage extends ConsumerWidget {
         padding: const EdgeInsets.only(bottom: 40),
         children: [
           _Header(streak: progress.streak, xp: progress.xp),
+          const LearnReminderCard(),
           _LevelHero(
             content: content,
             progress: progress,

@@ -7,7 +7,7 @@ import { pressMmfAdapter } from "./adapters/press-mmf.ts";
 import { serrariMmfAdapter } from "./adapters/serrari-mmf.ts";
 import { KES_MMF_NAME_MAP, USD_MMF_NAME_MAP, normalize } from "./adapters/fund-name-map.ts";
 import { publishSnapshot } from "../_shared/snapshot.ts";
-import { fetchUsdKes } from "../_shared/cbk-fx.ts";
+import { fetchUsdKes, recordFxHealth } from "../_shared/fx.ts";
 
 // Backbone scraper: one structured source -> many funds, once daily.
 // Invoked by pg_cron (see migrations/0004_cron.sql) and by the admin's
@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
   const db = adminClient();
   const source = "ke-aggregator";
   const startedAt = new Date().toISOString();
-  // "Today" in EAT (UTC+3) — the day the rate is recorded against.
+  // "Today" in EAT (UTC+3): the day the rate is recorded against.
   const asOf = new Date(Date.now() + 3 * 3_600_000).toISOString().slice(0, 10);
 
   const errors: string[] = [];
@@ -123,15 +123,26 @@ Deno.serve(async (req) => {
     await db.from("rate_review").upsert(reviewRows, { onConflict: "fund_id,as_of" });
   }
 
-  // 3.5 CBK indicative USD/KES — non-fatal; upserted before the snapshot so it
-  //     ships in the same publish.
+  // 3.5 USD/KES. Open Exchange Rates primary (OXR_APP_ID), keyless
+  //     open.er-api.com fallback. Non-fatal, and upserted before the snapshot
+  //     so it ships in the same publish.
+  //
+  //     It records its own health, because the failure mode here is silent:
+  //     past its monthly quota OXR simply stops answering, the last rate stays
+  //     in the table, and the currency card keeps rendering a stale number that
+  //     looks exactly like a fresh one. source_health carries the quota readout
+  //     so admin can see it coming.
   let fx: string | null = null;
   try {
-    const point = await fetchUsdKes();
-    if (point) {
-      await db.from("fx_rates").upsert(point, { onConflict: "pair,as_of" });
-      fx = `${point.pair} ${point.rate}`;
+    const result = await fetchUsdKes();
+    if (result.point) {
+      await db.from("fx_rates").upsert(result.point, {
+        onConflict: "pair,as_of",
+      });
+      fx = `${result.point.pair} ${result.point.rate} (${result.point.source})`;
     }
+    if (result.error) errors.push(`fx: ${result.error}`);
+    await recordFxHealth(db, result);
   } catch (e) {
     errors.push(`fx: ${e instanceof Error ? e.message : String(e)}`);
   }

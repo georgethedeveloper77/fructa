@@ -83,7 +83,7 @@ class _AddHoldingPageState extends ConsumerState<AddHoldingPage> {
   @override
   Widget build(BuildContext context) {
     final c = context.c;
-    final all = ref.watch(ratesProvider).valueOrNull ?? const <Fund>[];
+    final all = ref.watch(ratesProvider).value ?? const <Fund>[];
     final q = _query.trim().toLowerCase();
 
     final rateable = all.where((f) => f.currentRate != null).toList();

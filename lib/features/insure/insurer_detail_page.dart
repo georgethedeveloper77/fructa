@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -8,37 +7,101 @@ import '../../core/theme.dart';
 import '../../core/widgets/kit.dart';
 import '../../data/models/agent.dart';
 import '../../data/models/insurer.dart';
+import '../../data/models/remote_config.dart';
 import '../../data/snapshot_providers.dart';
 import 'insure_common.dart';
-import 'insure_motion.dart';
 import 'insure_shell.dart';
 import 'insurer_reviews.dart';
 import 'insurer_trust_panel.dart';
 
-class InsurerDetailPage extends ConsumerWidget {
-  const InsurerDetailPage.motor(
-    this.insurer, {
-    super.key,
-    required this.value,
-    this.cls = MotorClass.private,
-    this.cover = CoverType.comprehensive,
-  })  : isTravel = false,
-        isInfo = false,
-        region = null,
-        days = 0,
-        pax = 0;
+// ── what this page is showing ─────────────────────────────────────────────
+//
+// Three constructors, three shapes, and no combination of flags that means
+// nothing. The old version carried `isTravel` and `isInfo` as two independent
+// booleans alongside five fields that were dummies in two modes out of three:
+// a travel page held `value = 0`, a motor page held `region = null, days = 0,
+// pax = 0`, and `isTravel && isInfo` was representable but meaningless. Every
+// read of those fields then had to re-derive the mode with a ternary, eleven
+// times in one build method.
+//
+// A sealed hierarchy holds each mode's inputs on the mode itself, so a field
+// exists only where it means something and the compiler checks the switch.
 
-  const InsurerDetailPage.travel(
-    this.insurer, {
-    super.key,
+sealed class _Mode {
+  const _Mode();
+}
+
+final class _MotorMode extends _Mode {
+  const _MotorMode({
+    required this.value,
+    required this.cls,
+    required this.cover,
+  });
+  final double value;
+  final MotorClass cls;
+  final CoverType cover;
+}
+
+final class _TravelMode extends _Mode {
+  const _TravelMode({
     required this.region,
     required this.days,
     required this.pax,
-  })  : isTravel = true,
-        isInfo = false,
-        cls = MotorClass.private,
-        cover = CoverType.comprehensive,
-        value = 0;
+  });
+  final String region;
+  final int days;
+  final int pax;
+}
+
+final class _InfoMode extends _Mode {
+  const _InfoMode();
+}
+
+/// The resolved priced view of this page, or null when there is no number.
+///
+/// Null is the load-bearing state. It is what an informational insurer returns,
+/// and it is ALSO what a quote constructor returns when the tariff does not
+/// cover the inputs it was handed. That second case used to render a 40px "0"
+/// under the words "per year", because the premium block was gated on the mode
+/// rather than on whether a price existed. Collapsing both to one nullable
+/// means the page degrades all the way to facts instead of halfway.
+class _Quote {
+  const _Quote({
+    required this.total,
+    required this.lead,
+    required this.sub,
+    required this.unit,
+    required this.ctaLabel,
+    this.breakdown,
+  });
+
+  final double total;
+  final String lead;
+  final String sub;
+  final String unit;
+  final String ctaLabel;
+
+  /// Statutory itemisation. Motor only: travel premiums are quoted whole, with
+  /// no levy or stamp of their own to split out.
+  final ({double base, double levy, double stamp})? breakdown;
+}
+
+class InsurerDetailPage extends ConsumerWidget {
+  InsurerDetailPage.motor(
+    this.insurer, {
+    super.key,
+    required double value,
+    MotorClass cls = MotorClass.private,
+    CoverType cover = CoverType.comprehensive,
+  }) : _mode = _MotorMode(value: value, cls: cls, cover: cover);
+
+  InsurerDetailPage.travel(
+    this.insurer, {
+    super.key,
+    required String region,
+    required int days,
+    required int pax,
+  }) : _mode = _TravelMode(region: region, days: days, pax: pax);
 
   /// Informational mode: the insurer is on the IRA register but publishes no
   /// rate we can price from. There is no premium and no peer ranking, only who
@@ -46,78 +109,69 @@ class InsurerDetailPage extends ConsumerWidget {
   /// is the honest state for most of the market, and it is real content (not a
   /// coming-soon teaser), so it satisfies Apple 2.1.
   const InsurerDetailPage.info(this.insurer, {super.key})
-      : isTravel = false,
-        isInfo = true,
-        cls = MotorClass.private,
-        cover = CoverType.comprehensive,
-        value = 0,
-        region = null,
-        days = 0,
-        pax = 0;
+    : _mode = const _InfoMode();
 
   final Insurer insurer;
-  final bool isTravel;
-  final bool isInfo;
-  final double value; // motor, comprehensive only
-  final MotorClass cls;
-  final CoverType cover;
-  final String? region; // travel
-  final int days;
-  final int pax;
-
-  SignalTone _tone(String tag) => switch (tag.toUpperCase()) {
-        'STRENGTH' => SignalTone.positive,
-        'WATCH' => SignalTone.negative,
-        _ => SignalTone.neutral,
-      };
+  final _Mode _mode;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.c;
     final i = insurer;
     final brand = insurerBrand(context, i);
+    final cfg = ref.watch(remoteConfigProvider);
+
     final List<Agent> agents = i.companyId == null
         ? const <Agent>[]
         : ref.watch(agentsForCompanyProvider(i.companyId));
 
+    // One resolution, up front. Everything below reads `quote == null` rather
+    // than re-deriving the mode, so the quote page and the facts page cannot
+    // drift apart section by section the way they had.
+    final quote = _resolveQuote(i, cfg);
+    final action = _actionFor(i);
 
-    final travelPrice =
-        isTravel ? (i.travelPrice(region!, days: days, pax: pax) ?? 0) : 0.0;
+    // How much this page has to say once the number is out of the way.
+    //
+    // Most insurers we can price also carry a cover list, agents, or both, and
+    // for those the argument below about not burying them under charts holds.
+    // CIC General carries neither: no benefits, no agents, no reviews yet. The
+    // page was identity, premium, breakdown, disclaimer, and then half a screen
+    // of black. Sections hiding when they are empty is right; a PAGE with no
+    // floor under it is not.
+    final thin = i.benefits.isEmpty && agents.isEmpty;
 
-    final cfg = ref.watch(remoteConfigProvider);
-    final levyPct = cfg.number('insure.levy_pct', 0.45).toDouble();
-    final stamp = cfg.number('insure.stamp_kes', 40).toDouble();
-    final motorBase = isTravel
-        ? 0.0
-        : (i.quote(value, cls: cls, cover: cover) ?? 0);
-    final motorLanded =
-        landedPremium(motorBase, levyPct: levyPct, stamp: stamp);
+    // The trust surface (rating arc, market share, regulatory timeline) is what
+    // we always hold, because it comes off the IRA register rather than off the
+    // insurer's marketing. It carries the unpriced page, and it now catches the
+    // priced page that has nothing else.
+    final showTrust = quote == null || thin;
 
-    // Peer set for the ranking chart: same category, same inputs as this quote.
-    final shownPrice = isTravel ? travelPrice : motorLanded;
+    // The insurer's full switchboard. This used to be gated to the unpriced
+    // page on the grounds that the sticky bar was already the act, and that was
+    // wrong: the bar dials one number, the grid lists the paybill, the email
+    // and the site, which are different questions, not the same one repeated.
+    final grid = _hasContact(i);
 
-    // The lead now names the CLASS, not just the product. "Motor comprehensive"
-    // was the same string whether you were pricing a private saloon or a PSV
-    // matatu, which are different tariffs entirely. "Private, comprehensive"
-    // tells you which quote you are looking at.
-    final premiumLead = isTravel
-        ? t('insure.travelLead', {
-            'region': regionLabel(region!),
-            'days': '$days',
-          })
-        : '${t('insure.class.${cls.key}')}, ${t('insure.cover.${cover.key}')}';
-
-    final premiumSub = isTravel
-        ? [
-            if (i.travelCover != null) i.travelCover!,
-            t('insure.travellersN', {'n': '$pax'}),
-          ].join(' \u00b7 ')
-        : cover == CoverType.tpo
-              ? t('insure.tpoFlat', {'class': t('insure.class.${cls.key}')})
-              : t('insure.rateOfValue', {
-                  'rate': (i.rateFor(value, cls) ?? 0).toStringAsFixed(2),
-                  'excess': i.excessLabel,
-                });
+    // Built here as a nullable widget rather than tested as a bool at the use
+    // site. `quote != null && action != null` stored in a bool does not promote
+    // either one where the bar is constructed, so the fields would still read
+    // as nullable; inside the conditional they promote and the bar can take
+    // both non-null.
+    final Widget? bar = quote != null && action != null
+        ? _StickyQuoteBar(
+            price: quote.total,
+            label: quote.ctaLabel,
+            // var(--accent) in the mockup, not the insurer's brand. Two
+            // reasons, and the second is the real one. First, gold is the
+            // app's "act" colour everywhere else. Second, brand_color is
+            // nullable: an insurer without one falls back to a generic tint,
+            // so a CTA painted from it is a button whose colour means nothing
+            // and which currently renders blue for all 38.
+            tint: c.accent,
+            onTap: action,
+          )
+        : null;
 
     // The glass nav, not a Material AppBar. The brand wash behind the header
     // is a 260px bloom that starts ABOVE the identity row: an opaque app bar
@@ -126,89 +180,72 @@ class InsurerDetailPage extends ConsumerWidget {
     // shape, and it is what the mockup does.
     //
     // The price still follows you down the page. The premium sits at the top,
-    // but the trust panel, the peer ranking, the agents and the reviews are all
-    // BELOW it, and they are exactly the things that decide whether someone
-    // acts. By the time a reader has finished them the number is a full screen
-    // behind, and asking them to scroll back up to act is asking them not to.
-    //
-    // The bar is absent for an unpriced insurer, since a bar reading "Get a
-    // quote" with no quote behind it is a lie. Those get an official-site link
-    // only, in the body.
+    // but the cover list, the agents and the reviews are all BELOW it, and
+    // they are exactly the things that decide whether someone acts. By the
+    // time a reader has finished them the number is a full screen behind, and
+    // asking them to scroll back up to act is asking them not to.
     return InsureScaffold(
       navTitle: shortInsurerName(i.name),
-      bottomBar: isInfo || shownPrice <= 0
-          ? null
-          : _StickyQuoteBar(
-              price: shownPrice,
-              label: isTravel
-                  ? t('insure.getTravelQuote')
-                  : t('insure.getQuote'),
-              // var(--accent) in the mockup, not the insurer's brand. Two
-              // reasons, and the second is the real one. First, gold is the
-              // app's "act" colour everywhere else. Second, brand_color is
-              // nullable: an insurer without one falls back to a generic tint,
-              // so a CTA painted from it is a button whose colour means nothing
-              // and which currently renders blue for all 38.
-              tint: c.accent,
-              onTap: () => _primaryAction(i),
-            ),
+      bottomBar: bar,
       children: [
         _Identity(insurer: i, brand: brand),
-        if (!isInfo)
+
+        // Quote, or facts. Never both, and never neither.
+        //
+        // The trust surface (the rating arc, the market-share chart, the
+        // regulatory timeline) belongs on the page for an insurer we CANNOT
+        // price, where the facts are all we have to offer. Stacking it under a
+        // live quote buries the agents and the reviews, which are the two
+        // things that actually convert, under three sections of chart. The
+        // trust signal a quoted insurer needs is the licence badge and the GCR
+        // grade, and both are in the header, read in the first second rather
+        // than the fortieth.
+        if (quote != null) ...[
           _Premium(
-            lead: premiumLead,
-            amount: withCommas((isTravel ? travelPrice : motorLanded).round()),
-            unit: isTravel ? t('insure.perTrip') : t('insure.perYear'),
-            sub: premiumSub,
+            lead: quote.lead,
+            amount: withCommas(quote.total.round()),
+            unit: quote.unit,
+            sub: quote.sub,
           ),
-        // The breakdown as a three-cell strip, not a run-on line of text.
-        // "base KES 103,500 · levies KES 466 · stamp KES 40" is three numbers
-        // pretending to be a sentence; nobody parses it. A levy and a stamp
-        // duty are statutory add-ons the insurer does not set, and separating
-        // them out is the difference between a price and an itemised price.
-        if (!isTravel && !isInfo)
-          _Breakdown(
-            base: motorBase,
-            levy: levyAmount(motorBase, levyPct),
-            stamp: stamp,
-          ),
-        // ── SCREEN 02 ENDS HERE FOR A PRICED INSURER ──────────────────
-        //
-        // Everything below this line is gated to the INFORMATIONAL page, and
-        // that is the design, not an oversight.
-        //
-        // A page that is quoting someone a price has exactly one job. The
-        // trust surface (the rating arc, the market-share chart, the
-        // regulatory timeline, the contact grid) belongs on the page for an
-        // insurer we CANNOT price, where the facts are all we have to offer.
-        // Stacking it under a live quote buries the agent and the reviews,
-        // which are the two things that actually convert, under three
-        // sections of chart.
-        //
-        // The trust signal a quoted insurer needs is the licence badge and
-        // the GCR grade, and those are already in the header, where they are
-        // read in the first second rather than the fortieth.
-        if (isInfo) ...[
-          InsurerTrustPanel(i),
-          if (_hasContact(i)) ...[
-            InsureH2(t('insure.reachThem'), small: t('insure.reachSmall')),
-            _ContactGrid(insurer: i),
-          ],
-          if (i.benefits.isNotEmpty) ...[
-            InsureH2(
-              isTravel ? t('insure.inThePlan') : t('insure.whatsCovered'),
+          if (quote.breakdown != null)
+            _Breakdown(
+              base: quote.breakdown!.base,
+              levy: quote.breakdown!.levy,
+              stamp: quote.breakdown!.stamp,
             ),
-            for (var b = 0; b < i.benefits.length; b++)
-              CoverRow(
-                i.benefits[b],
-                tint: c.accent,
-                last: b == i.benefits.length - 1,
-              ),
-          ],
         ],
 
-        // Agents. On screen 02 this is the first thing under the breakdown:
-        // a human who can actually bind the policy.
+        if (showTrust) InsurerTrustPanel(i),
+
+        // What the premium buys. This used to be gated to the informational
+        // page alongside the trust charts, which meant the one reader looking
+        // at an actual price was the one reader never told what it covered.
+        // Cover is product content, not a trust signal, and it belongs on both.
+        if (i.benefits.isNotEmpty) ...[
+          InsureH2(
+            _mode is _TravelMode
+                ? t('insure.inThePlan')
+                : t('insure.whatsCovered'),
+          ),
+          // CoverRow carries vertical padding only, so it takes the page inset
+          // from its parent. Dropped straight into the scaffold list it sat
+          // flush against the screen edge while every other section was in 20.
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              children: [
+                for (var b = 0; b < i.benefits.length; b++)
+                  CoverRow(
+                    i.benefits[b],
+                    tint: c.accent,
+                    last: b == i.benefits.length - 1,
+                  ),
+              ],
+            ),
+          ),
+        ],
+
+        // A human who can actually bind the policy, above the switchboard.
         if (agents.isNotEmpty) ...[
           InsureH2(
             t('insure.talkAgent'),
@@ -228,35 +265,99 @@ class InsurerDetailPage extends ConsumerWidget {
             ),
         ],
 
-        // The in-body CTA exists ONLY where the sticky bar does not: an
-        // unpriced insurer has no premium to pin to the foot. Two identical
-        // gold buttons a thumb apart is a bug, not emphasis.
-        if (isInfo || shownPrice <= 0)
+        if (grid) ...[
+          InsureH2(t('insure.reachThem'), small: t('insure.reachSmall')),
+          _ContactGrid(insurer: i),
+        ],
+
+        // The in-body CTA exists only where neither the sticky bar nor the
+        // grid does, and only where we hold a channel to send the tap down. A
+        // button that does nothing when pressed is worse than no button, and
+        // the old one rendered whenever a price was absent regardless of
+        // whether the insurer had a phone or a site behind it.
+        if (bar == null && !grid && action != null)
           CtaFull(
-            label: isTravel ? t('insure.getTravelQuote') : t('insure.getQuote'),
+            label: quote?.ctaLabel ?? t('insure.getQuote'),
             tint: c.accent,
             icon: Icons.north_east,
-            onTap: () => _primaryAction(i),
-          ),
-        if (isInfo && i.website != null)
-          CtaGhost(
-            label: t('insure.officialSite'),
-            icon: Icons.language,
-            onTap: () => openWeb(i.website!),
+            onTap: action,
           ),
 
         InsurerReviews(i),
-        Disclaimer(rcText(cfg, 'insure.disc.detail')),
+
+        // In a card, not floating. On a thin insurer this is the last thing on
+        // the page, and a bare grey paragraph above an empty screen reads as an
+        // unfinished layout rather than a deliberate footnote.
+        NoteCard(
+          rcText(cfg, 'insure.disc.detail'),
+          title: t('common.goodToKnow'),
+        ),
       ],
     );
   }
 
-  void _primaryAction(Insurer i) {
-    if (i.phone != null) {
-      openTel(i.phone!);
-    } else if (i.website != null) {
-      openWeb(i.website!);
+  /// The price this page is quoting, or null when there is none to quote.
+  _Quote? _resolveQuote(Insurer i, RemoteConfig cfg) {
+    switch (_mode) {
+      case _InfoMode():
+        return null;
+
+      case _TravelMode(:final region, :final days, :final pax):
+        final total = i.travelPrice(region, days: days, pax: pax) ?? 0;
+        if (total <= 0) return null;
+        return _Quote(
+          total: total,
+          lead: t('insure.travelLead', {
+            'region': regionLabel(region),
+            'days': '$days',
+          }),
+          sub: [
+            if (i.travelCover != null) i.travelCover!,
+            t('insure.travellersN', {'n': '$pax'}),
+          ].join(' \u00b7 '),
+          unit: t('insure.perTrip'),
+          ctaLabel: t('insure.getTravelQuote'),
+        );
+
+      case _MotorMode(:final value, :final cls, :final cover):
+        final base = i.quote(value, cls: cls, cover: cover) ?? 0;
+        if (base <= 0) return null;
+        final levyPct = cfg.number('insure.levy_pct', 0.45).toDouble();
+        final stamp = cfg.number('insure.stamp_kes', 40).toDouble();
+        return _Quote(
+          total: landedPremium(base, levyPct: levyPct, stamp: stamp),
+          // The lead names the CLASS, not just the product. "Motor
+          // comprehensive" was the same string whether you were pricing a
+          // private saloon or a PSV matatu, which are different tariffs
+          // entirely. "Private, comprehensive" tells you which quote this is.
+          lead:
+              '${t('insure.class.${cls.key}')}, '
+              '${t('insure.cover.${cover.key}')}',
+          sub: cover == CoverType.tpo
+              ? t('insure.tpoFlat', {'class': t('insure.class.${cls.key}')})
+              : t('insure.rateOfValue', {
+                  'rate': (i.rateFor(value, cls) ?? 0).toStringAsFixed(2),
+                  'excess': i.excessLabel,
+                }),
+          unit: t('insure.perYear'),
+          ctaLabel: t('insure.getQuote'),
+          breakdown: (
+            base: base,
+            levy: levyAmount(base, levyPct),
+            stamp: stamp,
+          ),
+        );
     }
+  }
+
+  /// Where the act button sends the tap, or null when we hold no channel at
+  /// all for this insurer.
+  VoidCallback? _actionFor(Insurer i) {
+    final phone = i.phone;
+    if (phone != null) return () => openTel(phone);
+    final site = i.website;
+    if (site != null) return () => openWeb(site);
+    return null;
   }
 }
 
@@ -267,252 +368,12 @@ bool _hasContact(Insurer i) =>
     i.paybill != null ||
     i.website != null;
 
-class _TrustStrip extends StatelessWidget {
-  const _TrustStrip({required this.insurer});
-  final Insurer insurer;
+// ── contact ───────────────────────────────────────────────────────────────
 
-  @override
-  Widget build(BuildContext context) {
-    final c = context.c;
-    final i = insurer;
-    final dash = t('common.dash');
-
-    Widget statCell(String k, String v, String s,
-        {bool first = false, Color? vColor}) {
-      return Expanded(
-        child: Container(
-          padding: EdgeInsets.only(left: first ? 0 : 13),
-          decoration: BoxDecoration(
-            border: first ? null : Border(left: BorderSide(color: c.line)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(k,
-                  style: TextStyle(
-                      color: c.faint,
-                      fontSize: 9.5,
-                      letterSpacing: 0.8,
-                      fontWeight: FontWeight.w600)),
-              const SizedBox(height: 5),
-              Text(v,
-                  style: TextStyle(
-                      color: vColor ?? c.text,
-                      fontFamily: fructaFonts.mono,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600)),
-              const SizedBox(height: 2),
-              Text(s,
-                  style: TextStyle(
-                      color: c.faint,
-                      fontSize: 9.5,
-                      fontFamily: fructaFonts.mono)),
-            ],
-          ),
-        ),
-      );
-    }
-
-    final hasGauge = i.settlePct != null;
-    final children = <Widget>[];
-    if (hasGauge) {
-      children.add(
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _ClaimsGauge(pct: i.settlePct!, color: c.up),
-            const SizedBox(height: 8),
-            Text(t('insure.trust.claimsPaid'),
-                style: TextStyle(
-                    color: c.faint,
-                    fontSize: 9.5,
-                    letterSpacing: 0.8,
-                    fontWeight: FontWeight.w600)),
-            const SizedBox(height: 2),
-            Text(t('insure.trust.iraSource'),
-                style: TextStyle(
-                    color: c.faint,
-                    fontSize: 9,
-                    fontFamily: fructaFonts.mono)),
-          ],
-        ),
-      );
-      children.add(const SizedBox(width: 18));
-      children.add(statCell(
-        t('insure.trust.rating'),
-        i.rating == null ? dash : '${i.rating}',
-        t('insure.trust.ratingSub'),
-        first: true,
-      ));
-      children.add(statCell(
-        t('insure.trust.settlement'),
-        i.claimsDays == null
-            ? dash
-            : t('insure.days', {'n': '${i.claimsDays}'}),
-        t('insure.trust.settlementSub'),
-      ));
-    } else {
-      children.add(statCell(
-        t('insure.trust.claimsPaid'),
-        dash,
-        t('insure.trust.iraSource'),
-        first: true,
-        vColor: c.accent,
-      ));
-      children.add(statCell(
-        t('insure.trust.rating'),
-        i.rating == null ? dash : '${i.rating}',
-        t('insure.trust.ratingSub'),
-      ));
-      children.add(statCell(
-        t('insure.trust.settlement'),
-        i.claimsDays == null
-            ? dash
-            : t('insure.days', {'n': '${i.claimsDays}'}),
-        t('insure.trust.settlementSub'),
-      ));
-    }
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 2),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: children,
-      ),
-    );
-  }
-}
-
-// Claims-paid radial gauge (settlement ratio). Pure CustomPaint, no deps.
-class _ClaimsGauge extends StatelessWidget {
-  const _ClaimsGauge(
-      {required this.pct, required this.color, this.size = 58});
-  final double pct;
-  final Color color;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.c;
-    return SizedBox(
-      width: size,
-      height: size,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          CustomPaint(
-            size: Size(size, size),
-            painter:
-                _GaugePainter(pct.clamp(0, 100) / 100, color, c.line2),
-          ),
-          Text('${pct.round()}%',
-              style: TextStyle(
-                  color: c.text,
-                  fontFamily: fructaFonts.mono,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700)),
-        ],
-      ),
-    );
-  }
-}
-
-class _GaugePainter extends CustomPainter {
-  _GaugePainter(this.frac, this.color, this.trackColor);
-  final double frac;
-  final Color color;
-  final Color trackColor;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    const stroke = 5.0;
-    final rect = Offset(stroke / 2, stroke / 2) &
-        Size(size.width - stroke, size.height - stroke);
-    final track = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = stroke
-      ..color = trackColor
-      ..strokeCap = StrokeCap.round;
-    canvas.drawArc(rect, 0, 2 * math.pi, false, track);
-    final arc = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = stroke
-      ..color = color
-      ..strokeCap = StrokeCap.round;
-    canvas.drawArc(rect, -math.pi / 2, 2 * math.pi * frac, false, arc);
-  }
-
-  @override
-  bool shouldRepaint(_GaugePainter old) =>
-      old.frac != frac || old.color != color || old.trackColor != trackColor;
-}
-
-
-class _PeerBar extends StatelessWidget {
-  const _PeerBar({
-    required this.name,
-    required this.amountText,
-    required this.frac,
-    required this.me,
-    required this.tint,
-  });
-  final String name;
-  final String amountText;
-  final double frac;
-  final bool me;
-  final Color tint;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.c;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Text(name,
-                  style: TextStyle(
-                      color: me ? c.text : c.muted,
-                      fontSize: 12,
-                      fontWeight: me ? FontWeight.w700 : FontWeight.w500)),
-            ),
-            const SizedBox(width: 10),
-            Text(amountText,
-                style: TextStyle(
-                    color: me ? c.text : c.faint,
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w600,
-                    fontFamily: fructaFonts.mono)),
-          ],
-        ),
-        const SizedBox(height: 5),
-        LayoutBuilder(
-          builder: (context, cons) => Stack(
-            children: [
-              Container(
-                height: 7,
-                decoration: BoxDecoration(
-                  color: c.s3,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-              Container(
-                height: 7,
-                width: cons.maxWidth * frac.clamp(0.0, 1.0),
-                decoration: BoxDecoration(
-                  color: me ? tint : c.line2,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
+/// WhatsApp's own green, matching [WhatsAppMark]'s default. A brand colour, so
+/// it is the documented data-colour exception to theme-only tokens, and it is
+/// named once here rather than repeated as a literal at each use.
+const Color _whatsAppGreen = Color(0xFF25D366);
 
 class _ContactGrid extends StatelessWidget {
   const _ContactGrid({required this.insurer});
@@ -520,12 +381,18 @@ class _ContactGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.c;
     final i = insurer;
+
+    // The colour pair is passed straight in. It used to be routed through a
+    // five-value enum whose values collapsed to three distinct pairs, so the
+    // enum named nothing the call site did not already know.
     final tiles = <Widget>[
       if (i.phone != null)
         _ContactTile(
           icon: Icons.call,
-          tone: _Tone.call,
+          fg: c.up,
+          bg: c.upSoft,
           label: t('insure.contact.call'),
           value: i.phone!,
           onTap: () => openTel(i.phone!),
@@ -533,7 +400,8 @@ class _ContactGrid extends StatelessWidget {
       if (i.whatsapp != null)
         _ContactTile(
           whatsApp: true,
-          tone: _Tone.wa,
+          fg: _whatsAppGreen,
+          bg: _whatsAppGreen.withValues(alpha: 0.13),
           label: t('insure.contact.whatsapp'),
           value: t('insure.contact.chatNow'),
           onTap: () => openWhatsApp(i.whatsapp!),
@@ -541,7 +409,8 @@ class _ContactGrid extends StatelessWidget {
       if (i.email != null)
         _ContactTile(
           icon: Icons.mail_outline,
-          tone: _Tone.mail,
+          fg: c.accent,
+          bg: c.accentSoft,
           label: t('insure.contact.email'),
           value: i.email!,
           onTap: () => openMail(i.email!),
@@ -549,12 +418,14 @@ class _ContactGrid extends StatelessWidget {
       if (i.paybill != null)
         _ContactTile(
           icon: Icons.receipt_long_outlined,
-          tone: _Tone.pay,
+          fg: c.accent,
+          bg: c.accentSoft,
           label: t('insure.contact.paybill'),
           value: i.paybill!,
           onTap: null,
         ),
     ];
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
       child: Column(
@@ -568,8 +439,7 @@ class _ContactGrid extends StatelessWidget {
             GridView(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              gridDelegate:
-                  const SliverGridDelegateWithFixedCrossAxisCount(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
                 mainAxisSpacing: 9,
                 crossAxisSpacing: 9,
@@ -581,7 +451,8 @@ class _ContactGrid extends StatelessWidget {
             const SizedBox(height: 9),
             _ContactTile(
               icon: Icons.language,
-              tone: _Tone.web,
+              fg: c.muted,
+              bg: c.s3,
               label: t('insure.contact.website'),
               value: i.website!,
               onTap: () => openWeb(i.website!),
@@ -593,35 +464,28 @@ class _ContactGrid extends StatelessWidget {
   }
 }
 
-enum _Tone { call, wa, mail, pay, web }
-
 class _ContactTile extends StatelessWidget {
   const _ContactTile({
-    required this.tone,
     required this.label,
     required this.value,
     required this.onTap,
+    required this.fg,
+    required this.bg,
     this.icon,
     this.whatsApp = false,
   });
 
-  final _Tone tone;
   final String label;
   final String value;
   final VoidCallback? onTap;
+  final Color fg;
+  final Color bg;
   final IconData? icon;
   final bool whatsApp;
 
   @override
   Widget build(BuildContext context) {
     final c = context.c;
-    final (Color bg, Color fg) = switch (tone) {
-      _Tone.call => (c.upSoft, c.up),
-      _Tone.wa => (const Color(0x2225D366), const Color(0xFF25D366)),
-      _Tone.mail => (c.accentSoft, c.accent),
-      _Tone.pay => (c.accentSoft, c.accent),
-      _Tone.web => (c.s3, c.muted),
-    };
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
@@ -653,19 +517,25 @@ class _ContactTile extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label,
-                      style: TextStyle(
-                          color: c.faint,
-                          fontSize: 9,
-                          letterSpacing: 0.7,
-                          fontWeight: FontWeight.w600)),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: c.faint,
+                      fontSize: 9,
+                      letterSpacing: 0.7,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   const SizedBox(height: 2),
-                  Text(value,
-                      style: TextStyle(
-                          color: c.text,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          fontFamily: fructaFonts.mono)),
+                  Text(
+                    value,
+                    style: TextStyle(
+                      color: c.text,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: fructaFonts.mono,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -769,8 +639,7 @@ class _StickyQuoteBar extends StatelessWidget {
   }
 }
 
-
-// ── V8 detail header ───────────────────────────────────────────────────────
+// ── header ────────────────────────────────────────────────────────────────
 
 /// The identity row.
 ///
@@ -794,6 +663,13 @@ class _Identity extends StatelessWidget {
     // licenseYear (IRA register) is the sourced fact. licensedSince is the
     // older free-text field, kept as a fallback so nothing regresses.
     final year = i.licenseYear ?? i.licensedSince;
+
+    // What we can actually quote them for. The last-resort subtitle, and it
+    // reuses keys the directory already ships, so this costs no new copy.
+    final products = <String>[
+      if (i.hasMotor) t('insure.motor'),
+      if (i.hasTravel) t('insure.travel'),
+    ];
 
     return Stack(
       // Clip.none, and this is why the wash rendered as a hard-edged red BOX
@@ -825,79 +701,88 @@ class _Identity extends StatelessWidget {
           ),
         ),
         Padding(
-      padding: const EdgeInsets.fromLTRB(20, 6, 20, 0),
-      child: Row(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(17),
-              boxShadow: [
-                BoxShadow(
-                  color: brand.withValues(alpha: 0.32),
-                  blurRadius: 26,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: InsurerLogo(i, size: 58),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  shortInsurerName(i.name),
-                  style: TextStyle(
-                    color: c.text,
-                    fontSize: 19,
-                    height: 1.15,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                Row(
-                  children: [
-                    if (year != null) ...[
-                      Icon(Icons.check, size: 12, color: c.up),
-                      const SizedBox(width: 4),
-                      Text(
-                        t('insure.licensed', {'y': '$year'}),
-                        style: TextStyle(
-                          color: c.up,
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                    if (year != null && i.financialRating != null)
-                      Text(
-                        '  \u00b7  ',
-                        style: TextStyle(color: c.faint, fontSize: 11.5),
-                      ),
-                    if (i.financialRating != null)
-                      Text(
-                        i.financialRating!,
-                        style: TextStyle(
-                          color: c.up,
-                          fontFamily: fructaFonts.mono,
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    if (year == null && i.financialRating == null)
-                      Text(
-                        t('insure.generalInsurer'),
-                        style: TextStyle(color: c.faint, fontSize: 11.5),
-                      ),
+          padding: const EdgeInsets.fromLTRB(20, 6, 20, 0),
+          child: Row(
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(17),
+                  boxShadow: [
+                    BoxShadow(
+                      color: brand.withValues(alpha: 0.32),
+                      blurRadius: 26,
+                      offset: const Offset(0, 10),
+                    ),
                   ],
                 ),
-              ],
-            ),
+                child: InsurerLogo(i, size: 58),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      shortInsurerName(i.name),
+                      style: TextStyle(
+                        color: c.text,
+                        fontSize: 19,
+                        height: 1.15,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Row(
+                      children: [
+                        if (year != null) ...[
+                          Icon(Icons.check, size: 12, color: c.up),
+                          const SizedBox(width: 4),
+                          Text(
+                            t('insure.licensed', {'y': '$year'}),
+                            style: TextStyle(
+                              color: c.up,
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                        if (year != null && i.financialRating != null)
+                          Text(
+                            '  \u00b7  ',
+                            style: TextStyle(color: c.faint, fontSize: 11.5),
+                          ),
+                        if (i.financialRating != null)
+                          Text(
+                            i.financialRating!,
+                            style: TextStyle(
+                              color: c.up,
+                              fontFamily: fructaFonts.mono,
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        // The old fallback said "General insurer", which every
+                        // row on the register also is, so it told the reader
+                        // nothing and it is what the screenshot shows under CIC
+                        // General. Where we hold neither a licence year nor a
+                        // grade, name what we CAN price for them instead. That
+                        // is specific, it is true, and it is never empty on a
+                        // page you reached by pricing something.
+                        if (year == null &&
+                            i.financialRating == null &&
+                            products.isNotEmpty)
+                          Text(
+                            products.join('  \u00b7  '),
+                            style: TextStyle(color: c.faint, fontSize: 11.5),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
         ),
       ],
     );

@@ -131,9 +131,7 @@ class _FundTileState extends ConsumerState<FundTile> {
     final hasRate = f.showsYield && rate != null;
     final net = hasRate ? f.netRate(wht) : null;
 
-    final meta =
-        '${_typeLabel(f)}'
-        '${f.minInvest != null ? ' \u00b7 min ${f.currency} ${_commas(f.minInvest!)}' : ''}';
+    final meta = '${_typeLabel(f)} \u00b7 ${f.currency}';
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
@@ -278,6 +276,17 @@ class _FundTileState extends ConsumerState<FundTile> {
                           ],
                         ],
                       ),
+                      if (f.minInvest != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          'Min ${f.currency} ${_commas(f.minInvest!)}',
+                          style: TextStyle(
+                            color: c.faint,
+                            fontFamily: fructaFonts.mono,
+                            fontSize: 10.5,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),

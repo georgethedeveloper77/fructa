@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'models/agent.dart';
 import 'models/company.dart';
 import 'models/fund_composition.dart';
+import 'models/fx.dart';
 import 'models/insurance_type.dart';
 import 'models/insurer.dart';
 import 'models/learn.dart';
@@ -20,6 +21,8 @@ class SnapshotExtras {
   final Map<String, Company> companies;
   final List<Agent> agents;
   final Map<String, double> fx; // pair -> rate, e.g. 'USD/KES'
+  final Map<String, FxRate> fxRates; // pair -> full row incl. quote legs
+  final Map<String, FxSeries> fxSeries; // pair -> month-end history
   final List<MarketEvent> events;
   final Map<String, List<String>> templateBank; // key -> phrasings
   final List<Insurer> insurers;
@@ -39,6 +42,8 @@ class SnapshotExtras {
     required this.companies,
     required this.agents,
     required this.fx,
+    this.fxRates = const {},
+    this.fxSeries = const {},
     required this.events,
     required this.templateBank,
     this.insurers = const [],
@@ -60,6 +65,8 @@ class SnapshotExtras {
     companies: {},
     agents: [],
     fx: {},
+    fxRates: {},
+    fxSeries: {},
     events: [],
     templateBank: {},
     insurers: [],
@@ -93,12 +100,26 @@ class SnapshotExtras {
         .map((a) => Agent.fromJson((a as Map).cast<String, dynamic>()))
         .toList();
 
+    // `fx` stays a bare pair -> mean map because that is all the portfolio
+    // conversion path ever wanted. `fxRates` carries the same rows whole, for
+    // the currency card, which also needs the quote legs and the date.
     final fx = <String, double>{};
+    final fxRates = <String, FxRate>{};
     for (final f in (m['fx'] as List? ?? const [])) {
-      final row = (f as Map);
-      final pair = row['pair'] as String?;
-      final rate = (row['rate'] as num?)?.toDouble();
-      if (pair != null && rate != null) fx[pair] = rate;
+      final row = FxRate.fromJson((f as Map).cast<String, dynamic>());
+      if (row == null) continue;
+      fx[row.pair] = row.rate;
+      fxRates[row.pair] = row;
+    }
+
+    // Month-end history per pair. Absent on any snapshot published before the
+    // builder learned to emit it, and on any project whose fx_rates table has
+    // not been backfilled, in which case the currency card hides itself rather
+    // than drawing a two point line and calling it a trend.
+    final fxSeries = <String, FxSeries>{};
+    for (final f in (m['fx_series'] as List? ?? const [])) {
+      final row = FxSeries.fromJson((f as Map).cast<String, dynamic>());
+      if (row != null) fxSeries[row.pair] = row;
     }
 
     final events = (m['events'] as List? ?? const [])
@@ -187,6 +208,8 @@ class SnapshotExtras {
       companies: companies,
       agents: agents,
       fx: fx,
+      fxRates: fxRates,
+      fxSeries: fxSeries,
       events: events,
       templateBank: bank,
       insurers: insurers,

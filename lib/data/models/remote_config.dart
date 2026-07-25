@@ -227,4 +227,31 @@ class RemoteConfig {
     final v = _values['market.asset_classes'];
     return v is Map ? v['source'] as String? : null;
   }
+
+  // -- FX (currency comparison) ---------------------------------------------
+
+  /// The RETAIL one-way spread a Kenyan bank charges over the CBK indicative
+  /// mean, as a percentage. Buying dollars costs mean x (1 + this); selling
+  /// them back returns mean x (1 - this).
+  ///
+  /// THIS IS NOT CBK's PUBLISHED SPREAD, AND IT MUST NEVER BE WIRED TO IT.
+  /// CBK's buy and sell legs are the interbank indicative, about a quarter of a
+  /// percent each way. On 04/01/2024 CBK printed mean 157.3912, buy 157.0000,
+  /// sell 157.7824, and no walk-in customer converted at those rates. Using
+  /// them here would drop the one year buying hurdle from roughly 140.17 to
+  /// 137.40 and understate the cost of converting by about three points, which
+  /// is most of the decision the currency card exists to price.
+  ///
+  /// It is an ASSUMPTION and the card says so. A user who types the quote their
+  /// own bank gave them replaces it, and that is always the better number,
+  /// because a real quote depends on their branch, their amount and whether
+  /// they negotiated, none of which any published feed knows.
+  ///
+  /// Clamped, because a config typo here silently rewrites every figure on the
+  /// currency surface rather than failing visibly.
+  double get fxSpreadPct => number('fx.spread_pct', 1.5).clamp(0.0, 10.0);
+
+  /// Which pair the currency comparison runs on. One key so a future KES/GBP
+  /// or KES/EUR view needs no code change.
+  String get fxPair => string('fx.pair', 'USD/KES');
 }

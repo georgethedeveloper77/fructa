@@ -7,8 +7,8 @@ import '../../data/models/fund.dart';
 import '../../data/providers.dart';
 import '../../data/snapshot_providers.dart';
 
-/// Onboarding stage 3 — make it yours. Accent + text size, previewed on a real
-/// rate card so theming lands on the product's own object, not an abstract
+/// Onboarding stage 3, make it yours. Accent plus text size, previewed on a
+/// real rate card so theming lands on the product's own object, not an abstract
 /// swatch. Writes straight through `themeController`; light/dark still follows
 /// the system (we never force a mode here).
 class AppearanceScene extends ConsumerWidget {
@@ -31,7 +31,7 @@ class AppearanceScene extends ConsumerWidget {
     final cfg = ref.watch(remoteConfigProvider);
     final accent = ref.watch(accentProvider);
     final scale = ref.watch(textScaleProvider);
-    final funds = ref.watch(ratesProvider).valueOrNull ?? const <Fund>[];
+    final funds = ref.watch(ratesProvider).value ?? const <Fund>[];
     final sample = _sampleFund(funds);
 
     final name = sample?.name ?? 'Etica Money Market';
@@ -48,42 +48,54 @@ class AppearanceScene extends ConsumerWidget {
             children: [
               _Rail(step: 1),
               const SizedBox(height: 22),
-              Text('MAKE IT YOURS',
-                  style: TextStyle(
-                      color: c.faint,
-                      fontSize: 11,
-                      letterSpacing: 1.4,
-                      fontWeight: FontWeight.w600)),
-              const SizedBox(height: 8),
-              Text('Pick your look',
-                  style: TextStyle(
-                      fontFamily: fructaFonts.mono,
-                      fontSize: 27,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.5,
-                      color: c.text)),
+              Text(
+                'MAKE IT YOURS',
+                style: TextStyle(
+                  color: c.faint,
+                  fontSize: 11,
+                  letterSpacing: 1.4,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               const SizedBox(height: 8),
               Text(
-                cfg.string('onboarding.lookSub',
-                    "Light or dark follows your phone. Choose an accent and a comfortable size — here's how a rate card will read."),
+                'Pick your look',
+                style: TextStyle(
+                  fontFamily: fructaFonts.mono,
+                  fontSize: 27,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.5,
+                  color: c.text,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                cfg.string(
+                  'onboarding.lookSub',
+                  "Light or dark follows your phone. Choose an accent and a comfortable size. Here is how a rate card will read.",
+                ),
                 style: TextStyle(color: c.muted, fontSize: 13.5, height: 1.5),
               ),
               const SizedBox(height: 20),
 
-              // Live sample card — recolors with accent, resizes with the
-              // chosen scale (explicit textScaler → truthful preview).
+              // Live sample card: recolors with accent, resizes with the chosen
+              // scale (explicit textScaler for a truthful preview).
               MediaQuery(
-                data: MediaQuery.of(context)
-                    .copyWith(textScaler: TextScaler.linear(scale)),
+                data: MediaQuery.of(
+                  context,
+                ).copyWith(textScaler: TextScaler.linear(scale)),
                 child: _SampleCard(name: name, rate: rate, net: net),
               ),
               const SizedBox(height: 24),
 
-              Text('Accent',
-                  style: TextStyle(
-                      color: c.muted,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600)),
+              Text(
+                'Accent',
+                style: TextStyle(
+                  color: c.muted,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -93,25 +105,32 @@ class AppearanceScene extends ConsumerWidget {
                       color: a.color,
                       ink: a.onColor,
                       selected: a == accent,
-                      onTap: () =>
-                          ref.read(themeControllerProvider.notifier).setAccent(a),
+                      onTap: () => ref
+                          .read(themeControllerProvider.notifier)
+                          .setAccent(a),
                     ),
                 ],
               ),
               const SizedBox(height: 24),
 
-              Text('Text size',
-                  style: TextStyle(
-                      color: c.muted,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600)),
+              Text(
+                'Text size',
+                style: TextStyle(
+                  color: c.muted,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               Row(
                 children: [
-                  Text('A',
-                      style: TextStyle(
-                          fontFamily: fructaFonts.mono,
-                          fontSize: 13,
-                          color: c.muted)),
+                  Text(
+                    'A',
+                    style: TextStyle(
+                      fontFamily: fructaFonts.mono,
+                      fontSize: 13,
+                      color: c.muted,
+                    ),
+                  ),
                   Expanded(
                     child: Slider(
                       value: scale.clamp(0.9, 1.3),
@@ -123,11 +142,14 @@ class AppearanceScene extends ConsumerWidget {
                           .setTextScale(v),
                     ),
                   ),
-                  Text('A',
-                      style: TextStyle(
-                          fontFamily: fructaFonts.mono,
-                          fontSize: 20,
-                          color: c.muted)),
+                  Text(
+                    'A',
+                    style: TextStyle(
+                      fontFamily: fructaFonts.mono,
+                      fontSize: 20,
+                      color: c.muted,
+                    ),
+                  ),
                 ],
               ),
 
@@ -141,9 +163,12 @@ class AppearanceScene extends ConsumerWidget {
                     foregroundColor: c.onAccent,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15)),
+                      borderRadius: BorderRadius.circular(15),
+                    ),
                     textStyle: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.w600),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   child: Text(cfg.string('onboarding.lookCta', 'Looks good')),
                 ),
@@ -157,7 +182,11 @@ class AppearanceScene extends ConsumerWidget {
 }
 
 class _SampleCard extends StatelessWidget {
-  const _SampleCard({required this.name, required this.rate, required this.net});
+  const _SampleCard({
+    required this.name,
+    required this.rate,
+    required this.net,
+  });
   final String name;
   final double rate;
   final double net;
@@ -182,26 +211,38 @@ class _SampleCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            fontFamily: fructaFonts.mono,
-                            color: c.text,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600)),
+                    // Long fund names wrap to a second line rather than
+                    // truncating; no ellipsis anywhere in the app.
+                    Text(
+                      name,
+                      maxLines: 2,
+                      softWrap: true,
+                      style: TextStyle(
+                        fontFamily: fructaFonts.mono,
+                        color: c.text,
+                        fontSize: 15,
+                        height: 1.25,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                     const SizedBox(height: 3),
-                    Text('Money market · net ${net.toStringAsFixed(2)}%',
-                        style: TextStyle(color: c.faint, fontSize: 11)),
+                    Text(
+                      'Money market  net ${net.toStringAsFixed(2)}%',
+                      style: TextStyle(color: c.faint, fontSize: 11),
+                    ),
                   ],
                 ),
               ),
-              Text('${rate.toStringAsFixed(2)}%',
-                  style: TextStyle(
-                      fontFamily: fructaFonts.mono,
-                      color: c.accent,
-                      fontSize: 24,
-                      fontWeight: FontWeight.w700)),
+              const SizedBox(width: 12),
+              Text(
+                '${rate.toStringAsFixed(2)}%',
+                style: TextStyle(
+                  fontFamily: fructaFonts.mono,
+                  color: c.accent,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 10),
@@ -267,7 +308,9 @@ class _Swatch extends StatelessWidget {
           color: color,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-              color: selected ? c.text : Colors.transparent, width: 2),
+            color: selected ? c.text : Colors.transparent,
+            width: 2,
+          ),
         ),
         child: selected
             ? Icon(Icons.check_rounded, color: ink, size: 22)

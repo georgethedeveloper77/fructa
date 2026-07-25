@@ -140,21 +140,67 @@ class _FollowStarState extends State<FollowStar>
   Widget build(BuildContext context) {
     final c = context.c;
     final on = widget.following;
-    return IconButton(
-      tooltip: on ? t('company.following') : t('company.follow'),
-      onPressed: _tap,
-      icon: ScaleTransition(
-        scale: _pop,
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 220),
-          transitionBuilder: (child, anim) => FadeTransition(
-            opacity: anim,
-            child: ScaleTransition(scale: anim, child: child),
+    // Lifted for legibility so a dark brand (a navy tint) still reads on the
+    // bar; the star and pill both take it.
+    final tint = c.brandOnBg(widget.tint);
+
+    return Tooltip(
+      message: on ? t('company.following') : t('company.follow'),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: _tap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOutCubic,
+          // Not following: an outlined "Follow" pill. Following: the pill tightens
+          // to a tinted circle holding just the star.
+          padding: on
+              ? const EdgeInsets.all(8)
+              : const EdgeInsets.fromLTRB(11, 7, 14, 7),
+          decoration: BoxDecoration(
+            color: on ? tint.withValues(alpha: 0.14) : Colors.transparent,
+            borderRadius: BorderRadius.circular(20),
+            border: on ? null : Border.all(color: tint, width: 1.5),
           ),
-          child: Icon(
-            on ? Icons.star_rounded : Icons.star_border_rounded,
-            key: ValueKey(on),
-            color: on ? widget.tint : c.muted,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ScaleTransition(
+                scale: _pop,
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 220),
+                  transitionBuilder: (child, anim) => ScaleTransition(
+                    scale: anim,
+                    child: FadeTransition(opacity: anim, child: child),
+                  ),
+                  child: Icon(
+                    on ? Icons.star_rounded : Icons.star_border_rounded,
+                    key: ValueKey(on),
+                    color: tint,
+                    size: 20,
+                  ),
+                ),
+              ),
+              // The label collapses to nothing when following, so the control
+              // reads as "Follow" then settles to a lone star.
+              AnimatedSize(
+                duration: const Duration(milliseconds: 280),
+                curve: Curves.easeOutCubic,
+                child: on
+                    ? const SizedBox.shrink()
+                    : Padding(
+                        padding: const EdgeInsets.only(left: 6),
+                        child: Text(
+                          t('company.follow'),
+                          style: TextStyle(
+                            color: tint,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+              ),
+            ],
           ),
         ),
       ),

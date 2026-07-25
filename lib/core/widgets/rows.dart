@@ -14,6 +14,7 @@ class SettingsRow extends StatelessWidget {
     this.trailing,
     this.onTap,
     this.showDivider = true,
+    this.iconTint,
   });
 
   /// Material icon shown in the 32px tile (never an emoji  house rule).
@@ -23,6 +24,11 @@ class SettingsRow extends StatelessWidget {
   final Widget? trailing;
   final VoidCallback? onTap;
   final bool showDivider;
+
+  /// Optional tint: when set, the icon tile is washed with this colour and the
+  /// icon takes it, used to give a settings section one calm colour. Null keeps
+  /// the neutral grey tile.
+  final Color? iconTint;
 
   @override
   Widget build(BuildContext context) {
@@ -44,10 +50,12 @@ class SettingsRow extends StatelessWidget {
               height: 32,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: c.s3,
+                color: iconTint == null
+                    ? c.s3
+                    : iconTint!.withValues(alpha: 0.14),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(icon, size: 16, color: c.muted),
+              child: Icon(icon, size: 16, color: iconTint ?? c.muted),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -287,14 +295,14 @@ class AgentRow extends StatelessWidget {
             ),
           ),
           if (onCall != null)
-            _AgentBtn(
+            ActionSquareButton(
               tooltip: 'Call',
               onTap: onCall!,
               child: Icon(Icons.call, size: 21, color: c.text),
             ),
           if (onWhatsApp != null) ...[
             const SizedBox(width: 10),
-            _AgentBtn(
+            ActionSquareButton(
               tooltip: 'WhatsApp',
               onTap: onWhatsApp!,
               child: const WhatsAppMark(size: 23),
@@ -320,8 +328,17 @@ class AgentRow extends StatelessWidget {
   }
 }
 
-class _AgentBtn extends StatelessWidget {
-  const _AgentBtn({required this.child, required this.onTap, this.tooltip});
+/// A square action button: `c.s2` fill, `c.line2` hairline border, 46px, radius
+/// 13. Shared chrome for any icon-sized tap target that sits in a row of
+/// actions. Used by [AgentRow] (call / WhatsApp) and by the company page's
+/// Contact strip, so those buttons stay pixel-identical from one definition.
+class ActionSquareButton extends StatelessWidget {
+  const ActionSquareButton({
+    super.key,
+    required this.child,
+    required this.onTap,
+    this.tooltip,
+  });
 
   final Widget child;
   final VoidCallback onTap;
@@ -354,7 +371,7 @@ class _AgentBtn extends StatelessWidget {
 
 /// Official WhatsApp glyph (Font Awesome brands path), drawn as a vector so it
 /// needs no image asset or extra package. [size] is the box side; [color]
-/// defaults to the WhatsApp brand green. Not an emoji/unicode glyph — a real
+/// defaults to the WhatsApp brand green. Not an emoji/unicode glyph, a real
 /// vector mark, so it satisfies the "no glyphs as icons" rule.
 class WhatsAppMark extends StatelessWidget {
   const WhatsAppMark({
@@ -378,7 +395,7 @@ class _WhatsAppPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final s = size.width;
-    // Glyph spans ~0.875 wide × ~0.9375 tall in the unit box; nudge to centre.
+    // Glyph spans ~0.875 wide x ~0.9375 tall in the unit box; nudge to centre.
     canvas.translate((s - 0.875 * s) / 2, (s - 0.9375 * s) / 2);
     final p = Path()
       ..moveTo(0.74395 * s, 0.18965 * s)
@@ -461,4 +478,28 @@ class _WhatsAppPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_WhatsAppPainter old) => old.color != color;
+}
+
+/// A rounded card that houses a run of rows (typically [SettingsRow]s). The last
+/// child should set `showDivider: false`. Insets from the screen edge so grouped
+/// settings read as organized rather than edge-to-edge.
+class SettingsGroup extends StatelessWidget {
+  const SettingsGroup({super.key, required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: c.s1,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: c.line),
+      ),
+      child: Column(mainAxisSize: MainAxisSize.min, children: children),
+    );
+  }
 }

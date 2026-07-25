@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/insights/fx_copy.dart';
+import '../engine/fx_engine.dart';
+
 import 'models/agent.dart';
 import 'models/company.dart';
 import 'models/fund_composition.dart';
+import 'models/fund.dart';
+import 'models/fx.dart';
 import 'models/insurance_type.dart';
 import 'models/insurer.dart';
 import 'models/learn.dart';
@@ -154,8 +159,151 @@ final agentsForCompanyProvider = Provider.family<List<Agent>, String?>((
       .toList();
 });
 
-// ── Stocks (0047) ───────────────────────────────────────────────────────────
+// -- FX / currency comparison ------------------------------------------------
+//
+// One rule runs through this whole block: the app compares a KES money market
+// fund against a USD one by pricing the currency move that would be needed to
+// make the USD side win. It never forecasts that move, and it never presents
+// the comparison as advice. Everything below is either a published fact or an
+// assumption that is labelled as one.
 
+/// Month-end USD/KES history from the snapshot, oldest first.
+///
+/// Null until the CBK backfill has run. Every currency surface hides itself on
+/// null rather than drawing a short line and calling it a trend.
+final fxSeriesProvider = Provider<FxSeries?>((ref) {
+  final pair = ref.watch(remoteConfigProvider).fxPair;
+  return ref.watch(snapshotExtrasProvider).fxSeries[pair];
+});
+
+/// The full latest row for the pair, including CBK's quote legs where it
+/// published them. Read for the assumptions list, NOT for the spread.
+final fxRateRowProvider = Provider<FxRate?>((ref) {
+  final pair = ref.watch(remoteConfigProvider).fxPair;
+  return ref.watch(snapshotExtrasProvider).fxRates[pair];
+});
+
+/// The quote the comparison runs on.
+///
+/// Mean comes from [usdKesProvider], so the currency card and the portfolio
+/// total can never disagree about what a dollar is worth: an admin-set
+/// `market.usd_kes` wins, else the latest scraped row.
+///
+/// The legs are DELIBERATELY left null so FxQuote derives them from the retail
+/// `fx.spread_pct`. CBK's published bid and ask are interbank and roughly six
+/// times tighter than a bank counter, and passing them here is the one change
+/// that would quietly make every hurdle on the surface too low. Only a quote
+/// the user types should ever populate bid or ask.
+final fxQuoteProvider = Provider<FxQuote?>((ref) {
+  final mean = ref.watch(usdKesProvider);
+  if (mean == null || mean <= 0) return null;
+  return FxQuote(
+    mean: mean,
+    spread: ref.watch(remoteConfigProvider).fxSpreadPct / 100,
+  );
+});
+
+/// The two FUNDS the comparison is between: the best retail MMF in each
+/// currency, ranked on yield net of withholding.
+///
+/// Best rather than average, so the hurdle reconciles with the two funds a
+/// reader can actually see at the top of the list above the card. An average
+/// would print a number that matches no fund on screen, and the first thing
+/// anyone does with a figure like this is try to check it.
+///
+/// Null when either side is missing. A market with no USD money market fund has
+/// no comparison to make, and inventing one side of it would be worse than
+/// showing nothing.
+final fxFundPairProvider = Provider<({Fund kes, Fund usd})?>((ref) {
+  final funds = ref.watch(ratesProvider).value ?? const <Fund>[];
+  final wht = ref.watch(remoteConfigProvider).whtPct;
+
+  Fund? top(String currency) {
+    Fund? best;
+    double? bestNet;
+    for (final f in funds) {
+      if (!f.retail || f.fundType != 'mmf' || f.currency != currency) continue;
+      final n = f.netRate(wht);
+      if (n == null || n <= -100) continue;
+      if (bestNet == null || n > bestNet) {
+        bestNet = n;
+        best = f;
+      }
+    }
+    return best;
+  }
+
+  final kes = top('KES');
+  final usd = top('USD');
+  if (kes == null || usd == null) return null;
+  return (kes: kes, usd: usd);
+});
+
+/// The same two funds, as the fractions the engine takes.
+///
+/// Derived from [fxFundPairProvider] rather than re-running the selection, so
+/// the yield the hurdle is built from and the fund name the comparison page
+/// prints beside it can never come from different funds.
+final fxFundRatesProvider = Provider<({double kesNet, double usdNet})?>((ref) {
+  final pair = ref.watch(fxFundPairProvider);
+  if (pair == null) return null;
+  final wht = ref.watch(remoteConfigProvider).whtPct;
+  final kes = pair.kes.netRate(wht);
+  final usd = pair.usd.netRate(wht);
+  if (kes == null || usd == null) return null;
+  return (kesNet: kes / 100, usdNet: usd / 100);
+});
+
+/// The one year comparison for someone who ALREADY holds dollars.
+///
+/// Holding is the default stance because it is the lower of the two hurdles and
+/// the more common situation among people who ask this question at all. The
+/// card derives the buying case from it with copyWith, so the two can never
+/// disagree about the quote or the yields behind them.
+final fxHoldingCaseProvider = Provider<FxCase?>((ref) {
+  final quote = ref.watch(fxQuoteProvider);
+  final rates = ref.watch(fxFundRatesProvider);
+  if (quote == null || rates == null) return null;
+  return FxCase(
+    quote: quote,
+    kesNet: rates.kesNet,
+    usdNet: rates.usdNet,
+    stance: FxStance.holding,
+  );
+});
+
+/// What the pair has been doing, which decides which copy slot the card reads.
+///
+/// Needs 13 monthly points for a twelve month read. Below that it reports null
+/// and the card hides, rather than calling a two month window calm.
+final fxMovesProvider =
+    Provider<({FxRegime regime, double move12, double move3})?>((ref) {
+  final series = ref.watch(fxSeriesProvider);
+  if (series == null || series.mean.length < 13) return null;
+  return (
+    regime: FxEngine.regimeOf(series.mean),
+    move12: series.moveOver(12) ?? 0,
+    move3: series.moveOver(3) ?? 0,
+  );
+});
+
+/// The card's sentence, from the admin-editable bank in the snapshot with an
+/// in-code fallback. Slot from market state, phrasing from the day of the year.
+final fxLineProvider = Provider<FxLine?>((ref) {
+  final fxCase = ref.watch(fxHoldingCaseProvider);
+  final moves = ref.watch(fxMovesProvider);
+  if (fxCase == null || moves == null) return null;
+
+  return FxCopy.line(
+    fxCase: fxCase,
+    regime: moves.regime,
+    move12: moves.move12,
+    move3: moves.move3,
+    bank: ref.watch(snapshotExtrasProvider).templateBank,
+  );
+});
+
+// -- Stocks (0047) -----------------------------------------------------------
 /// NSE-listed equities from the snapshot. Empty until the snapshot carries any,
 /// so the Stocks surface shows its empty state rather than a fabricated list.
 final stocksProvider = Provider<List<Stock>>(

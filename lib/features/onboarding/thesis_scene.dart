@@ -57,7 +57,7 @@ class _ThesisSceneState extends ConsumerState<ThesisScene>
   Widget build(BuildContext context) {
     final c = context.c;
     final cfg = ref.watch(remoteConfigProvider);
-    final funds = ref.watch(ratesProvider).valueOrNull ?? const <Fund>[];
+    final funds = ref.watch(ratesProvider).value ?? const <Fund>[];
     final top = _topRate(funds);
 
     return Scaffold(

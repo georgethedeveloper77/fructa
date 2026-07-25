@@ -13,6 +13,7 @@ export 'fund_logo.dart';
 export 'ins_type_card.dart';
 export 'learn_card.dart';
 export 'markup.dart';
+export 'note_card.dart';
 export 'position_block.dart';
 export 'range_bar.dart';
 export 'rows.dart';

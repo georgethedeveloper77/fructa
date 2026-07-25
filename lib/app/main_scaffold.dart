@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:hive/hive.dart';
 
 import '../core/theme.dart';
@@ -17,7 +18,7 @@ import 'deep_link.dart';
 
 /// Selected bottom-tab index. Restored from the pre-A1 scaffold so cross-tab
 /// jumps keep working, e.g. Portfolio's empty-state CTA:
-///   ref.read(selectedTabProvider.notifier).state = 0;  // → Markets
+///   ref.read(selectedTabProvider.notifier).state = 0;  // to Markets
 final selectedTabProvider = StateProvider<int>((ref) => 0);
 
 /// Locked v5 navigation: three tabs, no center add. Add-holding lives in the
@@ -51,7 +52,7 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
   }
 
   /// A completely-new user (chose "I'm new to this" at onboarding) is taken
-  /// straight into Learn the first time they land — once, then never again.
+  /// straight into Learn the first time they land, once, then never again.
   /// A pending notification tap or a restore prompt takes precedence above.
   void _maybeOpenLearn() {
     final box = Hive.box('settings');
@@ -59,9 +60,9 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
     final shown = box.get('learn_intro_shown', defaultValue: false) as bool;
     if (persona == 'learn' && !shown) {
       box.put('learn_intro_shown', true);
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const LearnHomePage()),
-      );
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const LearnHomePage()));
     }
   }
 
@@ -78,7 +79,7 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
         final at = await ref.read(backupServiceProvider).backup();
         if (mounted) ref.read(lastBackupProvider.notifier).state = at;
       } catch (_) {
-        /* offline / transient  the next change retries */
+        /* offline / transient, the next change retries */
       }
     });
   }
@@ -94,13 +95,25 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
       if (next.isNotEmpty) _scheduleBackup();
     });
 
-    return Scaffold(
-      backgroundColor: c.bg,
-      extendBody: true,
-      body: IndexedStack(index: index, children: _pages),
-      bottomNavigationBar: _NavBar(
-        index: index,
-        onTap: (i) => ref.read(selectedTabProvider.notifier).state = i,
+    // Android back: step home before leaving. From any tab other than Markets,
+    // back returns to Markets; only from Markets does the OS close the app.
+    // Without this the scaffold puts nothing on the route stack, so back would
+    // exit the app from every tab. Pushed routes (fund pages, alerts, add
+    // holding) sit above this scaffold and pop on their own first.
+    return PopScope(
+      canPop: index == 0,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        ref.read(selectedTabProvider.notifier).state = 0;
+      },
+      child: Scaffold(
+        backgroundColor: c.bg,
+        extendBody: true,
+        body: IndexedStack(index: index, children: _pages),
+        bottomNavigationBar: _NavBar(
+          index: index,
+          onTap: (i) => ref.read(selectedTabProvider.notifier).state = i,
+        ),
       ),
     );
   }

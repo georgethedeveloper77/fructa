@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme.dart';
+import '../../../core/widgets/app_loader.dart';
 import '../../../core/widgets/range_bar.dart';
 import '../../../data/models/rate_history.dart';
 import '../../../data/providers.dart';
@@ -60,7 +61,7 @@ class _RateChartState extends ConsumerState<RateChart> {
         children: [
           SizedBox(
             height: 180,
-            child: Center(child: CircularProgressIndicator(color: line)),
+            child: Center(child: AppLoader(color: line)),
           ),
           RangeBar(
             value: _range,
@@ -115,14 +116,46 @@ class _RateChartState extends ConsumerState<RateChart> {
   }
 }
 
-class _Chart extends StatelessWidget {
+class _Chart extends StatefulWidget {
   const _Chart(this.points, this.color);
   final List<RateHistory> points;
   final Color color;
 
   @override
+  State<_Chart> createState() => _ChartState();
+}
+
+class _ChartState extends State<_Chart> with SingleTickerProviderStateMixin {
+  // One-shot draw-on; replays when the range changes the point count.
+  late final AnimationController _c;
+
+  @override
+  void initState() {
+    super.initState();
+    _c = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    );
+    _c.forward();
+  }
+
+  @override
+  void didUpdateWidget(covariant _Chart old) {
+    super.didUpdateWidget(old);
+    if (old.points.length != widget.points.length) _c.forward(from: 0);
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final c = context.c;
+    final points = widget.points;
+    final color = widget.color;
     final spots = [
       for (var i = 0; i < points.length; i++)
         FlSpot(i.toDouble(), points[i].rate),
@@ -152,8 +185,15 @@ class _Chart extends StatelessWidget {
     // Gridded v5 aesthetic: faint horizontal rules, a right-edge rate axis
     // (promoted from the old pinned min/max), and a bottom date axis  the
     // Stocks-style frame, verticals intentionally omitted to stay calm.
-    return LineChart(
-      LineChartData(
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (context, _) {
+        final visible = _reveal(
+          spots,
+          Curves.easeInOutCubic.transform(_c.value),
+        );
+        return LineChart(
+          LineChartData(
         minX: 0,
         maxX: (n - 1).toDouble(),
         minY: minY,
@@ -232,7 +272,7 @@ class _Chart extends StatelessWidget {
         ),
         lineBarsData: [
           LineChartBarData(
-            spots: spots,
+            spots: visible,
             isCurved: true,
             curveSmoothness: 0.28,
             color: color,
@@ -252,8 +292,28 @@ class _Chart extends StatelessWidget {
           ),
         ],
       ),
+      duration: Duration.zero,
+    );
+      },
     );
   }
+}
+
+/// The leading [t] fraction of [spots], with an interpolated tip so the line
+/// grows smoothly left to right rather than jumping point to point.
+List<FlSpot> _reveal(List<FlSpot> spots, double t) {
+  final n = spots.length;
+  if (n < 2 || t >= 1) return spots;
+  if (t <= 0) return [spots.first, spots.first];
+  final k = t * (n - 1);
+  final whole = k.floor();
+  final out = spots.sublist(0, whole + 1);
+  if (whole < n - 1) {
+    final f = k - whole;
+    final a = spots[whole], b = spots[whole + 1];
+    out.add(FlSpot(a.x + (b.x - a.x) * f, a.y + (b.y - a.y) * f));
+  }
+  return out;
 }
 
 const _monthAbbr = [

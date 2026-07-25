@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 
 import '../../core/i18n.dart';
 import '../../data/models/fund.dart';
@@ -87,10 +88,49 @@ final marketSearchProvider = StateProvider<String>((_) => '');
 final marketSearchOpenProvider = StateProvider<bool>((_) => false);
 
 /// The list shows the top [kFundsInitial] by the active sort; the rest are
-/// revealed by a "Show more" tap. Collapsed again whenever the filter/sort
-/// changes (markets_page resets it) so a fresh view starts short.
+/// revealed by a "Show more" tap, and any change to the filter collapses it
+/// again so a fresh view starts short.
+///
+/// THE COLLAPSE IS DERIVED, NOT PUSHED, and that is the whole point of this
+/// block. It used to be seven `ref.listen` calls in MarketsPage.build, each
+/// writing this flag back to false. Six of them watched providers that only a
+/// user tap can change, which was safe. The seventh watched
+/// [saccoOpenOnlyProvider], which was a StateProvider seeded from remote config
+/// and therefore recomputed on every snapshot refresh. On the build that first
+/// recomputed it, the listener fired DURING build and wrote provider state,
+/// which is exactly what threw:
+///
+///   setState() or markNeedsBuild() called during build.
+///   ... UncontrolledProviderScope ... currently being built: MarketsPage
+///
+/// Deriving it removes the write entirely. An expansion belongs to one filter
+/// signature; change any part of the filter and the recorded signature is
+/// stale, which reads as collapsed without anybody writing anything.
 const kFundsInitial = 20;
-final showAllFundsProvider = StateProvider<bool>((_) => false);
+
+/// Signature of the current view: every input that should reset the expansion,
+/// and nothing else.
+final marketViewKeyProvider = Provider<String>(
+  (ref) => [
+    ref.watch(marketTabProvider).name,
+    ref.watch(marketSortProvider).name,
+    ref.watch(marketMoneyCcyProvider) ?? '',
+    ref.watch(marketSearchProvider),
+    ref.watch(stockSectorProvider) ?? '',
+    ref.watch(saccoSortProvider).name,
+    ref.watch(saccoOpenOnlyProvider) ? 'joinable' : 'any',
+  ].join('|'),
+);
+
+/// The view the user last expanded. Null until they tap "Show more", and it
+/// stays pointing at that view forever: it does not need clearing, because a
+/// stale signature already means collapsed.
+final expandedViewProvider = StateProvider<String?>((_) => null);
+
+/// Whether the list is expanded right now.
+final showAllFundsProvider = Provider<bool>(
+  (ref) => ref.watch(expandedViewProvider) == ref.watch(marketViewKeyProvider),
+);
 
 // NAV-priced fund types (equity/balanced/special) don't quote a single annual
 // yield  they stand on AUM and holdings. Tab visibility must NOT gate them on
@@ -121,7 +161,7 @@ bool _inStream(Fund f) => f.retail;
 /// alone). `all` is always present. This keeps genuinely-empty yield tabs
 /// hidden while surfacing Equity/Balanced/Special once their funds go retail.
 final visibleMarketTabsProvider = Provider<List<MarketTab>>((ref) {
-  final funds = ref.watch(ratesProvider).valueOrNull ?? const [];
+  final funds = ref.watch(ratesProvider).value ?? const [];
   // Stocks live in their own table, not in `funds`, so MarketTab.stock can
   // never be populated by a fund row. Its visibility is driven by the stocks
   // snapshot instead. (MarketTab.stock.matches() still keys off the legacy
@@ -151,7 +191,7 @@ final marketMoneyCcyProvider = StateProvider<String?>((_) => null);
 /// Distinct currencies present among money-market funds, KES first. Empty or
 /// single-entry means no sub-filter is worth showing.
 final moneyMarketCurrenciesProvider = Provider<List<String>>((ref) {
-  final funds = ref.watch(ratesProvider).valueOrNull ?? const [];
+  final funds = ref.watch(ratesProvider).value ?? const [];
   final set = <String>{};
   for (final f in funds) {
     // The consumer cut, applied HERE too. Without it this loop saw funds the
@@ -230,7 +270,7 @@ final streamFundsProvider = Provider<AsyncValue<List<Fund>>>((ref) {
 /// Best KES money-market fund for the hero. Falls back to the highest-yielding
 /// fund of any kind if no MMF KES is present.
 final bestMmfProvider = Provider<Fund?>((ref) {
-  final funds = ref.watch(ratesProvider).valueOrNull ?? const [];
+  final funds = ref.watch(ratesProvider).value ?? const [];
   final wht = ref.watch(remoteConfigProvider).whtPct;
   // Strictly the best retail KES money-market fund  never a bond/equity, so
   // the "best MMF" label can't lie. Null hides the hero.
@@ -255,7 +295,7 @@ final bestMmfProvider = Provider<Fund?>((ref) {
 
 /// Treasury bills for the flat strip (91/182/364-day), ordered by yield.
 final tbillsProvider = Provider<List<Fund>>((ref) {
-  final funds = ref.watch(ratesProvider).valueOrNull ?? const [];
+  final funds = ref.watch(ratesProvider).value ?? const [];
   final bills = funds.where((f) => f.category == 'tbill').toList()
     ..sort((a, b) => _rate(b).compareTo(_rate(a)));
   return bills;
@@ -277,7 +317,6 @@ final marketNewsProvider = Provider<List<NewsItem>>((ref) {
       .map((e) => NewsItem(title: e.headline, at: e.createdAt))
       .toList();
 });
-
 
 // ─────────────────────────────────────────────────────────────────────────
 // Stocks stream. Deliberately a SEPARATE stream from `streamFundsProvider`.
@@ -340,9 +379,9 @@ final streamStocksProvider = Provider<List<Stock>>((ref) {
   final sort = ref.watch(effectiveStockSortProvider);
   final q = ref.watch(marketSearchProvider).trim().toLowerCase();
 
-  var list = ref.watch(stocksProvider).where(
-    (s) => sector == null || s.sector == sector,
-  );
+  var list = ref
+      .watch(stocksProvider)
+      .where((s) => sector == null || s.sector == sector);
   if (q.isNotEmpty) {
     // Ticker is searchable, so "SCOM" finds Safaricom.
     list = list.where(
@@ -356,15 +395,18 @@ final streamStocksProvider = Provider<List<Stock>>((ref) {
   final out = list.toList();
   switch (sort) {
     case StockSort.movers:
-      out.sort((a, b) => _nullableDesc(a.changePct, b.changePct, a.name, b.name));
+      out.sort(
+        (a, b) => _nullableDesc(a.changePct, b.changePct, a.name, b.name),
+      );
     case StockSort.dividend:
-      out.sort((a, b) => _nullableDesc(a.dpsLatest, b.dpsLatest, a.name, b.name));
+      out.sort(
+        (a, b) => _nullableDesc(a.dpsLatest, b.dpsLatest, a.name, b.name),
+      );
     case StockSort.alpha:
       out.sort((a, b) => a.name.compareTo(b.name));
   }
   return out;
 });
-
 
 // ─────────────────────────────────────────────────────────────────────────
 // SACCO stream (0062). A separate stream, for the same reason stocks are.
@@ -398,19 +440,35 @@ extension SaccoSortX on SaccoSort {
   };
 }
 
-final saccoSortProvider = StateProvider<SaccoSort>((_) => SaccoSort.depositRate);
+final saccoSortProvider = StateProvider<SaccoSort>(
+  (_) => SaccoSort.depositRate,
+);
 
-/// Show only societies a user can actually join. Defaults from remote config
-/// (`saccos.open_bond_only_default`, true), so it can be turned off from admin
-/// without a release.
+/// The user's explicit choice, or null when they have not made one.
+///
+/// Split out from [saccoOpenOnlyProvider] deliberately. That provider used to
+/// BE a StateProvider whose initialiser watched remote config, which had two
+/// consequences: every snapshot refresh recomputed it and silently threw away
+/// whatever the user had toggled, and it became the one filter on this screen
+/// that could change with nobody touching the phone. The second of those is
+/// what turned the old collapse listeners into a write during build.
+///
+/// Writers set THIS. Readers read [saccoOpenOnlyProvider].
+final saccoOpenOnlyOverrideProvider = StateProvider<bool?>((_) => null);
+
+/// Show only societies a user can actually join: their choice where they have
+/// made one, otherwise the admin default (`saccos.open_bond_only_default`,
+/// true), so it can still be turned off from admin without a release.
 ///
 /// On by default because membership is a harder gate than rate. A society with
 /// a brilliant rate and a closed bond is not a better option than one with a
 /// duller rate you can join. It is not an option at all.
-final saccoOpenOnlyProvider = StateProvider<bool>(
-  (ref) => ref
-      .watch(remoteConfigProvider)
-      .flag('saccos.open_bond_only_default', true),
+final saccoOpenOnlyProvider = Provider<bool>(
+  (ref) =>
+      ref.watch(saccoOpenOnlyOverrideProvider) ??
+      ref
+          .watch(remoteConfigProvider)
+          .flag('saccos.open_bond_only_default', true),
 );
 
 /// The visible SACCO stream: bond filter, then search, then sort.
@@ -603,6 +661,6 @@ final streamAllRowsProvider = Provider<AsyncValue<List<MarketRow>>>((ref) {
 /// page is the row whose money you cannot get back next week.
 final saccoLeadsAllProvider = Provider<bool>((ref) {
   if (!ref.watch(allTabMergeProvider)) return false;
-  final rows = ref.watch(streamAllRowsProvider).valueOrNull;
+  final rows = ref.watch(streamAllRowsProvider).value;
   return rows != null && rows.isNotEmpty && rows.first is SaccoRow;
 });

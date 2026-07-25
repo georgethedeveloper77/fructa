@@ -30,6 +30,8 @@ import 'widgets/fund_credentials.dart';
 import 'widgets/fund_performance.dart';
 import 'widgets/peer_compare.dart';
 import 'widgets/rate_chart.dart';
+import 'widgets/real_return_bar.dart';
+import 'widgets/usd_view_card.dart';
 
 const _typeNames = {
   'mmf': 'Money Market',
@@ -323,7 +325,7 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
     // ambient glow below keep the true brand colour (rawTint).
     final tint = c.brandOnBg(rawTint);
     final logoUrl = ref.watch(logoUrlProvider(fund.id));
-    final peers = ref.watch(ratesProvider).valueOrNull ?? const <Fund>[];
+    final peers = ref.watch(ratesProvider).value ?? const <Fund>[];
     final held = _heldIn(ref.watch(holdingsProvider));
     final following = ref.watch(subscriptionsProvider).contains(fund.id);
     final signals = buildSignals(fund, peers,
@@ -418,8 +420,12 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
     // manager company's own channels (website/phone/whatsapp/email entered in
     // admin) so the top-up / official-site / contact CTAs still appear.
     final topUpUrl = invest ?? manager?.website;
-    final officialSite = fund.siteUrl ?? manager?.website;
     final contactUrl = _bestContact(agents, manager);
+
+    // The manager's own published channels, each surfaced on its own row. Null
+    // (section hidden) when the fund has no manager or the manager carries none.
+    final contactCard =
+        manager != null ? _contactSection(context, manager, tint) : null;
 
     return Scaffold(
       backgroundColor: c.bg,
@@ -702,6 +708,27 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
               // ── Vs category leaders - net-yield bars (carded widget) ───
               PeerCompare(fund, tint: tint),
 
+              // ── What you actually keep - the REAL cell in the triad, at
+              //    size. That cell is a bare number three rows up with no
+              //    sense of scale: 13.74 gross against 4.67 real is a two
+              //    thirds haircut and nothing on the page said so. Shown only
+              //    where every figure behind it is real, which means a yield
+              //    fund with a rate and a seeded CPI for its OWN currency.
+              if (fund.showsYield &&
+                  rate != null &&
+                  inflation != null &&
+                  realPct != null)
+                RealReturnBar(
+                  gross: rate,
+                  net: netPct,
+                  real: realPct,
+                  inflation: inflation,
+                ),
+
+              // ── The same return counted in dollars. Self-gating: KES funds
+              //    only, and only once the FX history covers a full year.
+              UsdViewCard(fund),
+
               // ── Terms ──────────────────────────────────────────────────
               _eyebrow(context, 'TERMS'),
               Padding(
@@ -752,6 +779,9 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
                   _agentRow(agents[i], tint, i < agents.length - 1),
               ],
 
+              // ── Contact - the manager's own published channels ─────────
+              if (contactCard != null) contactCard,
+
               // ── CTAs ───────────────────────────────────────────────────
               if (topUpUrl != null)
                 CtaFull(
@@ -759,18 +789,16 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
                     label: t('company.fundTopUp'),
                     tint: tint,
                     onTap: () => _open(topUpUrl)),
-              if (contactUrl case final contact?)
+              // The single best-contact button appears only when the Contact
+              // section above did not (no manager channels), so an agent-only
+              // or fund-level contact link still has a home and no channel is
+              // shown twice.
+              if (contactCard == null && contactUrl != null)
                 CtaGhost(
-                    icon: _contactIcon(contact),
+                    icon: _contactIcon(contactUrl),
                     label: t('company.contact'),
                     tint: tint,
-                    onTap: () => _open(contact)),
-              if (officialSite != null)
-                CtaGhost(
-                    icon: Icons.north_east,
-                    label: t('company.officialSite'),
-                    tint: tint,
-                    onTap: () => _open(officialSite)),
+                    onTap: () => _open(contactUrl)),
 
               Disclaimer(t('company.moneyNote'), center: true),
               const SizedBox(height: 20),
@@ -836,6 +864,84 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
     );
   }
 
+  // ── Contact → the manager company's own channels, each on its own tappable
+  //    row and shown only when the value is present. Distinct from the agent
+  //    rows (individuals) and from the single best-contact CTA: every channel
+  //    the manager published is reachable here, not just the top-priority one.
+  //    Returns null when the manager carries no channel, so the caller drops
+  //    the whole section rather than rendering an empty card.
+  Widget? _contactSection(BuildContext context, Company m, Color tint) {
+    String digitsOf(String? s) => (s ?? '').replaceAll(RegExp(r'[^0-9]'), '');
+    String httpUrl(String s) {
+      final v = s.trim();
+      return (v.startsWith('http://') || v.startsWith('https://'))
+          ? v
+          : 'https://$v';
+    }
+
+    // The SITE button prefers the fund's own page and falls back to the manager
+    // site, exactly the URL the old "Official site" CTA used, so removing that
+    // CTA loses nothing.
+    final fundSite = fund.siteUrl?.trim() ?? '';
+    final site = fundSite.isNotEmpty ? fundSite : (m.website?.trim() ?? '');
+    final phone = m.phone?.trim() ?? '';
+    final wa = digitsOf(m.whatsapp);
+    final email = m.email?.trim() ?? '';
+
+    final chans = <({Widget glyph, String label, String url})>[];
+    if (site.isNotEmpty) {
+      chans.add((
+        glyph: Icon(Icons.language, size: 21, color: tint),
+        label: 'SITE',
+        url: httpUrl(site),
+      ));
+    }
+    if (phone.isNotEmpty) {
+      chans.add((
+        glyph: Icon(Icons.call, size: 21, color: tint),
+        label: 'CALL',
+        url: 'tel:$phone',
+      ));
+    }
+    if (wa.isNotEmpty) {
+      chans.add((
+        glyph: const WhatsAppMark(size: 23),
+        label: 'WHATSAPP',
+        url: 'https://wa.me/$wa',
+      ));
+    }
+    if (email.isNotEmpty) {
+      chans.add((
+        glyph: Icon(Icons.mail_outline, size: 21, color: tint),
+        label: 'EMAIL',
+        url: 'mailto:$email',
+      ));
+    }
+    if (chans.isEmpty) return null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _eyebrow(context, 'CONTACT'),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            children: [
+              for (var i = 0; i < chans.length; i++) ...[
+                if (i > 0) const SizedBox(width: 12),
+                _ContactBtn(
+                  glyph: chans[i].glyph,
+                  label: chans[i].label,
+                  onTap: () => _open(chans[i].url),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   // ── Agent → kit AgentRow ──────────────────────────────────────────────
   Widget _agentRow(Agent a, Color tint, bool divider) {
     final digits = (a.phone ?? '').replaceAll(RegExp(r'[^0-9]'), '');
@@ -895,6 +1001,52 @@ Widget _eyebrow(BuildContext context, String text) {
             letterSpacing: 1.6,
             fontWeight: FontWeight.w600)),
   );
+}
+
+// One manager contact channel as a square action button, the same chrome the
+// agent row uses (c.s2 fill, c.line2 border, 46px, radius 13), with a mono
+// micro-label beneath. WhatsApp passes a real WhatsAppMark as its glyph, so the
+// two WhatsApp buttons on this page are identical.
+class _ContactBtn extends StatelessWidget {
+  const _ContactBtn({
+    required this.glyph,
+    required this.label,
+    required this.onTap,
+  });
+
+  final Widget glyph;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    return SizedBox(
+      width: 58,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ActionSquareButton(onTap: onTap, child: glyph),
+          const SizedBox(height: 8),
+          // Scales down on a very narrow device rather than wrapping or
+          // truncating, so 'WHATSAPP' always reads in full.
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              style: TextStyle(
+                color: c.faint,
+                fontFamily: fructaFonts.mono,
+                fontSize: 9.5,
+                letterSpacing: 1,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _RankLine extends StatelessWidget {

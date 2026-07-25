@@ -5,10 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/main_scaffold.dart';
-import '../../core/categories.dart';
 import '../../core/category_colors.dart';
 import '../../core/format.dart';
 import '../../core/i18n.dart';
+import '../../core/series_colors.dart';
 import '../../core/settings_prefs.dart';
 import '../../core/theme.dart';
 import '../../core/widgets/kit.dart';
@@ -114,7 +114,12 @@ class _Full extends ConsumerWidget {
     var dailyKes = 0.0;
     var wSum = 0.0, w = 0.0;
     var fxMissing = false;
-    final byCategory = <String, double>{};
+    var usdKes = 0.0; // KES value of the USD-denominated part of the book
+    // One entry per HOLDING, not per category. A book of three money market
+    // funds used to collapse into a single gold ring, which is a donut that
+    // answers a question nobody asked: the user already knows they hold money
+    // market funds. Which ONE holds the money is the thing they came for.
+    final byHolding = <({String name, double kes})>[];
     final values = <String, HoldingValue>{};
 
     for (final h in holdings) {
@@ -131,6 +136,7 @@ class _Full extends ConsumerWidget {
       if (v.valueKes != null) {
         totalKes += v.valueKes!;
         costKes += v.principalKes ?? 0;
+        if (v.isUsd) usdKes += v.valueKes!;
       } else {
         fxMissing = true;
       }
@@ -139,8 +145,7 @@ class _Full extends ConsumerWidget {
       // its slice of the donut: it is real money you hold, and leaving it out
       // would make the allocation lie about where your book actually sits.
       if (f != null && v.valueKes != null) {
-        byCategory[f.categoryKey] =
-            (byCategory[f.categoryKey] ?? 0) + v.valueKes!;
+        byHolding.add((name: f.name, kes: v.valueKes!));
       }
 
       // Earnings and the blended yield count only what we can compute. A SACCO
@@ -179,21 +184,46 @@ class _Full extends ConsumerWidget {
 
     String bal(String s) => hidden ? '\u2022\u2022\u2022\u2022' : s;
 
-    final allocTotal = byCategory.values.fold<double>(0, (a, b) => a + b);
-    final slices =
-        (byCategory.entries.toList()
-              ..sort((a, b) => b.value.compareTo(a.value)))
-            .map(
-              (e) => AllocSlice(
-                label: categoryLabel(e.key),
-                color: categoryColor(e.key),
-                weight: e.value,
-                valueText: allocTotal > 0
-                    ? '${(e.value / allocTotal * 100).round()}%'
-                    : '0%',
-              ),
-            )
-            .toList();
+    final allocTotal = byHolding.fold<double>(0, (a, b) => a + b.kes);
+    // Largest first, so the ramp runs in the order the eye reads the legend and
+    // slice colour is stable between the ring and the row beside it.
+    final ranked = [...byHolding]..sort((a, b) => b.kes.compareTo(a.kes));
+
+    // Six named slices, then one bucket. Past six the ramp starts repeating and
+    // the legend outgrows the card, and a seventh row worth 0.4% of the book was
+    // never the point of the chart.
+    const maxSlices = 6;
+    String pctText(double v) =>
+        allocTotal > 0 ? '${(v / allocTotal * 100).round()}%' : '0%';
+
+    final named = ranked.take(maxSlices).toList();
+    final rest = ranked.skip(maxSlices).toList();
+    final restKes = rest.fold<double>(0, (a, b) => a + b.kes);
+
+    final slices = <AllocSlice>[
+      for (var i = 0; i < named.length; i++)
+        AllocSlice(
+          label: named[i].name,
+          color: seriesColor(i),
+          weight: named[i].kes,
+          valueText: pctText(named[i].kes),
+        ),
+      if (rest.isNotEmpty)
+        AllocSlice(
+          // A theme token, not a data colour: the bucket is not a holding and
+          // should not look like one.
+          label: t('portfolio.allocMore', {'n': '${rest.length}'}),
+          color: c.line2,
+          weight: restKes,
+          valueText: pctText(restKes),
+        ),
+    ];
+
+    // What share of the book is in dollars. Shown only when there IS a dollar
+    // share: for the great majority of users this is a bar reading 100% KES,
+    // which is a fact so obvious that drawing it is noise.
+    final usdShare = totalKes > 0 ? usdKes / totalKes : 0.0;
+    final showCcySplit = usdKes > 0 && usdShare < 1;
 
     return ListView(
       padding: const EdgeInsets.only(top: 8, bottom: 100),
@@ -304,6 +334,40 @@ class _Full extends ConsumerWidget {
           EarnCell(t('portfolio.earnYear'),
               '+${bal(money('KES', yearlyKes.round()))}'),
         ]),
+
+        // ── Which currency the book sits in ───────────────────────────
+        //
+        // The total above is one consolidated shilling figure, which is the
+        // honest answer for somebody who spends shillings. But it silently
+        // carries an exchange rate, so part of it moves when the shilling
+        // moves and nothing on the page said which part. This bar says it in
+        // one line, and only when there is anything to say.
+        if (showCcySplit) ...[
+          AllocationBar([
+            AllocSlice(
+              label: 'KES',
+              color: c.brandOnBg(categoryColor('mmf_kes'), minContrast: 2.4),
+              weight: totalKes - usdKes,
+              valueText: '',
+            ),
+            AllocSlice(
+              label: 'USD',
+              color: c.brandOnBg(categoryColor('mmf_usd'), minContrast: 2.4),
+              weight: usdKes,
+              valueText: '',
+            ),
+          ]),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 2, 20, 0),
+            child: Text(
+              t('portfolio.ccySplit', {
+                'kes': '${((1 - usdShare) * 100).round()}',
+                'usd': '${(usdShare * 100).round()}',
+              }),
+              style: TextStyle(color: c.faint, fontSize: 11, height: 1.5),
+            ),
+          ),
+        ],
 
         if (slices.isNotEmpty) ...[
           SectionHeader(title: t('portfolio.allocation')),
@@ -491,10 +555,13 @@ class _AllocationCard extends StatelessWidget {
                         letterSpacing: -0.5,
                       ),
                     ),
+                    // NOT the slice's label. With one slice per holding that
+                    // is a fund name, and no fund name fits a 96px ring
+                    // without truncating, which this app does not do. The name
+                    // is the first row of the legend, in its own colour, six
+                    // pixels to the right.
                     Text(
-                      top.label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                      t('portfolio.allocTop'),
                       style: TextStyle(color: c.faint, fontSize: 9),
                     ),
                   ],
@@ -544,11 +611,10 @@ class _LegendRow extends StatelessWidget {
             children: [
               Text(
                 slice.label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: c.text,
                   fontSize: 12.5,
+                  height: 1.3,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -796,11 +862,10 @@ class _HoldingRow extends ConsumerWidget {
                 children: [
                   Text(
                     name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: c.text,
                       fontSize: 14,
+                      height: 1.3,
                       fontWeight: FontWeight.w500,
                     ),
                   ),

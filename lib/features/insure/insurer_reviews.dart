@@ -601,7 +601,7 @@ class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
         );
 
     if (!mounted) return;
-    if (ok) invalidateReviews(ref as Ref<Object?>, widget.insurer.id);
+    if (ok) invalidateReviews(ref, widget.insurer.id);
     setState(() => _busy = false);
     Navigator.of(context).pop();
 

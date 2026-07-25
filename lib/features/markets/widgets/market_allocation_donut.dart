@@ -69,7 +69,7 @@ class MarketAllocationDonut extends ConsumerWidget {
 
     // Coverage line  how many retail funds the app tracks. Context beneath the
     // pie, not a slice of it.
-    final funds = ref.watch(ratesProvider).valueOrNull ?? const <Fund>[];
+    final funds = ref.watch(ratesProvider).value ?? const <Fund>[];
     final tracked = funds.where((f) => f.retail).length;
 
     void open() => Navigator.of(context).push(

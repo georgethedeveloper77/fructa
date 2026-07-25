@@ -32,7 +32,8 @@ class SaccoSortPills extends ConsumerWidget {
         children: [
           GestureDetector(
             onTap: () =>
-                ref.read(saccoOpenOnlyProvider.notifier).state = !openOnly,
+                ref.read(saccoOpenOnlyOverrideProvider.notifier).state =
+                    !openOnly,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 160),
               alignment: Alignment.center,
@@ -60,9 +61,7 @@ class SaccoSortPills extends ConsumerWidget {
                     style: TextStyle(
                       color: openOnly ? c.up : c.muted,
                       fontSize: 13,
-                      fontWeight: openOnly
-                          ? FontWeight.w600
-                          : FontWeight.w500,
+                      fontWeight: openOnly ? FontWeight.w600 : FontWeight.w500,
                     ),
                   ),
                 ],
@@ -70,7 +69,12 @@ class SaccoSortPills extends ConsumerWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Container(width: 1, height: 20, color: c.line, margin: const EdgeInsets.symmetric(vertical: 11)),
+          Container(
+            width: 1,
+            height: 20,
+            color: c.line,
+            margin: const EdgeInsets.symmetric(vertical: 11),
+          ),
           const SizedBox(width: 8),
           for (final s in SaccoSort.values) ...[
             _Pill(

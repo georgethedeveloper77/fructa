@@ -7,8 +7,10 @@ import 'package:in_app_update/in_app_update.dart';
 
 import '../../core/i18n.dart';
 import '../../core/theme.dart';
+import '../../core/widgets/app_loader.dart';
 import '../../data/backup_service.dart';
 import '../../data/providers.dart';
+import 'cloud_backup_ui.dart';
 
 // ── Public entry points ─────────────────────────────────────────────────────
 
@@ -94,11 +96,7 @@ Widget _primaryBtn(BuildContext context,
         textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
       ),
       child: busy
-          ? SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(
-                  strokeWidth: 2, color: c.onAccent))
+          ? AppLoader(wave: true, size: 20, color: c.onAccent)
           : Text(label),
     ),
   );
@@ -160,13 +158,14 @@ class _BackupSheetState extends ConsumerState<_BackupSheet> {
       child: Padding(
         padding: EdgeInsets.fromLTRB(
             22, 14, 22, 22 + MediaQuery.of(context).viewInsets.bottom),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _grabber(context),
-            Row(children: [
-              Icon(Icons.cloud_upload_outlined, color: c.accent, size: 22),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _grabber(context),
+              Row(children: [
+                Icon(Icons.cloud_upload_outlined, color: c.accent, size: 22),
               const SizedBox(width: 10),
               Text(t('settings.data.backup'),
                   style: TextStyle(
@@ -223,7 +222,9 @@ class _BackupSheetState extends ConsumerState<_BackupSheet> {
             const SizedBox(height: 18),
             _primaryBtn(context,
                 label: t('backup.now'), onTap: _backupNow, busy: _busy),
+            const CloudBackupSection(mode: CloudMode.backup),
           ],
+          ),
         ),
       ),
     );
@@ -288,7 +289,8 @@ class _RestoreSheetState extends ConsumerState<_RestoreSheet> {
       child: Padding(
         padding: EdgeInsets.fromLTRB(
             22, 14, 22, 22 + MediaQuery.of(context).viewInsets.bottom),
-        child: Column(
+        child: SingleChildScrollView(
+          child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -330,7 +332,9 @@ class _RestoreSheetState extends ConsumerState<_RestoreSheet> {
             const SizedBox(height: 16),
             _primaryBtn(context,
                 label: t('backup.restore'), onTap: _restore, busy: _busy),
+            const CloudBackupSection(mode: CloudMode.restore),
           ],
+          ),
         ),
       ),
     );

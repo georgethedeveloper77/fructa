@@ -34,7 +34,7 @@ final myReviewProvider = FutureProvider.autoDispose.family<MyReview?, String>(
 
 /// Refresh all three after a write. Called once, so the histogram, the list and
 /// the author's own status can never disagree with each other.
-void invalidateReviews(Ref ref, String insurerId) {
+void invalidateReviews(WidgetRef ref, String insurerId) {
   ref.invalidate(reviewStatsProvider(insurerId));
   ref.invalidate(insurerReviewsProvider(insurerId));
   ref.invalidate(myReviewProvider(insurerId));

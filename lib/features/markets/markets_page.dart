@@ -25,19 +25,23 @@ import '../stocks/stock_page.dart';
 import '../stocks/stocks_page.dart';
 import 'markets_controller.dart';
 import 'search_overlay.dart';
+import '../../core/widgets/app_loader.dart';
 import 'widgets/best_fund_hero.dart';
 import 'widgets/category_tabs.dart';
 import 'widgets/fund_tile.dart';
+import 'widgets/fx_context_card.dart';
 import 'widgets/insurance_spotlight.dart';
+import 'widgets/locked_leader_note.dart';
 import 'widgets/market_allocation_donut.dart';
 import 'widgets/market_context_card.dart';
+import 'widgets/market_pulse.dart';
 import 'widgets/money_currency_tabs.dart';
-import 'widgets/locked_leader_note.dart';
 import 'widgets/news_feed.dart';
+import 'widgets/yields_info_sheet.dart';
 import 'widgets/sacco_sort_pills.dart';
 import 'widgets/sacco_tile.dart';
-import 'widgets/stock_sector_tabs.dart';
 import 'widgets/sort_pills.dart';
+import 'widgets/stock_sector_tabs.dart';
 import 'widgets/ticker_tape.dart';
 import 'widgets/yield_curve.dart';
 
@@ -140,7 +144,7 @@ class _LearnPrimer extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'New here? Start with a 2-minute primer',
+                        'New here? Start with a 2 minute primer',
                         style: TextStyle(
                           color: c.text,
                           fontSize: 14,
@@ -188,7 +192,7 @@ class MarketsPage extends ConsumerWidget {
     ref.watch(comparisonWatcherProvider); // keep leader-flip watcher alive
 
     final c = context.c;
-    final all = ref.watch(ratesProvider).valueOrNull ?? const [];
+    final all = ref.watch(ratesProvider).value ?? const [];
     final stream = ref.watch(streamFundsProvider);
     final hero = ref.watch(bestMmfProvider);
     final news = ref.watch(marketNewsProvider);
@@ -205,18 +209,15 @@ class MarketsPage extends ConsumerWidget {
     final compareMode = ref.watch(compareModeProvider);
     final selection = ref.watch(compareSelectionProvider);
 
-    // "Show more" state: collapse back to the top 20 whenever the filter,
+    // "Show more" state: collapsed back to the top 20 whenever the filter,
     // sort, currency sub-filter or search changes, so each view starts short.
+    //
+    // The collapse is derived in markets_controller now. It used to be seven
+    // ref.listen calls here writing the flag back to false, and one of them
+    // could fire during this very build, which is what threw markNeedsBuild
+    // out of UncontrolledProviderScope. Nothing writes anything here any more.
     final showAll = ref.watch(showAllFundsProvider);
-    void collapse() => ref.read(showAllFundsProvider.notifier).state = false;
-    ref.listen<MarketTab>(marketTabProvider, (_, __) => collapse());
-    ref.listen<MarketSort>(marketSortProvider, (_, __) => collapse());
-    ref.listen<String?>(marketMoneyCcyProvider, (_, __) => collapse());
-    ref.listen<String>(marketSearchProvider, (_, __) => collapse());
-    ref.listen<String?>(stockSectorProvider, (_, __) => collapse());
-    ref.listen<SaccoSort>(saccoSortProvider, (_, __) => collapse());
-    ref.listen<bool>(saccoOpenOnlyProvider, (_, __) => collapse());
-    final total = stream.valueOrNull?.length ?? 0;
+    final total = stream.value?.length ?? 0;
 
     // The Stocks tab swaps the whole stream over. Stocks are not Funds and are
     // never merged into the fund list, so `all` stays a pure rates league table.
@@ -244,8 +245,7 @@ class MarketsPage extends ConsumerWidget {
     final allRows = ref.watch(streamAllRowsProvider);
     // A rank badge beside an alphabetical list would imply a league position
     // that does not exist.
-    final stockRank =
-        ref.watch(effectiveStockSortProvider) != StockSort.alpha;
+    final stockRank = ref.watch(effectiveStockSortProvider) != StockSort.alpha;
 
     return Scaffold(
       backgroundColor: c.bg,
@@ -264,7 +264,17 @@ class MarketsPage extends ConsumerWidget {
                     time: _eatNow(),
                     updated: _updatedLabel(ref.watch(snapshotUpdatedProvider)),
                   ),
-                TickerTape(all),
+                TickerTape(
+                  all,
+                  onOpenFund: (f) => _openFund(context, f),
+                  // The currency cell. The card that explains it sits at the
+                  // FOOT of this page, so without a cue up here nobody
+                  // scrolling rates would learn it exists. Both are null until
+                  // the FX history lands, and the cell hides itself.
+                  fxRate: ref.watch(usdKesProvider),
+                  fxPair: ref.watch(remoteConfigProvider).fxPair,
+                  fxMove12: ref.watch(fxMovesProvider)?.move12,
+                ),
                 Divider(height: 1, color: c.line),
                 Expanded(
                   child: RefreshIndicator(
@@ -317,6 +327,15 @@ class MarketsPage extends ConsumerWidget {
                         SliverPersistentHeader(
                           pinned: true,
                           delegate: _StreamHeader(
+                            // A pinned persistent header does not re-run build on
+                            // a Theme (inherited) change, so mode/accent switches
+                            // were leaving this header's band + label in the old
+                            // colours until something else forced a rebuild. Feed
+                            // it the live brightness/accent so shouldRebuild can
+                            // fire on the switch. The page itself rebuilds on any
+                            // theme change (it reads context.c above).
+                            brightness: c.brightness,
+                            accentKind: c.accentKind,
                             compareMode: compareMode,
                             isStock: isStock,
                             isSacco: isSacco,
@@ -350,85 +369,88 @@ class MarketsPage extends ConsumerWidget {
                           )
                         else
                           stream.when(
-                          loading: () => SliverToBoxAdapter(
-                            child: Padding(
-                              padding: const EdgeInsets.all(40),
-                              child: Center(
-                                child: CircularProgressIndicator(
-                                  color: c.accent,
+                            loading: () => SliverToBoxAdapter(
+                              child: Padding(
+                                padding: const EdgeInsets.all(40),
+                                child: Center(
+                                  child: const AppLoader(),
                                 ),
                               ),
                             ),
-                          ),
-                          error: (e, _) => SliverToBoxAdapter(
-                            child: Padding(
-                              padding: const EdgeInsets.all(24),
-                              child: Text(
-                                t('markets.loadError', {'error': '$e'}),
-                                style: TextStyle(color: c.muted),
+                            error: (e, _) => SliverToBoxAdapter(
+                              child: Padding(
+                                padding: const EdgeInsets.all(24),
+                                child: Text(
+                                  t('markets.loadError', {'error': '$e'}),
+                                  style: TextStyle(color: c.muted),
+                                ),
                               ),
                             ),
-                          ),
-                          data: (funds) => funds.isEmpty
-                              ? SliverToBoxAdapter(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(40),
-                                    child: Center(
-                                      child: Text(
-                                        t('markets.noMatch'),
-                                        style: TextStyle(color: c.muted),
+                            data: (funds) => funds.isEmpty
+                                ? SliverToBoxAdapter(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(40),
+                                      child: Center(
+                                        child: Text(
+                                          t('markets.noMatch'),
+                                          style: TextStyle(color: c.muted),
+                                        ),
                                       ),
                                     ),
+                                  )
+                                : SliverList.separated(
+                                    itemCount: showAll
+                                        ? funds.length
+                                        : (funds.length < kFundsInitial
+                                              ? funds.length
+                                              : kFundsInitial),
+                                    separatorBuilder: (_, _) =>
+                                        const SizedBox.shrink(),
+                                    itemBuilder: (context, i) {
+                                      final f = funds[i];
+                                      return FundTile(
+                                        f,
+                                        rank: i + 1,
+                                        onTap: () => _openFund(context, f),
+                                        selectable: compareMode,
+                                        selected: selection.contains(f.id),
+                                        onToggleSelect: () => ref
+                                            .read(
+                                              compareSelectionProvider.notifier,
+                                            )
+                                            .toggle(f.id),
+                                        brandColor: ref.watch(
+                                          brandColorProvider(f.id),
+                                        ),
+                                        delta: ref.watch(
+                                          fundDeltaProvider(f.id),
+                                        ),
+                                      );
+                                    },
                                   ),
-                                )
-                              : SliverList.separated(
-                                  itemCount: showAll
-                                      ? funds.length
-                                      : (funds.length < kFundsInitial
-                                            ? funds.length
-                                            : kFundsInitial),
-                                  separatorBuilder: (_, _) =>
-                                      const SizedBox.shrink(),
-                                  itemBuilder: (context, i) {
-                                    final f = funds[i];
-                                    return FundTile(
-                                      f,
-                                      rank: i + 1,
-                                      onTap: () => _openFund(context, f),
-                                      selectable: compareMode,
-                                      selected: selection.contains(f.id),
-                                      onToggleSelect: () => ref
-                                          .read(
-                                            compareSelectionProvider.notifier,
-                                          )
-                                          .toggle(f.id),
-                                      brandColor: ref.watch(
-                                        brandColorProvider(f.id),
-                                      ),
-                                      delta: ref.watch(fundDeltaProvider(f.id)),
-                                    );
-                                  },
-                                ),
-                        ),
+                          ),
                         if (!isStock &&
                             !isSacco &&
                             !showAll &&
                             (merged
-                                    ? (allRows.valueOrNull?.length ?? 0)
+                                    ? (allRows.value?.length ?? 0)
                                     : total) >
                                 kFundsInitial)
                           SliverToBoxAdapter(
                             child: _ShowMoreButton(
                               count:
                                   (merged
-                                      ? (allRows.valueOrNull?.length ?? 0)
+                                      ? (allRows.value?.length ?? 0)
                                       : total) -
                                   kFundsInitial,
+                              // Records WHICH view was expanded. The moment
+                              // any filter moves, the signature no longer
+                              // matches and the list is short again.
                               onTap: () =>
                                   ref
-                                          .read(showAllFundsProvider.notifier)
+                                          .read(expandedViewProvider.notifier)
                                           .state =
-                                      true,
+                                      ref.read(marketViewKeyProvider),
                             ),
                           ),
                         SliverToBoxAdapter(
@@ -443,12 +465,22 @@ class MarketsPage extends ConsumerWidget {
                                 : isStock
                                 ? t('stocks.disclaimer')
                                 : t('markets.disclaimer'),
+                            onTap: (!isSacco && !isStock)
+                                ? () => showYieldsInfoSheet(context)
+                                : null,
                           ),
                         ),
                         // ── Market context (post-rates): the "beating
-                        // inflation" read, then the government yield curve, and
-                        // finally any market news.
+                        // inflation" read, then the currency, then the
+                        // government yield curve, and finally any market news.
+                        //
+                        // The currency card sits inside this block rather than
+                        // beside the USD sub-filter above, because inflation,
+                        // FX and the yield curve are all macro context and none
+                        // of them is a fund ranking. It shares the section
+                        // kicker MarketContextCard already renders.
                         const SliverToBoxAdapter(child: MarketContextCard()),
+                        const SliverToBoxAdapter(child: FxContextSection()),
                         const SliverToBoxAdapter(child: YieldCurve()),
                         SliverToBoxAdapter(child: NewsFeed(news)),
                         SliverToBoxAdapter(
@@ -495,7 +527,7 @@ class _TopBar extends ConsumerWidget {
     final unread = ref.watch(unreadAlertsProvider);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 12, 0),
+      padding: const EdgeInsets.fromLTRB(20, 6, 12, 0),
       child: Row(
         children: [
           if (searching)
@@ -523,7 +555,12 @@ class _TopBar extends ConsumerWidget {
               ),
             )
           else
-            const Spacer(),
+            const Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(right: 6),
+                child: MarketPulse(),
+              ),
+            ),
           IconButton(
             onPressed: () => Navigator.of(
               context,
@@ -551,12 +588,18 @@ class _TopBar extends ConsumerWidget {
 // ── Pinned tabs + sort + count header ──────────────────────────────────────
 class _StreamHeader extends SliverPersistentHeaderDelegate {
   _StreamHeader({
+    required this.brightness,
+    required this.accentKind,
     required this.compareMode,
     required this.showCcy,
     required this.isStock,
     required this.isSacco,
     required this.showSector,
   });
+  // Theme identity, carried only so shouldRebuild can fire on a mode/accent
+  // switch. A pinned header ignores inherited Theme changes otherwise.
+  final Brightness brightness;
+  final fructaAccent accentKind;
   final bool compareMode;
   final bool showCcy;
   final bool isStock;
@@ -585,7 +628,7 @@ class _StreamHeader extends SliverPersistentHeaderDelegate {
         final count = isSacco
             ? ref.watch(streamSaccosProvider).length
             : merged
-            ? (ref.watch(streamAllRowsProvider).valueOrNull?.length ?? 0)
+            ? (ref.watch(streamAllRowsProvider).value?.length ?? 0)
             : isStock
             ? ref.watch(streamStocksProvider).length
             : ref
@@ -601,9 +644,7 @@ class _StreamHeader extends SliverPersistentHeaderDelegate {
           // list the user is looking at.
           final onlyJoinable = ref.watch(saccoOpenOnlyProvider);
           final noun = count == 1 ? 'society' : 'societies';
-          label = onlyJoinable
-              ? '$count $noun you can join'
-              : '$count $noun';
+          label = onlyJoinable ? '$count $noun you can join' : '$count $noun';
         } else if (isStock) {
           label = count == 1
               ? t('stocks.countOne')
@@ -669,6 +710,8 @@ class _StreamHeader extends SliverPersistentHeaderDelegate {
 
   @override
   bool shouldRebuild(covariant _StreamHeader old) =>
+      old.brightness != brightness ||
+      old.accentKind != accentKind ||
       old.compareMode != compareMode ||
       old.showCcy != showCcy ||
       old.isStock != isStock ||
@@ -720,7 +763,6 @@ class _ShowMoreButton extends StatelessWidget {
   }
 }
 
-
 /// The Stocks tab's list. A sibling of the fund SliverList, not a merge into
 /// it: StockTile shares FundTile's shell so the rows read as the same kind of
 /// object, while the right-hand figure stays honest (price only under licence,
@@ -728,11 +770,7 @@ class _ShowMoreButton extends StatelessWidget {
 ///
 /// Returns a sliver directly rather than a widget, because `slivers:` needs
 /// real slivers.
-Widget _stocksSliver(
-  BuildContext context,
-  List<Stock> stocks,
-  bool showRank,
-) {
+Widget _stocksSliver(BuildContext context, List<Stock> stocks, bool showRank) {
   if (stocks.isEmpty) {
     return SliverToBoxAdapter(
       child: Padding(
@@ -761,7 +799,6 @@ Widget _stocksSliver(
     },
   );
 }
-
 
 /// The SACCO tab's list. A sibling of the fund SliverList, never a merge into
 /// it: SaccoTile shares FundTile's shell so the rows read as the same kind of
@@ -800,7 +837,6 @@ Widget _saccosSliver(BuildContext context, List<Sacco> saccos, bool showRank) {
   );
 }
 
-
 /// The All list when SACCOs are merged in. Funds and societies interleaved and
 /// ranked on the SAME net-of-tax basis, which is the only basis on which putting
 /// them in one list is defensible at all.
@@ -823,7 +859,7 @@ Widget _mergedSliver(
       child: Padding(
         padding: const EdgeInsets.all(40),
         child: Center(
-          child: CircularProgressIndicator(color: context.c.accent),
+          child: const AppLoader(),
         ),
       ),
     ),

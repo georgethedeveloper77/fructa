@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:hive/hive.dart';
 
 import '../../core/push.dart';
@@ -102,7 +103,7 @@ final savedComparisonsProvider =
 /// in MarketsPage. Pure on-device  no server state.
 final comparisonWatcherProvider = Provider<void>((ref) {
   ref.listen<AsyncValue<List<Fund>>>(ratesProvider, (_, next) {
-    final funds = next.valueOrNull;
+    final funds = next.value;
     if (funds == null) return;
     final byId = {for (final f in funds) f.id: f};
     final sets = ref.read(savedComparisonsProvider);

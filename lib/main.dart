@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -13,33 +15,89 @@ import 'core/theme.dart';
 import 'core/theme_controller.dart';
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Hive.initFlutter();
-  await Hive.openBox('rates'); // cached snapshot + etag
-  await Hive.openBox('holdings'); // on-device portfolio
-  final settings = await Hive.openBox('settings'); // app lock, prefs, theme
-  await Hive.openBox('alerts'); // rate-change feed
-  await L10n.load();
+  // The whole boot runs inside a guarded zone. Anything uncaught during
+  // startup lands in the handler at the bottom and is printed to logcat rather
+  // than silently freezing the launch screen, which is precisely what left the
+  // release build stuck on the splash: an init threw or hung before runApp, so
+  // the first frame never painted and there was nothing in the log to show why.
+  runZonedGuarded<Future<void>>(
+    () async {
+      WidgetsFlutterBinding.ensureInitialized();
 
-  await Push.init();
-  await LocalNotify.init();
+      // Surface framework errors to logcat. print survives release builds
+      // (unlike asserts / kDebugMode code), so this line is visible under the
+      // `flutter` tag on a shipped APK.
+      FlutterError.onError = (details) {
+        FlutterError.presentError(details);
+        debugPrint('[fructa] FlutterError: ${details.exceptionAsString()}');
+        if (details.stack != null) debugPrint('[fructa] ${details.stack}');
+      };
 
-  // Both paths route identically. A tap on a server push and a tap on the local
-  // fallback should land the user on the same screen, and if these two ever
-  // diverge one of them is a dead end.
-  Push.onOpenTarget = handlePushTarget;
-  LocalNotify.onOpenTarget = handlePushTarget;
+      // Hive is local and required before first paint: providers read these
+      // boxes synchronously (settingsBoxProvider, Hive.box('settings') in
+      // providers.dart). Hive never touches the network, so it cannot hang on a
+      // dead connection; if it throws, the zone handler surfaces it.
+      await Hive.initFlutter();
+      await Hive.openBox('rates'); // cached snapshot + etag
+      await Hive.openBox('holdings'); // on-device portfolio
+      final settings = await Hive.openBox('settings'); // app lock, prefs, theme
+      await Hive.openBox('alerts'); // rate-change feed
 
-  // Fire and forget on cold start. Reconcile hits the network, and blocking
-  // first paint on it would trade one bug for a worse one.
-  unawaitedReconcile(settings);
+      // Localisation is a bundled asset load. Guarded and time-boxed so a bad
+      // load can never wedge the splash.
+      try {
+        await L10n.load().timeout(const Duration(seconds: 5));
+      } catch (e, st) {
+        debugPrint('[fructa] L10n.load failed: $e\n$st');
+      }
 
-  runApp(
-    ProviderScope(
-      // Hand the opened box to the theme controller (and settings prefs).
-      overrides: [settingsBoxProvider.overrideWithValue(settings)],
-      child: const FructaApp(),
-    ),
+      // Both paths route identically. A tap on a server push and a tap on the
+      // local fallback should land the user on the same screen. These are plain
+      // function pointers, safe to assign before the SDKs finish initialising;
+      // OneSignal replays a cold-start tap once its click listener is
+      // registered inside Push.init, and this gives that target somewhere to
+      // land.
+      Push.onOpenTarget = handlePushTarget;
+      LocalNotify.onOpenTarget = handlePushTarget;
+
+      // FIRST PAINT. Everything past this point is off the boot path. Nothing
+      // that touches a platform SDK or the network is allowed to block the
+      // first frame. Blocking it is what froze the launch screen, and a frozen
+      // launch registers as an ANR, the same policy family that pulled the app.
+      runApp(
+        ProviderScope(
+          // Hand the opened box to the theme controller (and settings prefs).
+          overrides: [settingsBoxProvider.overrideWithValue(settings)],
+          child: const FructaApp(),
+        ),
+      );
+
+      // Push + local notifications, initialised AFTER the UI is up. Each is
+      // time-boxed so a stuck platform channel or an offline FCM token fetch
+      // degrades that one feature instead of the whole app, and each catch
+      // names the culprit in logcat if either was the thing hanging boot.
+      unawaited(() async {
+        try {
+          await Push.init().timeout(const Duration(seconds: 10));
+        } catch (e, st) {
+          debugPrint('[fructa] Push.init failed: $e\n$st');
+        }
+        try {
+          await LocalNotify.init().timeout(const Duration(seconds: 10));
+        } catch (e, st) {
+          debugPrint('[fructa] LocalNotify.init failed: $e\n$st');
+        }
+
+        // Reconcile hits the network. Fire and forget on cold start, as before:
+        // blocking first paint on it would trade one bug for a worse one.
+        unawaitedReconcile(settings);
+      }());
+    },
+    (error, stack) {
+      // Uncaught during boot. Printed, not swallowed, so a release-only failure
+      // is diagnosable from `adb logcat | grep fructa` instead of a dead splash.
+      debugPrint('[fructa] Uncaught zone error: $error\n$stack');
+    },
   );
 }
 

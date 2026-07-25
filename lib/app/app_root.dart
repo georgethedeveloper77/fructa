@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme_controller.dart';
 import '../features/onboarding/onboarding_flow.dart';
 import 'main_scaffold.dart';
+import 'real_splash.dart';
 
 /// Persisted "has the user finished onboarding" flag. Lives in the same Hive
 /// `settings` box opened in main(). Completing onboarding flips it and the
@@ -42,18 +43,31 @@ final onboardingPersonaProvider = Provider<String>(
           as String,
 );
 
-/// Root gate. Point `MaterialApp.home` at this.
-class AppRoot extends ConsumerWidget {
+/// Root gate. Point `MaterialApp.home` at this. The launch splash plays first
+/// (covering the snapshot load), then it routes to onboarding or the scaffold.
+class AppRoot extends ConsumerStatefulWidget {
   const AppRoot({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AppRoot> createState() => _AppRootState();
+}
+
+class _AppRootState extends ConsumerState<AppRoot> {
+  bool _splashDone = false;
+
+  @override
+  Widget build(BuildContext context) {
     final onboarded = ref.watch(onboardedProvider);
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 320),
-      child: onboarded
-          ? const MainScaffold(key: ValueKey('scaffold'))
-          : const OnboardingFlow(key: ValueKey('onboarding')),
+      child: !_splashDone
+          ? RealSplash(
+              key: const ValueKey('splash'),
+              onDone: () => setState(() => _splashDone = true),
+            )
+          : (onboarded
+                ? const MainScaffold(key: ValueKey('scaffold'))
+                : const OnboardingFlow(key: ValueKey('onboarding'))),
     );
   }
 }

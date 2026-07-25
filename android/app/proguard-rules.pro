@@ -38,3 +38,25 @@
 -dontwarn com.google.android.play.core.splitcompat.**
 -dontwarn com.google.android.play.core.splitinstall.**
 -dontwarn com.google.android.play.core.tasks.**
+
+# WorkManager + Room (WorkManager is pulled in transitively by OneSignal).
+# WorkManager stores its job queue in a Room database, WorkDatabase. Room builds
+# its generated implementation by reflection as "<canonicalName>_Impl". R8 renames
+# WorkDatabase and WorkDatabase_Impl, the reflective lookup misses, and the app
+# crashes at process start via androidx.startup.InitializationProvider, before
+# Flutter boots. Keep the original names so the lookup resolves.
+-keep class androidx.work.** { *; }
+-dontwarn androidx.work.**
+-keep class * extends androidx.room.RoomDatabase { <init>(); }
+-keep class androidx.room.RoomDatabase { *; }
+-dontwarn androidx.room.**
+-keep class androidx.startup.** { *; }
+
+# flutter_local_notifications: the plugin serializes scheduled-notification
+# details via GSON. R8 stripping its model classes (or generic signatures) makes
+# a reboot-rescheduled reminder fail to deserialize. Signature is already kept
+# above; keep the plugin's classes and GSON too.
+-keep class com.dexterous.** { *; }
+-dontwarn com.dexterous.**
+-keep class com.google.gson.** { *; }
+-dontwarn com.google.gson.**

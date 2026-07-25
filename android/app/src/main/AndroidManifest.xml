@@ -8,6 +8,14 @@
          implicit. Declared here so it is visible in review and in code search. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.VIBRATE"/>
+    <!-- Networking for the snapshot, OneSignal push, and store/version checks.
+         Plugins merge this in already, but the app's core function depends on
+         it, so it is declared explicitly rather than left implicit. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Lets flutter_local_notifications re-register the daily learn reminder
+         after a device reboot, so a scheduled nudge is not silently dropped
+         until the app is next opened. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
 
     <application
         android:label="Fructa"

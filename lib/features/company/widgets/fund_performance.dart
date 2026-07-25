@@ -290,7 +290,7 @@ class _Dumbbell extends StatelessWidget {
                   final bf = benchV != null ? _frac(benchV!) : null;
                   return TweenAnimationBuilder<double>(
                     tween: Tween(begin: 0, end: 1),
-                    duration: const Duration(milliseconds: 650),
+                    duration: const Duration(milliseconds: 1300),
                     curve: Curves.easeOutCubic,
                     builder: (ctx, t, _) {
                       final fx = (0.5 + (ff - 0.5) * t) * w;
