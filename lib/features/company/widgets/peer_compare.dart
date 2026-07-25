@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/category_colors.dart';
+import '../../../core/series_colors.dart';
 import '../../../core/theme.dart';
 import '../../../data/models/fund.dart';
 import '../../../data/providers.dart';
@@ -58,6 +60,8 @@ class PeerCompare extends ConsumerWidget {
     if (maxNet <= 0) return const SizedBox.shrink();
 
     final brand = tint ?? c.accent;
+    // The category's own hue, so the peer bars say which market this is.
+    final peer = fundTypeColor(fund.fundType);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 26, 16, 0),
@@ -85,17 +89,29 @@ class PeerCompare extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                for (final f in rows)
+                // Peers used to be a flat c.s3, so a five-bar chart was one
+                // gold bar and four pieces of furniture. They now carry the
+                // fund TYPE's own colour, stepped down by rank, which reads as
+                // a family this fund belongs to rather than a winner beside
+                // some grey.
+                //
+                // The contrast that matters is preserved: this fund keeps the
+                // manager's brand at full strength while every peer sits under
+                // half, so it is still the only bar that looks lit.
+                for (var k = 0; k < rows.length; k++)
                   _Bar(
-                    label: f.id == fund.id
-                        ? '${_short(f.name)} (this)'
-                        : _short(f.name),
-                    value: net(f),
-                    frac: (net(f) / maxNet).clamp(0.0, 1.0),
-                    color: f.id == fund.id ? brand : c.s3,
-                    valueColor: f.id == fund.id ? brand : c.muted,
-                    labelColor: f.id == fund.id ? c.text : c.muted,
-                    bold: f.id == fund.id,
+                    label: rows[k].id == fund.id
+                        ? '${_short(rows[k].name)} (this)'
+                        : _short(rows[k].name),
+                    value: net(rows[k]),
+                    frac: (net(rows[k]) / maxNet).clamp(0.0, 1.0),
+                    color: rows[k].id == fund.id
+                        ? brand
+                        : peer.withValues(alpha: _peerAlpha(k)),
+                    track: barTrack(rows[k].id == fund.id ? brand : peer),
+                    valueColor: rows[k].id == fund.id ? brand : c.muted,
+                    labelColor: rows[k].id == fund.id ? c.text : c.muted,
+                    bold: rows[k].id == fund.id,
                   ),
               ],
             ),
@@ -103,6 +119,15 @@ class PeerCompare extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  /// Rank fades the peers, so the chart reads top to bottom as well as left to
+  /// right. Floored, because past the fourth peer another step would be a bar
+  /// too faint to see at all. Written out rather than clamped: num.clamp
+  /// returns num, and withValues wants a double.
+  static double _peerAlpha(int rank) {
+    final a = 0.46 - rank * 0.06;
+    return a < 0.16 ? 0.16 : a;
   }
 
   /// Trim the common suffix noise so bars keep room  full names live on the
@@ -122,6 +147,7 @@ class _Bar extends StatelessWidget {
     required this.value,
     required this.frac,
     required this.color,
+    required this.track,
     required this.valueColor,
     required this.labelColor,
     required this.bold,
@@ -131,13 +157,13 @@ class _Bar extends StatelessWidget {
   final double value;
   final double frac;
   final Color color;
+  final Color track;
   final Color valueColor;
   final Color labelColor;
   final bool bold;
 
   @override
   Widget build(BuildContext context) {
-    final c = context.c;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
       child: Row(
@@ -162,17 +188,23 @@ class _Bar extends StatelessWidget {
                 height: 8,
                 child: Stack(
                   children: [
-                    Container(color: c.s2),
-                    FractionallySizedBox(
-                      widthFactor: frac,
-                      child: TweenAnimationBuilder<double>(
-                        tween: Tween(begin: 0, end: 1),
-                        duration: const Duration(milliseconds: 1300),
-                        curve: Curves.easeOutCubic,
-                        builder: (_, t, child) =>
-                            FractionallySizedBox(widthFactor: t, child: child),
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(color: color),
+                    Positioned.fill(child: ColoredBox(color: track)),
+                    Positioned.fill(
+                      child: FractionallySizedBox(
+                        alignment: Alignment.centerLeft,
+                        widthFactor: frac,
+                        child: TweenAnimationBuilder<double>(
+                          tween: Tween(begin: 0, end: 1),
+                          duration: const Duration(milliseconds: 1300),
+                          curve: Curves.easeOutCubic,
+                          builder: (_, t, child) => FractionallySizedBox(
+                            alignment: Alignment.centerLeft,
+                            widthFactor: t,
+                            child: child,
+                          ),
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(gradient: barFill(color)),
+                          ),
                         ),
                       ),
                     ),

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../../core/i18n.dart';
+import '../../../core/series_colors.dart';
 import '../../../core/theme.dart';
 
 /// The gross yield, carved up into the three things that happen to it.
@@ -57,6 +58,17 @@ class RealReturnBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.c;
     final keep = tint ?? c.up;
+
+    // Three real colours, and the ordering is semantic rather than decorative:
+    // what survives, what the state takes, what prices take.
+    //
+    // Tax used to be `c.line2` and inflation a washed-out muted, which is to
+    // say two thirds of this chart was grey. Both now come off the central data
+    // ramp. Deliberately NOT c.down for inflation: red is already spoken for by
+    // a negative real return, and a fund losing to inflation must not look the
+    // same as the slice of a healthy fund that inflation happens to take.
+    final taxColor = seriesColor(3);
+    final inflColor = seriesColor(4);
 
     final tax = math.max(gross - net, 0.0);
     final infl = math.max(net - real, 0.0);
@@ -129,28 +141,46 @@ class RealReturnBar extends StatelessWidget {
                   child: Stack(
                     clipBehavior: Clip.none,
                     children: [
-                      ClipRRect(
+                      // Positioned.fill, not a bare child. A non-positioned
+                      // Stack child gets LOOSE constraints, the Row then sizes
+                      // to its tallest child, and a childless ColoredBox under
+                      // a loose height is zero tall. The whole bar rendered as
+                      // nothing.
+                      Positioned.fill(
+                        child: ClipRRect(
                         borderRadius: BorderRadius.circular(7),
                         child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             if (kept > 0)
                               Expanded(
                                 flex: flex(kept),
-                                child: ColoredBox(color: keep),
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    gradient: barFill(keep),
+                                  ),
+                                ),
                               ),
                             if (tax > 0)
                               Expanded(
                                 flex: flex(tax),
-                                child: ColoredBox(color: c.line2),
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    gradient: barFill(taxColor),
+                                  ),
+                                ),
                               ),
                             if (infl > 0)
                               Expanded(
                                 flex: flex(infl),
-                                child: ColoredBox(
-                                  color: c.muted.withValues(alpha: 0.55),
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    gradient: barFill(inflColor),
+                                  ),
                                 ),
                               ),
                           ],
+                        ),
                         ),
                       ),
                       // Where the fund's gross yield ran out. Only drawn when
@@ -181,9 +211,9 @@ class RealReturnBar extends StatelessWidget {
                       : t('fund.real.kept'),
                   value: kept,
                 ),
-                _Key(color: c.line2, label: t('fund.real.tax'), value: tax),
+                _Key(color: taxColor, label: t('fund.real.tax'), value: tax),
                 _Key(
-                  color: c.muted.withValues(alpha: 0.55),
+                  color: inflColor,
                   label: t('fund.real.inflation'),
                   value: infl,
                 ),

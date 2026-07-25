@@ -35,8 +35,9 @@ class InsurerReviews extends ConsumerWidget {
         stats.when(
           loading: () => const _Skeleton(),
           error: (_, __) => const SizedBox.shrink(),
-          data: (s) =>
-              s.isEmpty ? _Empty(insurer: insurer) : _Histogram(stats: s),
+          data: (s) => s.isEmpty
+              ? _Empty(insurer: insurer)
+              : _Histogram(stats: s, reviews: list.value ?? const []),
         ),
         mine.maybeWhen(
           data: (m) => m == null
@@ -45,12 +46,32 @@ class InsurerReviews extends ConsumerWidget {
           orElse: () => const SizedBox.shrink(),
         ),
         list.maybeWhen(
-          data: (rs) => Column(
-            children: [
-              for (var k = 0; k < rs.length; k++)
-                _ReviewCard(review: rs[k], insurer: insurer, index: k),
-            ],
-          ),
+          data: (rs) {
+            // Claim first, then words, then newest. The API already floats
+            // reviews that carry words, which was right as far as it went: a
+            // wall of bare stars tells a reader nothing. But in insurance the
+            // sharper cut is whether the writer ever tested the cover. Five
+            // stars from a policy nobody has claimed on is the least
+            // informative thing on this page, however recent it is.
+            final ordered = [...rs]
+              ..sort((a, b) {
+                if (a.claimsHolder != b.claimsHolder) {
+                  return a.claimsHolder ? -1 : 1;
+                }
+                if (a.hasBody != b.hasBody) return a.hasBody ? -1 : 1;
+                return b.createdAt.compareTo(a.createdAt);
+              });
+            return Column(
+              children: [
+                for (var k = 0; k < ordered.length; k++)
+                  _ReviewCard(
+                    review: ordered[k],
+                    insurer: insurer,
+                    index: k,
+                  ),
+              ],
+            );
+          },
           orElse: () => const SizedBox.shrink(),
         ),
         mine.maybeWhen(
@@ -114,6 +135,42 @@ class _Empty extends ConsumerWidget {
               textAlign: TextAlign.center,
               style: TextStyle(color: c.muted, fontSize: 12, height: 1.5),
             ),
+            // An empty screen is a place to say what a useful review looks
+            // like. "No reviews yet" teaches nothing and leaves the reader
+            // with no idea why they would write one.
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(13),
+              decoration: BoxDecoration(
+                color: c.s2,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    t('insure.review.helpsTitle').toUpperCase(),
+                    style: TextStyle(
+                      color: c.faint,
+                      fontFamily: fructaFonts.mono,
+                      fontSize: 8.5,
+                      letterSpacing: 0.8,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    t('insure.review.helpsBody'),
+                    style: TextStyle(
+                      color: c.muted,
+                      fontSize: 12.5,
+                      height: 1.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -124,11 +181,32 @@ class _Empty extends ConsumerWidget {
 /// Average, stars, and the 5-to-1 distribution. Every visible rating counts
 /// here, whether or not its words cleared moderation.
 class _Histogram extends StatelessWidget {
-  const _Histogram({required this.stats});
+  const _Histogram({required this.stats, this.reviews = const []});
   final ReviewStats stats;
+
+  /// The loaded page of reviews, used only for the claims split.
+  final List<InsurerReview> reviews;
 
   @override
   Widget build(BuildContext context) {
+    // ── the claims split ────────────────────────────────────────────────
+    //
+    // NOT an average with a star row. In insurance there is one question, and
+    // a rating from somebody who never claimed does not answer it.
+    // `claims_holder` is already on every row, so splitting on it says
+    // something no other Kenyan source will print.
+    //
+    // Shown only when the loaded page IS the whole set. `list` is capped at
+    // twenty, so past that these would be the split of a sample presented as
+    // the split of the market, which is the one thing this app does not do.
+    final complete = reviews.isNotEmpty && reviews.length == stats.count;
+    final claimed = reviews.where((r) => r.claimsHolder).toList();
+    final untested = reviews.where((r) => !r.claimsHolder).toList();
+    final showSplit =
+        complete && claimed.isNotEmpty && untested.isNotEmpty;
+    double mean(List<InsurerReview> l) =>
+        l.fold<int>(0, (a, r) => a + r.rating) / l.length;
+
     final c = context.c;
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 12, 20, 0),
@@ -138,7 +216,22 @@ class _Histogram extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: c.line),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (showSplit) ...[
+            _Split(
+              claimedAvg: mean(claimed),
+              claimedN: claimed.length,
+              untestedAvg: mean(untested),
+              untestedN: untested.length,
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              child: Divider(height: 1, color: c.line),
+            ),
+          ],
+          Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Column(
@@ -232,6 +325,126 @@ class _Histogram extends StatelessWidget {
           ),
         ],
       ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Had a claim against never claimed.
+///
+/// The gap IS the finding, and it is the reason this section earns its place.
+/// Somebody rating an insurer they have never tested is rating a price and how
+/// fast the sticker arrived. Somebody who claimed is rating the only thing
+/// insurance is actually for.
+class _Split extends StatelessWidget {
+  const _Split({
+    required this.claimedAvg,
+    required this.claimedN,
+    required this.untestedAvg,
+    required this.untestedN,
+  });
+
+  final double claimedAvg;
+  final int claimedN;
+  final double untestedAvg;
+  final int untestedN;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    final gap = untestedAvg - claimedAvg;
+    // Under half a star the two groups are saying the same thing, and a
+    // sentence announcing a gap of 0.2 would be reading noise as a signal.
+    final material = gap.abs() >= 0.5;
+    final worse = gap > 0;
+
+    Widget half(String label, double avg, int n, Color tint) => Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label.toUpperCase(),
+            style: TextStyle(
+              color: c.faint,
+              fontSize: 9.5,
+              letterSpacing: 0.6,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 7),
+          Row(
+            children: [
+              Text(
+                avg.toStringAsFixed(1),
+                style: TextStyle(
+                  color: tint,
+                  fontFamily: fructaFonts.mono,
+                  fontSize: 26,
+                  height: 1,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -1.1,
+                ),
+              ),
+              const SizedBox(width: 7),
+              Flexible(child: Stars(avg.round(), size: 11)),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            t('insure.review.people', {'n': '$n'}),
+            style: TextStyle(color: c.faint, fontSize: 11),
+          ),
+        ],
+      ),
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            half(
+              t('insure.review.hadClaim'),
+              claimedAvg,
+              claimedN,
+              worse && material ? c.down : c.text,
+            ),
+            Container(
+              width: 1,
+              height: 52,
+              margin: const EdgeInsets.symmetric(horizontal: 14),
+              color: c.line,
+            ),
+            half(t('insure.review.noClaim'), untestedAvg, untestedN, c.text),
+          ],
+        ),
+        if (material) ...[
+          const SizedBox(height: 13),
+          Text.rich(
+            TextSpan(
+              style: TextStyle(color: c.muted, fontSize: 12.5, height: 1.55),
+              children: [
+                TextSpan(text: t('insure.review.gapLead')),
+                TextSpan(
+                  text:
+                      ' ${t('insure.review.gapStars', {'v': gap.abs().toStringAsFixed(1)})} ',
+                  style: TextStyle(
+                    color: worse ? c.down : c.up,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                TextSpan(
+                  text: worse
+                      ? t('insure.review.gapWorse')
+                      : t('insure.review.gapBetter'),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

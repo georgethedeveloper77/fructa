@@ -8,6 +8,7 @@ import 'models/insurance_type.dart';
 import 'models/insurer.dart';
 import 'models/learn.dart';
 import 'models/market_event.dart';
+import 'models/market_history.dart';
 import 'models/post.dart';
 import 'models/remote_config.dart';
 import 'models/sacco.dart';
@@ -23,6 +24,7 @@ class SnapshotExtras {
   final Map<String, double> fx; // pair -> rate, e.g. 'USD/KES'
   final Map<String, FxRate> fxRates; // pair -> full row incl. quote legs
   final Map<String, FxSeries> fxSeries; // pair -> month-end history
+  final MarketHistory marketHistory; // fund_type|currency -> monthly medians
   final List<MarketEvent> events;
   final Map<String, List<String>> templateBank; // key -> phrasings
   final List<Insurer> insurers;
@@ -44,6 +46,7 @@ class SnapshotExtras {
     required this.fx,
     this.fxRates = const {},
     this.fxSeries = const {},
+    this.marketHistory = MarketHistory.empty,
     required this.events,
     required this.templateBank,
     this.insurers = const [],
@@ -67,6 +70,7 @@ class SnapshotExtras {
     fx: {},
     fxRates: {},
     fxSeries: {},
+    marketHistory: MarketHistory.empty,
     events: [],
     templateBank: {},
     insurers: [],
@@ -121,6 +125,14 @@ class SnapshotExtras {
       final row = FxSeries.fromJson((f as Map).cast<String, dynamic>());
       if (row != null) fxSeries[row.pair] = row;
     }
+
+    // Monthly medians per fund type and currency, computed server side where
+    // the dates live. Absent on any snapshot published before the builder
+    // learned to emit it, in which case the trend chart hides itself rather
+    // than drawing a line from undated sparklines.
+    final marketHistory = MarketHistory.fromList(
+      (m['market_history'] as List? ?? const []),
+    );
 
     final events = (m['events'] as List? ?? const [])
         .map((e) => MarketEvent.fromJson((e as Map).cast<String, dynamic>()))
@@ -210,6 +222,7 @@ class SnapshotExtras {
       fx: fx,
       fxRates: fxRates,
       fxSeries: fxSeries,
+      marketHistory: marketHistory,
       events: events,
       templateBank: bank,
       insurers: insurers,

@@ -31,13 +31,22 @@ export default async function FundDetail({ params }: { params: Promise<{ id: str
   const { id } = await params;
   const db = supabaseAdmin();
 
-  const [{ data: fund }, { data: history }, { data: navHistory }] = await Promise.all([
+  const [{ data: fund }, { data: history }, { data: navHistory }, { data: returnHistory }] = await Promise.all([
     db.from("funds").select("*").eq("id", id).maybeSingle(),
     db.from("rate_history").select("as_of,rate,source").eq("fund_id", id).order("as_of", { ascending: false }).limit(20),
     // The NAV series (0070). A priced fund has no rate history at all, so without
     // this its Pricing card is a scalar with nowhere to go and its chart cannot
     // exist.
     db.from("nav_history").select("as_of,price,source").eq("fund_id", id).order("as_of", { ascending: false }).limit(20),
+    // The period-return series (0074). The third series, and the one a special
+    // fund lives on: it has no yield to log and usually no unit price either.
+    //
+    // Ordered ASCENDING, unlike the two above. Those are logs, where the newest
+    // mark is the interesting one and the operator reads the top row to check a
+    // scrape landed. This is a chart's worth of data read left to right, and it
+    // is entered from a fact sheet that prints its quarters oldest first, so
+    // matching the sheet is what makes a typo visible.
+    db.from("return_history").select("period_end,period,net_pct,gross_pct,net_of").eq("fund_id", id).order("period_end", { ascending: true }),
   ]);
   if (!fund) notFound();
 
@@ -129,21 +138,29 @@ export default async function FundDetail({ params }: { params: Promise<{ id: str
 
         {/* rate + history */}
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <div className="panelc">
-            <div className="ph"><h3>Rate today</h3></div>
-            <div className="pb">
-              <p className="num" style={{ fontSize: 32, fontWeight: 600, color: "var(--gold)", margin: "0 0 12px", letterSpacing: "-1px" }}>
-                {fund.current_rate != null ? `${Number(fund.current_rate).toFixed(2)}%` : "—"}
-              </p>
-              <form action={setRate} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <input type="hidden" name="id" value={fund.id} />
-                <input name="rate" type="number" step="0.01" min="0" max="30" placeholder="Override"
-                  className="input num-input" style={{ width: 110 }} />
-                <button className="btn xs">Set</button>
-              </form>
-              <p style={{ marginTop: 8, fontSize: 12, color: "var(--faint)" }}>Logged as a manual point and pushed to the app.</p>
+          {/* Rate today. Hidden entirely on a fund that does not quote a yield.
+              current_rate is the one field the app taxes and compounds, so an
+              input for it on a NAV or return fund is not a harmless extra
+              control: filling it in is what produced a 15% tax deduction and a
+              two year projection on a special fund with two quarters of
+              history. The Pricing card owns those bases instead. */}
+          {(fund.basis ?? "yield") === "yield" ? (
+            <div className="panelc">
+              <div className="ph"><h3>Rate today</h3></div>
+              <div className="pb">
+                <p className="num" style={{ fontSize: 32, fontWeight: 600, color: "var(--gold)", margin: "0 0 12px", letterSpacing: "-1px" }}>
+                  {fund.current_rate != null ? `${Number(fund.current_rate).toFixed(2)}%` : "-"}
+                </p>
+                <form action={setRate} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <input type="hidden" name="id" value={fund.id} />
+                  <input name="rate" type="number" step="0.01" min="0" max="30" placeholder="Override"
+                    className="input num-input" style={{ width: 110 }} />
+                  <button className="btn xs">Set</button>
+                </form>
+                <p style={{ marginTop: 8, fontSize: 12, color: "var(--faint)" }}>Logged as a manual point and pushed to the app.</p>
+              </div>
             </div>
-          </div>
+          ) : null}
 
           <FundPricing
             id={fund.id}
@@ -155,6 +172,15 @@ export default async function FundDetail({ params }: { params: Promise<{ id: str
             durationYears={fund.duration_years ?? null}
             creditQuality={fund.credit_quality ?? null}
             navHistory={navHistory ?? []}
+            netOf={fund.net_of ?? null}
+            returnPeriod={fund.return_period ?? null}
+            returnAsOf={fund.return_as_of ?? null}
+            feeKind={fund.fee_kind ?? null}
+            perfFeePct={fund.perf_fee_pct ?? null}
+            hurdlePct={fund.hurdle_pct ?? null}
+            classGroup={fund.class_group ?? null}
+            classLabel={fund.class_label ?? null}
+            returnHistory={returnHistory ?? []}
           />
 
           <div className="panelc">
@@ -169,7 +195,7 @@ export default async function FundDetail({ params }: { params: Promise<{ id: str
                       <td style={{ color: "var(--faint)" }}>{h.as_of}</td>
                       <td className="r num">{Number(h.rate).toFixed(2)}%</td>
                       <td className="r" style={{ fontSize: 11, color: "var(--faint)" }}>
-                        <span className={"method " + (h.source === "manual" ? "manual" : "auto")}>{h.source ?? "—"}</span>
+                        <span className={"method " + (h.source === "manual" ? "manual" : "auto")}>{h.source ?? "-"}</span>
                       </td>
                     </tr>
                   ))}
@@ -235,7 +261,7 @@ function TypeSelect({ defaultValue }: { defaultValue: string }) {
     <label className="field">
       <span>Type</span>
       <select name="type" defaultValue={defaultValue} className="select">
-        <option value="" disabled>Choose type…</option>
+        <option value="" disabled>Choose type</option>
         <optgroup label="Funds">
           {FUND_TYPES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
         </optgroup>

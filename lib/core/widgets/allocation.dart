@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../series_colors.dart';
 import '../theme.dart';
 
 /// One allocation slice, shared by [AllocationBar] (reads [weight] + [color])
@@ -42,14 +43,28 @@ class AllocationBar extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
         child: SizedBox(
           height: 10,
+          // stretch, and it is load-bearing.
+          //
+          // A childless ColoredBox lays out at constraints.smallest, so under a
+          // LOOSE height it is zero tall and paints nothing. The SizedBox gives
+          // this Row a tight 10, but a Row hands its children a LOOSE cross
+          // axis unless told to stretch, so every slice was a zero-height
+          // rectangle and the bar rendered as an empty grey track.
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               for (final s in slices)
                 Expanded(
                   flex: total <= 0
                       ? 1
                       : (s.weight / total * 1000).round().clamp(1, 1000),
-                  child: ColoredBox(color: s.color),
+                  // Gradient, not a flat fill. Butted against each other, flat
+                  // slabs read as one striped object; a gradient gives each
+                  // slice a root and a tip so the boundaries are legible even
+                  // between two neighbouring hues.
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(gradient: barFill(s.color)),
+                  ),
                 ),
             ],
           ),

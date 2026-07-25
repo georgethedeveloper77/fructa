@@ -13,6 +13,7 @@ import 'models/insurance_type.dart';
 import 'models/insurer.dart';
 import 'models/learn.dart';
 import 'models/market_event.dart';
+import 'models/market_history.dart';
 import 'models/post.dart';
 import 'models/remote_config.dart';
 import 'models/sacco.dart';
@@ -306,6 +307,16 @@ final fxLineProvider = Provider<FxLine?>((ref) {
 // -- Stocks (0047) -----------------------------------------------------------
 /// NSE-listed equities from the snapshot. Empty until the snapshot carries any,
 /// so the Stocks surface shows its empty state rather than a fabricated list.
+/// Monthly market medians, per fund type and currency.
+///
+/// Empty until the snapshot builder publishes `market_history`, and every
+/// surface that reads it hides on empty rather than falling back to something
+/// derived on-device. There is nothing honest to derive: sparklines carry no
+/// dates.
+final marketHistoryProvider = Provider<MarketHistory>(
+  (ref) => ref.watch(snapshotExtrasProvider).marketHistory,
+);
+
 final stocksProvider = Provider<List<Stock>>(
   (ref) => ref.watch(snapshotExtrasProvider).stocks,
 );

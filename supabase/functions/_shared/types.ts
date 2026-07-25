@@ -90,6 +90,70 @@ export interface SnapshotFund {
   duration_years: number | null;
   credit_quality: Record<string, number> | null;
 
+  // ── Return basis (0074) ───────────────────────────────────────────────────
+  //
+  // `basis` gains a fourth value here: 'return'. A special fund quotes neither a
+  // yield nor a price but a REALIZED RETURN FOR A CLOSED PERIOD. Backward
+  // looking, may be negative, and it does not annualise honestly. The three
+  // fields below are what the app needs before it can print one safely.
+
+  /// What is ALREADY deducted from the quoted number:
+  ///   'nothing'       raw gross, before fees and before tax
+  ///   'fees'          net of fees, GROSS of withholding tax (Kenyan convention,
+  ///                   and what every money market fund quotes)
+  ///   'fees_and_tax'  net of both, so the app must NOT deduct tax again
+  ///
+  /// This field exists because one manager publishes both conventions on facing
+  /// pages of one document. Etica's money market sheet says net of fees and
+  /// gross of withholding tax; its Special Multi Asset sheet says net of all
+  /// fees and taxes. The app assumed the first for everything and quietly took
+  /// 15% off a number that had already paid it.
+  net_of: string | null;
+
+  /// The period a realized return covers: month | quarter | half | year | ytd |
+  /// since_inception. Null on yield and NAV funds, where it would be noise.
+  ///
+  /// A yield needs no period, being per annum by definition. A realized return
+  /// is meaningless without one: 4.74% over a quarter and 4.74% over a year are
+  /// different facts that print identically, and a bare percentage on a tile
+  /// cannot be told apart by anyone.
+  return_period: string | null;
+
+  /// End date of that period. Distinct from `returns_as_of` (0027), which stamps
+  /// the trailing 1y/3y/5y block rather than a single closed period.
+  return_as_of: string | null;
+
+  /// What to call `mgmt_fee`: 'mgmt' | 'service' | 'none'. MansaX charges a 5%
+  /// p.a. financial services charge, not a management fee, and calling it the
+  /// latter is wrong on the label while saying nothing at all about the second,
+  /// larger charge below.
+  fee_kind: string | null;
+
+  /// Performance charge, % of the return above `hurdle_pct`, and the hurdle
+  /// itself. Meaningless apart, so the app renders both or neither.
+  perf_fee_pct: number | null;
+  hurdle_pct: number | null;
+
+  /// Share classes. One product sold in several classes with different lock-ins,
+  /// fees and yields: Etica Special Wealth is A, B and C, at 6, 9 and 12 months
+  /// and 2.25%, 2.00% and 1.75%. Siblings share `class_group`.
+  ///
+  /// A ranking hazard rides with this field, so it is written down where the
+  /// field is declared: a class group must contribute ONE row to a league table,
+  /// never one per class. The longest lock-in always carries the highest yield,
+  /// so listing all three triple-counts one product and pushes two real
+  /// competitors off the board.
+  class_group: string | null;
+  class_label: string | null;
+
+  /// Top holdings, largest first, as [{ name, pct }]. An ARRAY because rank is
+  /// part of the fact: the sheet says these are the ten largest, in order.
+  holdings: { name: string; pct: number }[] | null;
+
+  /// Portfolio by region, percentages summing to ~100. Keys: americas, europe,
+  /// africa, mideast_asia, oceania. An OBJECT, because regions do not rank.
+  geography: Record<string, number> | null;
+
   // C2 sparkline, attached by the builder (not a column). Absent when the
   // fund has fewer than 2 history points in the window.
   spark?: number[];

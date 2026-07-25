@@ -14,8 +14,19 @@ import '../markets_controller.dart';
 /// SACCOs and stocks carry no series here, so on those tabs (and All) it falls
 /// back to the money-market leader; with no money-market history either it hides
 /// rather than draw a flat lie.
+///
+/// [onTap] opens the market page.
+///
+/// It briefly opened the leading FUND instead, on the reasoning that the line
+/// is that fund's own history. True, and still the wrong destination: nothing
+/// on this strip names a fund, so a reader tapping an unlabelled line in the
+/// top bar is asking what the market is doing, not which manager happens to
+/// lead this week. Left null the strip is inert, which is what it was before
+/// and is still correct on a surface that does not want the navigation.
 class MarketPulse extends ConsumerStatefulWidget {
-  const MarketPulse({super.key});
+  const MarketPulse({super.key, this.onTap});
+
+  final VoidCallback? onTap;
 
   @override
   ConsumerState<MarketPulse> createState() => _MarketPulseState();
@@ -86,7 +97,7 @@ class _MarketPulseState extends ConsumerState<MarketPulse>
       });
     }
 
-    return SizedBox(
+    final chart = SizedBox(
       height: 30,
       child: AnimatedBuilder(
         animation: _c,
@@ -95,6 +106,18 @@ class _MarketPulseState extends ConsumerState<MarketPulse>
           painter: _PulsePainter(series, color, _c.value),
         ),
       ),
+    );
+
+    final onTap = widget.onTap;
+    if (onTap == null) return chart;
+
+    // Opaque, so the whole 30px band takes the tap rather than only the two
+    // pixels of stroke. A sparkline is a thin target and hit-testing the drawn
+    // path would make it a lottery.
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: chart,
     );
   }
 }

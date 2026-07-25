@@ -31,3 +31,32 @@ const List<Color> kSeriesColors = [
 
 /// Colour for series [i], cycling if there are more series than colours.
 Color seriesColor(int i) => kSeriesColors[i % kSeriesColors.length];
+
+// ── bar geometry ──────────────────────────────────────────────────────────
+//
+// Every bar in the app was a flat rectangle of one colour running in a neutral
+// grey channel, which made a coloured row read as mostly grey with a dab of
+// colour at the left. Two helpers, centralised here beside the palette so no
+// feature file carries an alpha value and there is one place to tune the whole
+// app's bars.
+
+/// The fill for a bar of [c]: a shade under strength at the root, full at the
+/// tip.
+///
+/// Left to right on purpose. A bar grows from its root, so the brightest part
+/// is the end that carries the value, and the eye lands where the number is
+/// rather than in the middle of a flat slab.
+LinearGradient barFill(Color c) => LinearGradient(
+  begin: Alignment.centerLeft,
+  end: Alignment.centerRight,
+  colors: [c.withValues(alpha: 0.55), c],
+);
+
+/// The channel a bar of [c] runs in.
+///
+/// Tinted with the series colour rather than a neutral surface token. This is
+/// the change that does most of the work: with a grey track, a row reads as
+/// grey furniture that happens to contain some colour; with a tinted one the
+/// whole row belongs to its series and the bar is the filled part of something
+/// that was already its own.
+Color barTrack(Color c) => c.withValues(alpha: 0.13);

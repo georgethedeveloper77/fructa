@@ -1,0 +1,40 @@
+{
+  "insure.callThem": "Call {name}",
+
+  "insure.pos.title": "Where this sits",
+  "insure.pos.rank": "{r} of {n}",
+  "insure.pos.cheapest": "{v} cheapest",
+  "insure.pos.dearest": "dearest {v}",
+  "insure.pos.isCheapest": "This is the cheapest quote we can price for this cover.",
+  "insure.pos.over": "{v} above",
+  "insure.pos.overTail": "the cheapest quote for this cover, and {v} below the dearest.",
+
+  "insure.terms.small": "from the tariff",
+  "insure.terms.cover": "Cover",
+  "insure.terms.excess": "Excess",
+  "insure.terms.floor": "Minimum {v} on any one claim",
+  "insure.terms.region": "Region",
+  "insure.terms.ceiling": "Cover ceiling",
+  "insure.terms.benefits": "Benefit list",
+  "insure.terms.noList": "This insurer does not publish one. Ask the agent what is included before you buy.",
+
+  "insure.standing.title": "Will they pay",
+  "insure.standing.small": "IRA register",
+  "insure.standing.licence": "IRA licence",
+  "insure.standing.canWrite": "Can write new business",
+  "insure.standing.strength": "Financial strength",
+  "insure.standing.unrated": "Not rated. That is not a bad score, it is the absence of one.",
+  "insure.standing.claims": "Claims settled in",
+  "insure.standing.complaints": "Complaints",
+  "insure.standing.notPublished": "Not published",
+
+  "insure.review.hadClaim": "Had a claim",
+  "insure.review.noClaim": "Never claimed",
+  "insure.review.people": "{n} people",
+  "insure.review.gapLead": "The people who actually needed this insurer rate it",
+  "insure.review.gapStars": "{v} stars",
+  "insure.review.gapWorse": "lower than the people who never did.",
+  "insure.review.gapBetter": "higher than the people who never did.",
+  "insure.review.helpsTitle": "What helps a stranger most",
+  "insure.review.helpsBody": "Whether you claimed, how long it took, and what they argued about. The price is already on the page."
+}

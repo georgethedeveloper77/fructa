@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/format.dart';
 import '../../core/i18n.dart';
+import '../../core/series_colors.dart';
 import '../../core/theme.dart';
 import '../../core/widgets/kit.dart';
 import '../../data/models/agent.dart';
@@ -131,6 +132,15 @@ class InsurerDetailPage extends ConsumerWidget {
     final quote = _resolveQuote(i, cfg);
     final action = _actionFor(i);
 
+    // Every insurer we can price at EXACTLY these inputs, cheapest first. The
+    // reader arrived from a list of nine quotes and this page threw that away:
+    // a premium with nothing to measure it against is a number, not an answer.
+    // Nothing new is fetched, because the list screen already priced the whole
+    // book to build itself.
+    final peers = quote == null
+        ? const <double>[]
+        : (_peerPrices(ref.watch(insurersProvider), cfg)..sort());
+
     // How much this page has to say once the number is out of the way.
     //
     // Most insurers we can price also carry a cover list, agents, or both, and
@@ -161,7 +171,11 @@ class InsurerDetailPage extends ConsumerWidget {
     final Widget? bar = quote != null && action != null
         ? _StickyQuoteBar(
             price: quote.total,
-            label: quote.ctaLabel,
+            // What the button DOES, not what the reader wants. It dials a
+            // phone. "Get this quote" implied fructa was selling the cover,
+            // which is the one thing the disclaimer at the foot of this page
+            // exists to deny.
+            label: t('insure.callThem', {'name': shortInsurerName(i.name)}),
             // var(--accent) in the mockup, not the insurer's brand. Two
             // reasons, and the second is the real one. First, gold is the
             // app's "act" colour everywhere else. Second, brand_color is
@@ -213,14 +227,29 @@ class InsurerDetailPage extends ConsumerWidget {
               levy: quote.breakdown!.levy,
               stamp: quote.breakdown!.stamp,
             ),
+          _Position(prices: peers, mine: quote.total),
         ],
 
-        if (showTrust) InsurerTrustPanel(i),
+        if (showTrust && i.hasTrustData)
+          InsurerTrustPanel(i)
+        else if (showTrust)
+          // InsurerTrustPanel returns nothing at all when hasTrustData is
+          // false, which is how a page ended up as a premium and half a screen
+          // of black. An insurer who is on the register but publishes no
+          // rating, no settlement time and no complaint count has told the
+          // reader something, and "not published" is the way to say it.
+          _Standing(insurer: i),
 
         // What the premium buys. This used to be gated to the informational
         // page alongside the trust charts, which meant the one reader looking
         // at an actual price was the one reader never told what it covered.
         // Cover is product content, not a trust signal, and it belongs on both.
+        // No benefit list is not nothing. The tariff we priced from carries
+        // the cover, the excess and the floor, and saying that CIC publishes no
+        // list is itself a fact about CIC worth a buyer's attention.
+        if (i.benefits.isEmpty && quote != null)
+          _Terms(insurer: i, mode: _mode),
+
         if (i.benefits.isNotEmpty) ...[
           InsureH2(
             _mode is _TravelMode
@@ -350,6 +379,39 @@ class InsurerDetailPage extends ConsumerWidget {
     }
   }
 
+  /// Every priced insurer at the SAME inputs as this page, unsorted.
+  ///
+  /// Recomputed rather than passed in, so the directory (which opens this page
+  /// on a default 3.45m private comprehensive) gets a rail measured against
+  /// that same default instead of against whatever the motor screen last had.
+  /// One rule, applied wherever the page was opened from.
+  List<double> _peerPrices(List<Insurer> all, RemoteConfig cfg) {
+    switch (_mode) {
+      case _InfoMode():
+        return const [];
+
+      case _TravelMode(:final region, :final days, :final pax):
+        final out = <double>[];
+        for (final x in all) {
+          final p = x.travelPrice(region, days: days, pax: pax);
+          if (p != null && p > 0) out.add(p);
+        }
+        return out;
+
+      case _MotorMode(:final value, :final cls, :final cover):
+        final levyPct = cfg.number('insure.levy_pct', 0.45).toDouble();
+        final stamp = cfg.number('insure.stamp_kes', 40).toDouble();
+        final out = <double>[];
+        for (final x in all) {
+          final b = x.quote(value, cls: cls, cover: cover) ?? 0;
+          if (b > 0) {
+            out.add(landedPremium(b, levyPct: levyPct, stamp: stamp));
+          }
+        }
+        return out;
+    }
+  }
+
   /// Where the act button sends the tap, or null when we hold no channel at
   /// all for this insurer.
   VoidCallback? _actionFor(Insurer i) {
@@ -439,6 +501,21 @@ class _ContactGrid extends StatelessWidget {
             GridView(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
+              // BOTH of these, and neither is boilerplate.
+              //
+              // A GridView is a BoxScrollView, and a BoxScrollView with a NULL
+              // padding does not use zero: it reaches for MediaQuery and pads
+              // itself with the safe-area insets. On a vertical scroll view
+              // that is the notch AND the home indicator, so this grid was
+              // silently inserting about a hundred logical pixels of nothing
+              // between the REACH THEM header and the first tile, on a page
+              // that had already been criticised for looking empty.
+              //
+              // `primary` defaults to true for a vertical scroll view with no
+              // controller, which also has it competing for the
+              // PrimaryScrollController the page's own ListView already owns.
+              padding: EdgeInsets.zero,
+              primary: false,
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
                 mainAxisSpacing: 9,
@@ -955,6 +1032,479 @@ class _Breakdown extends StatelessWidget {
                       ),
                     ],
                   ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── where this quote sits ─────────────────────────────────────────────────
+
+/// This premium against every other premium we can price at the same inputs.
+///
+/// The single most useful thing a detail page can add to a number the reader
+/// has already seen. They came from a ranked list and the page dropped the
+/// ranking; a price with nothing beside it cannot be judged, so the reader has
+/// to go back and hold nine figures in their head.
+///
+/// Hides itself below three quotes. A rail with two pips on it is not a market,
+/// it is a pair, and "2nd of 2" is a sentence that flatters the dearer one.
+class _Position extends StatelessWidget {
+  const _Position({required this.prices, required this.mine});
+
+  /// Ascending, every insurer priceable at these inputs.
+  final List<double> prices;
+  final double mine;
+
+  static const _minPeers = 3;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    if (prices.length < _minPeers) return const SizedBox.shrink();
+
+    final lo = prices.first;
+    final hi = prices.last;
+    if (hi <= lo) return const SizedBox.shrink();
+
+    // Rank by how many are strictly cheaper, so identical premiums share a
+    // place instead of one of them being arbitrarily "better".
+    final rank = prices.where((p) => p < mine).length + 1;
+    final over = mine - lo;
+    final under = hi - mine;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 15, 16, 13),
+        decoration: BoxDecoration(
+          color: c.s1,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: c.line),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Expanded(
+                  child: Text(
+                    t('insure.pos.title'),
+                    style: TextStyle(
+                      color: c.text,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  t('insure.pos.rank', {
+                    'r': '$rank',
+                    'n': '${prices.length}',
+                  }).toUpperCase(),
+                  style: TextStyle(
+                    color: c.accent,
+                    fontFamily: fructaFonts.mono,
+                    fontSize: 11,
+                    letterSpacing: 0.4,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              height: 34,
+              child: LayoutBuilder(
+                builder: (context, cons) {
+                  final w = cons.maxWidth;
+                  double x(double v) => ((v - lo) / (hi - lo)) * w;
+
+                  return Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      // Cheap to dear, left to right, so the good end is where
+                      // a reader already looks first.
+                      //
+                      // THREE STOPS, AT FULL STRENGTH. It was two, green and
+                      // red, both at 0.30 alpha. Two problems. Alpha that low
+                      // washes to a pastel on a light surface and to a smudge
+                      // on a dark one, so the scale carried almost no colour in
+                      // either mode. Worse, a straight green to red ramp passes
+                      // through the middle of RGB space, which is a desaturated
+                      // grey-brown: the centre of the bar, exactly where most
+                      // quotes land, was the least legible part of it. Putting
+                      // the accent at the midpoint gives a real spectrum with
+                      // no dead zone, and the three tokens are theme colours,
+                      // so the ramp re-resolves in light and dark rather than
+                      // being tuned for one.
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        top: 12,
+                        height: 9,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(5),
+                            // The midpoint is a DATA colour, not c.accent.
+                            // Accent is user selectable: somebody who picks a
+                            // red accent would get green to red to red, and a
+                            // green one green to green to red, which is a
+                            // broken scale in both cases. seriesColor(0) is the
+                            // gold from the central ramp, fixed across modes
+                            // and immune to the picker, and its only job here
+                            // is to bridge the two ends without passing through
+                            // the grey that a direct green to red ramp does.
+                            gradient: LinearGradient(
+                              colors: [c.up, seriesColor(0), c.down],
+                              stops: const [0, 0.5, 1],
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      // Competing quotes as NOTCHES cut in the page background,
+                      // not as pips drawn on top in a border colour.
+                      //
+                      // c.line2 was furniture: near invisible on the light
+                      // surface in the screenshot, and barely better on dark.
+                      // A notch is high contrast in both modes by construction,
+                      // because it is the page showing through, and it needs no
+                      // per-mode tuning at all. It also reads correctly: each
+                      // rival quote takes a bite out of the range.
+                      for (final p in prices)
+                        Positioned(
+                          left: (x(p) - 1.25).clamp(0.0, w - 2.5),
+                          top: 9,
+                          child: Container(
+                            width: 2.5,
+                            height: 15,
+                            decoration: BoxDecoration(
+                              color: c.bg,
+                              borderRadius: BorderRadius.circular(1),
+                            ),
+                          ),
+                        ),
+
+                      // This one, in the ink colour inside a background ring, so
+                      // it is the only mark on the rail that is neither the
+                      // spectrum nor a hole in it. c.text against c.bg is the
+                      // highest contrast pair the theme has, in either mode.
+                      Positioned(
+                        left: (x(mine) - 5).clamp(0.0, w - 10),
+                        top: 3,
+                        child: TweenAnimationBuilder<double>(
+                          tween: Tween(begin: 0, end: 1),
+                          duration: const Duration(milliseconds: 620),
+                          curve: Curves.easeOutBack,
+                          builder: (_, v, child) => Transform.scale(
+                            scaleY: v.clamp(0.0, 1.0),
+                            child: child,
+                          ),
+                          child: Container(
+                            width: 10,
+                            height: 27,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: c.bg,
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                            child: Container(
+                              width: 4,
+                              height: 23,
+                              decoration: BoxDecoration(
+                                color: c.text,
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _end(c, t('insure.pos.cheapest', {'v': withCommas(lo.round())})),
+                _end(c, t('insure.pos.dearest', {'v': withCommas(hi.round())})),
+              ],
+            ),
+            const SizedBox(height: 11),
+            Text.rich(
+              TextSpan(
+                style: TextStyle(color: c.muted, fontSize: 12, height: 1.55),
+                children: [
+                  if (over <= 0)
+                    TextSpan(
+                      text: t('insure.pos.isCheapest'),
+                      style: TextStyle(
+                        color: c.up,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    )
+                  else ...[
+                    TextSpan(
+                      text: t('insure.pos.over', {
+                        'v': withCommas(over.round()),
+                      }),
+                      style: TextStyle(
+                        color: c.text,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    TextSpan(
+                      text: ' ${t('insure.pos.overTail', {
+                        'v': withCommas(under.round()),
+                      })}',
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// c.muted, not c.faint. These two carry the only absolute numbers on the
+  /// rail, so they are content rather than furniture, and faint is a tone the
+  /// light theme renders close to its own background.
+  Widget _end(fructaColors c, String s) => Text(
+    s.toUpperCase(),
+    style: TextStyle(
+      color: c.muted,
+      fontFamily: fructaFonts.mono,
+      fontSize: 9.5,
+      letterSpacing: 0.5,
+      fontWeight: FontWeight.w600,
+    ),
+  );
+}
+
+// ── what you get, when nobody published a list ────────────────────────────
+
+/// The cover, the excess and the floor, straight off the tariff this page just
+/// priced from, plus the plain statement that no benefit list exists.
+///
+/// The old page hid the whole section when `benefits` was empty, which is how a
+/// quote screen managed to say nothing at all about what the money buys. Every
+/// figure here was already used to compute the premium above it, so this
+/// invents nothing.
+class _Terms extends StatelessWidget {
+  const _Terms({required this.insurer, required this.mode});
+
+  final Insurer insurer;
+  final _Mode mode;
+
+  @override
+  Widget build(BuildContext context) {
+    final i = insurer;
+    final rows = <({String k, String v, String? sub})>[];
+
+    switch (mode) {
+      case _MotorMode(:final cls, :final cover):
+        rows.add((
+          k: t('insure.terms.cover'),
+          v: '${t('insure.class.${cls.key}')}, '
+              '${t('insure.cover.${cover.key}')}',
+          sub: null,
+        ));
+        rows.add((
+          k: t('insure.terms.excess'),
+          v: i.excessLabel,
+          sub: i.minPremiumFor(cls) == null
+              ? null
+              : t('insure.terms.floor', {
+                  'v': withCommas(i.minPremiumFor(cls)!.round()),
+                }),
+        ));
+      case _TravelMode(:final region):
+        rows.add((
+          k: t('insure.terms.region'),
+          v: regionLabel(region),
+          sub: null,
+        ));
+        if (i.travelCover != null) {
+          rows.add((
+            k: t('insure.terms.ceiling'),
+            v: i.travelCover!,
+            sub: null,
+          ));
+        }
+      case _InfoMode():
+        return const SizedBox.shrink();
+    }
+
+    rows.add((
+      k: t('insure.terms.benefits'),
+      v: '',
+      sub: t('insure.terms.noList'),
+    ));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        InsureH2(t('insure.whatsCovered'), small: t('insure.terms.small')),
+        _FactCard(rows: rows),
+      ],
+    );
+  }
+}
+
+// ── will they pay, when we hold none of it ────────────────────────────────
+
+/// The four questions a buyer has about an insurer's standing, each answered or
+/// explicitly unanswered.
+///
+/// Rendered only where [InsurerTrustPanel] renders nothing, which it does
+/// whenever `hasTrustData` is false. Absence is the finding: an insurer on the
+/// register that publishes no rating, no settlement time and no complaint count
+/// has told the reader something about how much it is willing to be measured
+/// by, and a blank screen says it far less clearly than a row that reads
+/// "not published".
+class _Standing extends StatelessWidget {
+  const _Standing({required this.insurer});
+
+  final Insurer insurer;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    final i = insurer;
+
+    final rows = <({String k, String v, String? sub})>[
+      (
+        k: t('insure.standing.licence'),
+        v: i.canWriteNewBusiness
+            ? t('insure.standing.canWrite')
+            : t('insure.dir.noNewBusiness'),
+        sub: i.licenseYear == null
+            ? null
+            : t('insure.licensed', {'y': '${i.licenseYear}'}),
+      ),
+      (
+        k: t('insure.standing.strength'),
+        v: i.financialRating ?? '',
+        sub: i.financialRating == null ? t('insure.standing.unrated') : null,
+      ),
+      (
+        k: t('insure.standing.claims'),
+        v: i.claimsDays == null
+            ? ''
+            : t('insure.claimsDays', {'d': '${i.claimsDays}'}),
+        sub: i.claimsDays == null ? t('insure.standing.notPublished') : null,
+      ),
+      (
+        k: t('insure.standing.complaints'),
+        v: i.complaintsCount == null ? '' : '${i.complaintsCount}',
+        sub: i.complaintsCount == null
+            ? t('insure.standing.notPublished')
+            : null,
+      ),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        InsureH2(
+          t('insure.standing.title'),
+          small: t('insure.standing.small'),
+        ),
+        _FactCard(rows: rows, okColor: i.canWriteNewBusiness ? c.up : c.down),
+      ],
+    );
+  }
+}
+
+/// Label on the left, value right-aligned, an optional quiet line under it.
+/// A row with no value shows only the quiet line, which is how "not published"
+/// occupies the same space a real answer would and reads as deliberate.
+class _FactCard extends StatelessWidget {
+  const _FactCard({required this.rows, this.okColor});
+
+  final List<({String k, String v, String? sub})> rows;
+  final Color? okColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: c.s1,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: c.line),
+        ),
+        child: Column(
+          children: [
+            for (var k = 0; k < rows.length; k++)
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 13),
+                decoration: BoxDecoration(
+                  border: k == rows.length - 1
+                      ? null
+                      : Border(bottom: BorderSide(color: c.line)),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 118,
+                      child: Text(
+                        rows[k].k.toUpperCase(),
+                        style: TextStyle(
+                          color: c.faint,
+                          fontFamily: fructaFonts.mono,
+                          fontSize: 9.5,
+                          letterSpacing: 0.8,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          if (rows[k].v.isNotEmpty)
+                            Text(
+                              rows[k].v,
+                              textAlign: TextAlign.right,
+                              style: TextStyle(
+                                color: k == 0 ? (okColor ?? c.text) : c.text,
+                                fontSize: 14,
+                                height: 1.35,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          if (rows[k].sub != null) ...[
+                            if (rows[k].v.isNotEmpty) const SizedBox(height: 3),
+                            Text(
+                              rows[k].sub!,
+                              textAlign: TextAlign.right,
+                              style: TextStyle(
+                                color: c.faint,
+                                fontSize: rows[k].v.isEmpty ? 12.5 : 11,
+                                height: 1.45,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
           ],

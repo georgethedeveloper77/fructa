@@ -28,6 +28,22 @@ import type {
 // v2: adds companies/agents/insurers/fx/insight_templates/events. Every v1
 // field is preserved; the app reads `schema` and falls back to v1 parsing.
 //
+/// One month of the market for one fund type in one currency, as published
+/// under `market_history`.
+///
+/// Declared here rather than in _shared/types.ts because nothing else reads it:
+/// the app parses it into its own model and no other edge function touches it.
+/// Move it out the moment a second consumer appears.
+type SnapshotMarketPoint = {
+  fund_type: string;
+  currency: string;
+  month: string; // YYYY-MM-DD, first of the month
+  median: number;
+  lo: number;
+  hi: number;
+  funds: number;
+};
+
 // Later additions ride alongside v2 rather than inside it (composition, config,
 // learn, posts, stocks, brokers, saccos, fx_series), so a reader that only
 // knows v2 still parses cleanly.
@@ -43,7 +59,13 @@ const FUND_FIELDS =
   "id,name,manager,category,fund_type,currency,basis,retail,current_rate,tax_free,min_invest,mgmt_fee,site_url,invest_url,contact_url,logo_domain,verified,featured,company_id," +
   "inception_date,benchmark_key,expense_ratio,redemption_fee,lock_in_months,top_up_min,objective," +
   "return_ytd,return_1y,return_3y,return_5y,bench_1y,bench_3y,bench_5y,best_month,worst_month,returns_as_of," +
-  "price_per_unit,price_as_of,distribution_pct,aum_native,duration_years,credit_quality";
+  "price_per_unit,price_as_of,distribution_pct,aum_native,duration_years,credit_quality," +
+  // Return-basis fields (0074). A special fund quotes a realized return for a
+  // CLOSED period, not a yield, so the number cannot travel without the period
+  // it covers and what has already been taken out of it. net_of is the field
+  // that stops the app deducting withholding tax from a figure a manager
+  // already published net of tax.
+  "net_of,return_period,return_as_of,fee_kind,perf_fee_pct,hurdle_pct,class_group,class_label,holdings,geography";
 
 const INSURER_FIELDS =
   "id,name,company_id,currency,plans,min_premium,excess_pct,excess_min,claims_days,rating,motor_rate,benefits,logo_domain," +
@@ -59,6 +81,31 @@ type SnapshotComposition = {
   aum_kes: number | null;
   as_of: string | null;
   source_url: string | null;
+};
+
+/// One CLOSED period of one fund, from `return_history` (0074).
+///
+/// Declared here rather than in _shared/types.ts for the same reason
+/// SnapshotComposition is: nothing else reads it. Move it out the moment a
+/// second consumer appears.
+///
+/// A sibling array rather than a field on the fund row, mirroring composition.
+/// A special fund carries eight quarters plus seven calendar years plus a
+/// year-to-date figure, and hanging sixteen objects off every fund row would put
+/// them behind every screen that reads a rate. The list needs a headline; only
+/// the detail page needs the series.
+///
+/// NOT merged with the rate sparkline. `spark` is a rate series and this is a
+/// set of realized returns: one compounds and is taxed and cannot be negative,
+/// the other is none of those. The app already paid for one field whose unit
+/// depended on a neighbouring column, and it is not paying for another.
+type SnapshotPeriodReturn = {
+  fund_id: string;
+  period_end: string; // YYYY-MM-DD
+  period: string; // month | quarter | half | year | ytd | since_inception
+  net_pct: number; // MAY BE NEGATIVE. That is the point of the type.
+  gross_pct: number | null; // before fees, when the sheet prints both
+  net_of: string; // nothing | fees | fees_and_tax, per row
 };
 
 export async function publishSnapshot(
@@ -256,6 +303,40 @@ export async function publishSnapshot(
     }
   }
 
+  // Monthly market medians, read from the view rather than computed here.
+  //
+  // It cannot be derived from `histRows` above: that query is a trailing 180
+  // days, sized for sparklines, so it does not reach 2024. Widening it is not
+  // the answer either. Five years of rate_history across ninety funds is on the
+  // order of forty thousand rows, past the 20k cap, and pulling them into an
+  // edge function to compute a few hundred medians is the wrong place to do the
+  // work. Postgres has the dates and the percentile function.
+  //
+  // Every month the view returns is published, thin ones included. The app gates
+  // the LINE at ten filers and draws the rest as hollow points, which is a
+  // display decision and belongs on the client where it can change without a
+  // republish.
+  const { data: mhRows } = await db
+    .from("market_history_monthly")
+    .select("fund_type,currency,month,median,lo,hi,funds")
+    .order("month", { ascending: true });
+
+  // min/max come back as strings when the column is numeric, while
+  // percentile_cont returns double precision and arrives as a number. The view
+  // casts both to float8, and Number() here is the belt to that braces: a
+  // string reaching the app throws on the `as num` cast in Dart.
+  const marketHistory: SnapshotMarketPoint[] = (mhRows ?? []).map((r) => ({
+    fund_type: String(r.fund_type),
+    currency: String(r.currency),
+    month: String(r.month).slice(0, 10),
+    median: Number(r.median),
+    lo: Number(r.lo),
+    hi: Number(r.hi),
+    funds: Number(r.funds),
+  })).filter((r) =>
+    Number.isFinite(r.median) && Number.isFinite(r.lo) && Number.isFinite(r.hi)
+  );
+
   const { data: templates } = await db
     .from("insight_templates")
     .select("key,tag,template")
@@ -294,6 +375,32 @@ export async function publishSnapshot(
       as_of: r.aum_as_of ?? null,
       source_url: r.composition_source_url ?? null,
     }));
+
+  // Period returns (0074), for basis='return' funds. Unbounded by date on
+  // purpose, unlike the rate and NAV sparklines above.
+  //
+  // Those two are trailing windows because they feed a thumbnail on a scrolling
+  // list, where only the recent shape matters. This feeds a growth chart that is
+  // meant to cover a fund's whole life: MansaX runs from January 2019, and a
+  // 180-day cutoff would leave it with one quarter and nothing to draw.
+  //
+  // The volume is not comparable either. rate_history holds a mark per fund per
+  // scrape run, several a week. This holds a row per fund per published period,
+  // so a fund with seven years of history contributes a few dozen rows in total,
+  // and every special fund in the country together is a rounding error against
+  // the 20,000-row cap the rate query needs.
+  const { data: returnRows } = await db
+    .from("return_history")
+    .select("fund_id,period_end,period,net_pct,gross_pct,net_of")
+    .order("period_end", { ascending: true });
+  const periodReturns: SnapshotPeriodReturn[] = (returnRows ?? []).map((r) => ({
+    fund_id: r.fund_id,
+    period_end: r.period_end,
+    period: r.period,
+    net_pct: Number(r.net_pct),
+    gross_pct: r.gross_pct == null ? null : Number(r.gross_pct),
+    net_of: r.net_of,
+  }));
 
   // Insurance types (0041), an admin-managed grid on the Insure home. Active,
   // ordered. Motor and Travel route to live flows; other keys render as
@@ -669,8 +776,10 @@ export async function publishSnapshot(
     & SnapshotV2
     & {
       composition: SnapshotComposition[];
+      period_returns: SnapshotPeriodReturn[];
       config: Record<string, unknown>;
       fx_series: SnapshotFxSeries[];
+      market_history: SnapshotMarketPoint[];
       learn: SnapshotLearn;
       posts: SnapshotPost[];
       insurance_types: SnapshotInsuranceType[];
@@ -687,9 +796,11 @@ export async function publishSnapshot(
     agents,
     fx: [...fxByPair.values()],
     fx_series: fxSeries,
+    market_history: marketHistory,
     insight_templates: (templates ?? []) as SnapshotTemplate[],
     events: (events ?? []) as SnapshotEvent[],
     composition,
+    period_returns: periodReturns,
     config,
     learn,
     posts,

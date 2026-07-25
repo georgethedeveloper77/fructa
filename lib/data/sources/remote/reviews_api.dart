@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:fructa/data/models/insurer_review.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -16,18 +17,49 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// abusive device (Apple Guideline 1.2) without Fructa ever holding personal
 /// data.
 class ReviewsApi {
-  /// Null until Supabase.initialize has run in main(). Every method degrades to
-  /// an empty result rather than throwing, so a missing init makes reviews
-  /// quietly absent instead of crashing the insurer page.
+  /// Why the last read came back empty, or null when nothing has gone wrong.
+  ///
+  /// EVERY method here degrades to an empty result rather than throwing, which
+  /// is the right call on a page that must not show a red box, and which had
+  /// one cost: five different failures all rendered as "nobody has reviewed
+  /// yet". Supabase never initialised, the public view missing its grant to
+  /// anon, RLS refusing the read, the network down, and a genuinely unreviewed
+  /// insurer were indistinguishable from each other and from success.
+  ///
+  /// The behaviour is unchanged. The reason is now recorded, and printed in
+  /// debug, so the next run says which of the five it is instead of leaving it
+  /// to be guessed at from an empty section.
+  String? lastError;
+
+  T _fail<T>(String where, Object e, T fallback) {
+    lastError = '$where: $e';
+    if (kDebugMode) debugPrint('[reviews] $lastError');
+    return fallback;
+  }
+
+  /// Null until Supabase.initialize has run in main(). This is the single most
+  /// likely reason the section is absent: it gates every method below and it
+  /// makes `available` false, which hides the whole section by design.
   SupabaseClient? get _db {
     try {
       return Supabase.instance.client;
-    } catch (_) {
-      return null;
+    } catch (e) {
+      return _fail('Supabase.instance', e, null);
     }
   }
 
   bool get available => _db != null;
+
+  /// One line naming what is wrong, for the settings diagnostics panel or a
+  /// debug print. Does not touch the network.
+  String get diagnosis {
+    if (_db == null) {
+      return 'Supabase is not initialised. Reviews are hidden.';
+    }
+    final e = lastError;
+    if (e != null) return e;
+    return 'Reviews are reachable.';
+  }
 
   /// Sign in anonymously if we have not already. Idempotent, and safe to call
   /// before any write.
@@ -39,8 +71,8 @@ class ReviewsApi {
     try {
       final res = await db.auth.signInAnonymously();
       return res.user?.id;
-    } catch (_) {
-      return null;
+    } catch (e) {
+      return _fail('ensureSession', e, null);
     }
   }
 
@@ -56,9 +88,13 @@ class ReviewsApi {
           .eq('insurer_id', insurerId)
           .maybeSingle();
       if (row == null) return ReviewStats.empty;
+      lastError = null;
       return ReviewStats.fromJson(row);
-    } catch (_) {
-      return ReviewStats.empty;
+    } catch (e) {
+      // A definer view still needs its own grant. If `insurer_review_stats`
+      // was never granted to anon this is a permission error, and it looks
+      // exactly like an insurer nobody has rated.
+      return _fail('stats(insurer_review_stats)', e, ReviewStats.empty);
     }
   }
 
@@ -88,9 +124,10 @@ class ReviewsApi {
         if (a.hasBody != b.hasBody) return a.hasBody ? -1 : 1;
         return b.createdAt.compareTo(a.createdAt);
       });
+      lastError = null;
       return all;
-    } catch (_) {
-      return const [];
+    } catch (e) {
+      return _fail('list(insurer_reviews_public)', e, const <InsurerReview>[]);
     }
   }
 
@@ -109,8 +146,8 @@ class ReviewsApi {
           .maybeSingle();
       if (row == null) return null;
       return MyReview.fromJson(row);
-    } catch (_) {
-      return null;
+    } catch (e) {
+      return _fail('mine', e, null);
     }
   }
 
@@ -143,8 +180,8 @@ class ReviewsApi {
         'claims_holder': claimsHolder,
       }, onConflict: 'insurer_id,author_id');
       return true;
-    } catch (_) {
-      return false;
+    } catch (e) {
+      return _fail('submit', e, false);
     }
   }
 
@@ -154,8 +191,8 @@ class ReviewsApi {
     try {
       await db.from('insurer_reviews').delete().eq('id', reviewId);
       return true;
-    } catch (_) {
-      return false;
+    } catch (e) {
+      return _fail('remove', e, false);
     }
   }
 
@@ -183,8 +220,8 @@ class ReviewsApi {
         'note': note,
       });
       return true;
-    } catch (_) {
-      return false;
+    } catch (e) {
+      return _fail('report', e, false);
     }
   }
 }

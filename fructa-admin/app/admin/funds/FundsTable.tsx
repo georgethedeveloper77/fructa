@@ -34,7 +34,7 @@ const LEGACY_KEYS = new Set(LEGACY.map(([k]) => k));
 
 function catLabel(f: FundRow): string {
   if (f.fund_type && FT_LABEL[f.fund_type]) return `${FT_LABEL[f.fund_type]} · ${f.currency}`;
-  return LEGACY_LABEL[f.category ?? ""] ?? f.category ?? "—";
+  return LEGACY_LABEL[f.category ?? ""] ?? f.category ?? "-";
 }
 
 const TINTS = ["#E7B24C", "#5B8DEF", "#A78BFA", "#3DD6C4", "#3DDC97"];
@@ -119,7 +119,7 @@ export function FundsTable({ rows, companies, prov }: { rows: FundRow[]; compani
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search funds or managers…"
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search funds or managers"
           className="w-64 rounded-md border border-line bg-panel2 px-3 py-1.5 text-sm text-ink outline-none placeholder:text-faint focus:border-gold/60" />
         <div className="flex flex-wrap items-center gap-0.5 rounded-lg border border-line bg-panel p-0.5">
           {tabBtn("all", "All")}
@@ -229,8 +229,16 @@ export function FundsTable({ rows, companies, prov }: { rows: FundRow[]; compani
 //   yield (or null) -> the inline editable rate, unchanged
 //   nav             -> read-only unit price (edited on the detail page's
 //                      Pricing card, so it can't be corrupted from here)
+//   return          -> read-only period return; the series is edited on the
+//                      detail page, and a rate box here would let a realized
+//                      quarterly figure be typed into current_rate, which is
+//                      the one field the app taxes and compounds
 //   none            -> no headline figure; never offer a yield input, so
 //                      equity/balanced/special funds can't be given a fake rate
+//
+// The default for an unrecognised basis is the rate input, which is the reason
+// `return` had to be handled the same day the column allowed it: an unhandled
+// basis does not render as unknown here, it renders as an editable yield.
 function fmtPrice(v: number): string {
   return v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 4 });
 }
@@ -247,6 +255,20 @@ function RateCell({ f }: { f: FundRow }) {
         <span className="text-[10px] text-faint">
           unit price{f.distribution_pct != null ? ` \u00B7 ${f.distribution_pct.toFixed(2)}% dist` : ""}
         </span>
+      </div>
+    );
+  }
+
+  if (basis === "return") {
+    // Period and as-of are not in this table's select, so the cell says what
+    // KIND of number the fund carries and sends the reader to the detail page
+    // for the number itself. Better a truthful pointer than a bare percentage
+    // whose period the reader has to guess, which is the whole defect the
+    // return basis exists to close.
+    return (
+      <div className="flex flex-col leading-tight">
+        <span className="text-xs text-mute">period return</span>
+        <span className="text-[10px] text-faint">edit on detail</span>
       </div>
     );
   }

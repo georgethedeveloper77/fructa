@@ -40,6 +40,20 @@ const LEGACY_TYPES = ["tbill", "bond", "sacco", "stock"];
 const CURRENCIES = ["KES", "USD", "GBP", "EUR", "ZAR"];
 const BENCHMARK_KEYS = ["tbill_91", "tbill_182", "tbill_364", "cbr"];
 
+// 0074 vocabularies. Every one of these mirrors a CHECK constraint in the
+// database, and the reason they are repeated here rather than trusted to the
+// database is that a constraint violation surfaces as a failed save with no
+// useful message, while an unknown value caught here can be turned into a null
+// and reported. Keep them in step with the migration or the form will offer
+// options the database refuses.
+const NET_OF = ["nothing", "fees", "fees_and_tax"];
+const RETURN_PERIODS = ["month", "quarter", "half", "year", "ytd", "since_inception"];
+const FEE_KINDS = ["mgmt", "service", "none"];
+// Rows in return_history. `since_inception` is legal here too (0075) but it is
+// a cumulative total, not a member of the series, and the form writes it from
+// its own field rather than the period dropdown.
+const HISTORY_PERIODS = ["month", "quarter", "half", "year", "ytd", "since_inception"];
+
 // Create a fund under a company. manager defaults to the company's name.
 export async function addFund(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
@@ -239,14 +253,28 @@ export async function updateFund(formData: FormData) {
 // four columns  like updateCustody/updateContact  so a yield fund's rate
 // stays with setRate and never rides here. Selecting yield/none clears the
 // price fields, so a fund flipped off NAV can't keep a stale unit price.
-const BASES = ["yield", "nav", "none"];
+// 'return' added in 0074. Its absence here was not a missing feature, it was a
+// data-destroying default: an unrecognised basis fell through to "yield", so
+// opening this form on a return-basis fund and pressing Save silently retyped it
+// as a yield fund, and the app then taxed and compounded a quarterly figure.
+// The fund in question published its returns net of tax already.
+//
+// The fallback is now null rather than a guess. A writer that cannot tell what
+// kind of number a fund quotes must not decide on the fund's behalf, and null
+// leaves the row alone for a human to fix rather than confidently mislabelling
+// it. This is the same fail-open defect as Fund.showsYield's `basis ?? 'yield'`
+// on the app side, except a reader showing the wrong thing can be corrected by
+// a rebuild and a writer storing the wrong thing cannot.
+const BASES = ["yield", "nav", "return", "none"];
 export async function updatePricing(formData: FormData) {
   const id = String(formData.get("id"));
   if (!id) return;
 
   const basisRaw = strOrNull(formData.get("basis"));
-  const basis = basisRaw && BASES.includes(basisRaw) ? basisRaw : "yield";
+  const basis = basisRaw && BASES.includes(basisRaw) ? basisRaw : null;
+  if (basis === null) return; // unknown basis: change nothing, keep the row honest
   const isNav = basis === "nav";
+  const isReturn = basis === "return";
 
   // Credit quality arrives as five numbers and is stored as one jsonb, shaped
   // like funds.composition. Zero-weight classes are dropped rather than stored as
@@ -258,8 +286,37 @@ export async function updatePricing(formData: FormData) {
     if (v != null && v > 0) credit[k] = v;
   }
 
+  const netOfRaw = strOrNull(formData.get("net_of"));
+  const rp = strOrNull(formData.get("return_period"));
+  const fk = strOrNull(formData.get("fee_kind"));
+
   const patch: Record<string, unknown> = {
     basis,
+
+    // What is already deducted from the quoted number. Kept for EVERY basis,
+    // not just return: an MMF quoting net of fees and gross of withholding tax
+    // is making the same kind of statement, and writing it down is what lets
+    // the app stop assuming it.
+    net_of: netOfRaw && NET_OF.includes(netOfRaw) ? netOfRaw : null,
+
+    // The period a realized return covers, and the date it closed. Cleared on
+    // anything that is not a return fund, because a yield is per annum by
+    // definition and a leftover "quarter" on one would label it wrongly.
+    return_period: isReturn && rp && RETURN_PERIODS.includes(rp) ? rp : null,
+    return_as_of: isReturn ? strOrNull(formData.get("return_as_of")) : null,
+
+    // The fee is not always a management fee. A 5% p.a. financial services
+    // charge plus 10% of everything above a 25% hurdle is two charges, and the
+    // larger of them was invisible while only mgmt_fee existed.
+    fee_kind: fk && FEE_KINDS.includes(fk) ? fk : null,
+    perf_fee_pct: numOrNull(formData.get("perf_fee_pct")),
+    hurdle_pct: numOrNull(formData.get("hurdle_pct")),
+
+    // Share classes. One product, several lock-ins and fees and yields. Left
+    // alone by basis, because a class group can sit under any of them.
+    class_group: strOrNull(formData.get("class_group")),
+    class_label: strOrNull(formData.get("class_label")),
+
     distribution_pct: isNav ? numOrNull(formData.get("distribution_pct")) : null,
     // Duration and credit belong to a fund that holds bonds, which is a NAV fund.
     // Flip a fund off NAV and they clear with the price, so nothing stale is left
@@ -282,6 +339,74 @@ export async function updatePricing(formData: FormData) {
   }
 
   await supabaseAdmin().from("funds").update(patch).eq("id", id);
+  await republishSnapshot();
+  refresh(id);
+}
+
+// ── Period returns (0074) ───────────────────────────────────────────────────
+//
+// The writer for return_history, and the sibling of setRate and setPrice. Kept
+// separate from updatePricing for the reason setPrice is separate from it: a
+// headline on the fund row with no dated mark behind it is a number that never
+// joins a series, and a fund whose chart disagrees with its headline is worse
+// than a fund with no chart.
+//
+// Unlike setRate and setPrice, this one does NOT promote anything onto the fund
+// row. A quarterly return is not a current rate, and current_rate on a
+// return-basis fund must stay null: it is the field the app taxes and compounds,
+// and there is nothing here that may be taxed or compounded.
+
+export async function setPeriodReturn(formData: FormData) {
+  const id = String(formData.get("id"));
+  const periodEnd = strOrNull(formData.get("period_end"));
+  const period = strOrNull(formData.get("period"));
+  const netPct = numOrNull(formData.get("net_pct"));
+
+  // No sign check, and this is deliberate. setPrice refuses a zero or negative
+  // price because a fund whose units are worthless has not published a price, it
+  // has ceased to exist. A negative RETURN is an ordinary event: MansaX posted
+  // 3.78% in one quarter and 6.05% two quarters later, and a rule that dropped
+  // the bad periods would leave a chart showing only the good ones, which is a
+  // more damaging lie than no chart at all.
+  if (!id || !periodEnd || !period || netPct == null) return;
+  if (!HISTORY_PERIODS.includes(period)) return;
+
+  const netOfRaw = strOrNull(formData.get("net_of"));
+  // Per row, not inherited from the fund. A manager can publish quarters net of
+  // fees and an annual figure net of fees and tax on the same page, and the app
+  // has to know which is which before it decides whether to deduct anything.
+  const netOf = netOfRaw && NET_OF.includes(netOfRaw) ? netOfRaw : "fees";
+
+  await supabaseAdmin().from("return_history").upsert(
+    {
+      fund_id: id,
+      period_end: periodEnd,
+      period,
+      net_pct: netPct,
+      gross_pct: numOrNull(formData.get("gross_pct")),
+      net_of: netOf,
+      source: "manual",
+    },
+    { onConflict: "fund_id,period_end,period" },
+  );
+
+  await republishSnapshot();
+  refresh(id);
+}
+
+export async function deletePeriodReturn(formData: FormData) {
+  const id = String(formData.get("id"));
+  const periodEnd = strOrNull(formData.get("period_end"));
+  const period = strOrNull(formData.get("period"));
+  if (!id || !periodEnd || !period) return;
+
+  await supabaseAdmin()
+    .from("return_history")
+    .delete()
+    .eq("fund_id", id)
+    .eq("period_end", periodEnd)
+    .eq("period", period);
+
   await republishSnapshot();
   refresh(id);
 }

@@ -23,6 +23,7 @@ import '../learn/learn_progress.dart';
 import '../saccos/sacco_page.dart';
 import '../stocks/stock_page.dart';
 import '../stocks/stocks_page.dart';
+import 'market_page.dart';
 import 'markets_controller.dart';
 import 'search_overlay.dart';
 import '../../core/widgets/app_loader.dart';
@@ -175,12 +176,15 @@ class _LearnPrimer extends ConsumerWidget {
   }
 }
 
+/// Top level, not a method, because _TopBar is a sibling widget rather than a
+/// child of the page state and needs the same destination. It already took its
+/// context as an argument, so promoting it changes no call site.
+void _openFund(BuildContext context, Fund f) => Navigator.of(
+  context,
+).push(MaterialPageRoute(builder: (_) => CompanyPage(f)));
+
 class MarketsPage extends ConsumerWidget {
   const MarketsPage({super.key});
-
-  void _openFund(BuildContext context, Fund f) => Navigator.of(
-    context,
-  ).push(MaterialPageRoute(builder: (_) => CompanyPage(f)));
 
   void _exitCompare(WidgetRef ref) {
     ref.read(compareModeProvider.notifier).state = false;
@@ -555,10 +559,16 @@ class _TopBar extends ConsumerWidget {
               ),
             )
           else
-            const Expanded(
+            Expanded(
               child: Padding(
-                padding: EdgeInsets.only(right: 6),
-                child: MarketPulse(),
+                padding: const EdgeInsets.only(right: 6),
+                // Nothing on the strip names a fund, so the tap answers the
+                // question it actually provokes: what is the market doing.
+                child: MarketPulse(
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(builder: (_) => const MarketPage()),
+                  ),
+                ),
               ),
             ),
           IconButton(
