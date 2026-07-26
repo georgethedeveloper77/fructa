@@ -147,3 +147,26 @@ export const IconAlert = (p: IconProps) => (
 export const IconBolt = (p: IconProps) => (
   <svg {...base(p)}><path d="M13 2 3 14h8l-1 8 10-12h-8l1-8Z" /></svg>
 );
+export function IconFactsheets({ size = 16, ...p }: SVGProps<SVGSVGElement> & { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      {/* a sheet with a figure lifted off it: this is extraction, not filing */}
+      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+      <path d="M14 3v5h5" />
+      <path d="M8.5 13.5h4M8.5 17h6" />
+    </svg>
+  );
+}
+
+export function IconReview({ size = 16, ...p }: SVGProps<SVGSVGElement> & { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      {/* a held item with a tick: something waiting on a decision */}
+      <path d="M20 11.5V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h6" />
+      <path d="M8 9.5h8M8 13.5h5" />
+      <path d="m15.5 18 2 2 4-4" />
+    </svg>
+  );
+}

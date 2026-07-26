@@ -1,0 +1,169 @@
+/* ── app/admin/admin-responsive.css ─────────────────────────────────────────
+ *
+ * Imported by app/admin/layout.tsx. Additive: nothing here changes the desktop
+ * grid, it only adds scrolling where there was none and collapses the shell
+ * below the breakpoint. */
+
+/* ── 1. THE SIDEBAR SCROLLS ─────────────────────────────────────────────────
+ *
+ * At every width, not just mobile. The nav is 21 rows across three sections
+ * plus a brand block and a footer, which is taller than a 900px laptop, and an
+ * overflowing sidebar with no scroll does not clip visibly: it just stops, and
+ * the rows at the bottom appear not to exist.
+ *
+ * `min-height: 0` is the load-bearing line and the reason a CSS-only attempt
+ * fails. A flex child defaults to `min-height: auto`, which refuses to shrink
+ * below its content, so `overflow-y: auto` on it never has anything to scroll.
+ * Every "why won't my flex child scroll" is this. */
+.admin .side {
+  display: flex;
+  flex-direction: column;
+  max-height: 100vh;
+  max-height: 100dvh;          /* dvh so mobile browser chrome does not clip the footer */
+}
+.admin .side .brand,
+.admin .side .cmdk,
+.admin .side .sfoot { flex: 0 0 auto; }
+
+.admin .sidescroll {
+  flex: 1 1 auto;
+  min-height: 0;               /* see above */
+  overflow-y: auto;
+  overscroll-behavior: contain;/* scrolling to the end must not start scrolling the page */
+  scrollbar-width: thin;
+}
+/* A visible track would compete with the nav rows for attention, and the
+ * content already makes it obvious there is more below. */
+.admin .sidescroll::-webkit-scrollbar { width: 6px; }
+.admin .sidescroll::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 3px;
+}
+.admin .sidescroll::-webkit-scrollbar-track { background: transparent; }
+
+/* Hidden on desktop. Rendered always so the markup does not change with
+ * viewport, which keeps hydration boring. */
+.admin .navtoggle,
+.admin .navscrim { display: none; }
+
+/* ── 2. BELOW THE BREAKPOINT ────────────────────────────────────────────────*/
+@media (max-width: 1023px) {
+  /* The two-column shell collapses and the PAGE scrolls again.
+   *
+   * The desktop layout almost certainly pins itself to the viewport and lets
+   * .content scroll inside. Turning .app into a block without undoing that
+   * leaves .main height-constrained with nothing to scroll, so the page ends
+   * wherever the first screenful ended. These four lines hand scrolling back
+   * to the document, which is what a phone expects anyway. */
+  .admin,
+  .admin .app,
+  .admin .main {
+    display: block;
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+  .admin .content {
+    height: auto;
+    overflow: visible;
+  }
+
+  .admin .side {
+    position: fixed;
+    top: 0; bottom: 0; left: 0;
+    z-index: 60;
+    width: 272px;
+    max-width: 84vw;
+    transform: translateX(-100%);
+    transition: transform .22s cubic-bezier(.4, 0, .2, 1);
+    border-right: 1px solid var(--line);
+    box-shadow: 0 0 40px rgba(0, 0, 0, .5);
+  }
+  .admin .app.nav-open .side { transform: none; }
+
+  /* The drawer is fixed, so the page behind it must not scroll while it is
+   * open. Without this, dragging on the scrim scrolls the page underneath and
+   * closing it leaves you somewhere you did not choose to be. */
+  .admin .app.nav-open { overflow: hidden; }
+
+  .admin .navscrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    border: 0;
+    padding: 0;
+    background: rgba(0, 0, 0, .55);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .22s ease;
+  }
+  .admin .app.nav-open .navscrim { opacity: 1; pointer-events: auto; }
+
+  .admin .navtoggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px; height: 36px;
+    margin-right: 4px;
+    flex: 0 0 auto;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    background: transparent;
+    color: var(--mute);
+    cursor: pointer;
+  }
+  .admin .navtoggle:hover { color: var(--ink); }
+
+  .admin .top {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    padding-left: 12px;
+    padding-right: 12px;
+    /* A sticky header on a now-scrolling page. The Run pipeline button is the
+     * only action on most of these screens and scrolling a fund table should
+     * not take it away. */
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    background: var(--bg, #0b0d10);
+  }
+  .admin .topttl { min-width: 0; }
+  .admin .top h1 {
+    font-size: 18px;
+    line-height: 1.2;
+    /* No truncation: a wrapped title reads, a clipped one is a guess. */
+    overflow-wrap: anywhere;
+  }
+
+  .admin .content { padding-left: 12px; padding-right: 12px; }
+}
+
+/* ── 3. THE TOP ROW GIVES THINGS UP IN ORDER ────────────────────────────────*/
+
+/* The pipeline strip is ambient status that links to a page saying the same
+ * thing in more detail. It goes first. */
+@media (max-width: 1200px) {
+  .admin .pipeline { display: none; }
+}
+
+/* Then the button's words. The refresh mark plus its position is unambiguous,
+ * and the label was the widest thing left in the row. */
+@media (max-width: 560px) {
+  .admin .runbtn .runlabel { display: none; }
+  .admin .runbtn { padding-left: 10px; padding-right: 10px; }
+  .admin .crumb { font-size: 11px; }
+}
+
+/* ── 4. TABLES ──────────────────────────────────────────────────────────────
+ *
+ * The one thing that genuinely cannot reflow. A fund row carries a name, a
+ * rate, a source and two actions, and stacking those into a card loses the
+ * column alignment that makes a list scannable. So they scroll sideways inside
+ * their own panel rather than forcing the whole page to. */
+@media (max-width: 1023px) {
+  .admin .panelc { overflow-x: auto; }
+  .admin .tbl { min-width: 640px; }
+}
