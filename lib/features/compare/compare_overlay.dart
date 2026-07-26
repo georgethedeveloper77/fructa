@@ -10,11 +10,19 @@ import '../../core/widgets/range_bar.dart';
 import '../../data/models/fund.dart';
 import '../../data/models/rate_history.dart';
 import '../../data/providers.dart';
-import '../../engine/tax.dart';
+import '../../data/snapshot_providers.dart';
 import 'compare_controller.dart';
 
-double _net(Fund f) =>
-    f.taxFree ? (f.currentRate ?? 0) : Tax.net(f.currentRate ?? 0);
+/// Net-of-tax yield for the comparison matrix.
+///
+/// Takes the rate rather than assuming it. The old top-level version deducted
+/// 15% from every fund that was not flagged tax-free, so a fund quoting a rate
+/// already net of tax lost another 15% in the one view whose entire purpose is
+/// putting funds side by side, and lost a comparison it should have won.
+///
+/// Fund.netRate does the deciding: it reads net_of and tax_free and returns the
+/// rate untouched when there is nothing left to take.
+double _net(Fund f, double whtPct) => f.netRate(whtPct) ?? 0;
 
 class CompareOverlay extends ConsumerStatefulWidget {
   const CompareOverlay(this.fundIds, {super.key});
@@ -33,6 +41,7 @@ class _CompareOverlayState extends ConsumerState<CompareOverlay> {
     final fundIds = widget.fundIds;
     final c = context.c;
     final byId = ref.watch(fundsByIdProvider);
+    final whtPct = ref.watch(remoteConfigProvider).whtPct;
     final funds =
         fundIds.map((id) => byId[id]).whereType<Fund>().toList();
 
@@ -88,7 +97,7 @@ class _CompareOverlayState extends ConsumerState<CompareOverlay> {
                 style: TextStyle(color: c.faint, fontSize: 11)),
           ),
           const SizedBox(height: 16),
-          _Matrix(funds: funds),
+          _Matrix(funds: funds, whtPct: whtPct),
         ],
       ),
     );
@@ -97,8 +106,9 @@ class _CompareOverlayState extends ConsumerState<CompareOverlay> {
 
 // ── Winner-highlighted matrix ──────────────────────────────────────────────
 class _Matrix extends StatelessWidget {
-  const _Matrix({required this.funds});
+  const _Matrix({required this.funds, required this.whtPct});
   final List<Fund> funds;
+  final double whtPct;
 
   @override
   Widget build(BuildContext context) {
@@ -109,7 +119,7 @@ class _Matrix extends StatelessWidget {
       Fund? best;
       for (final f in funds) {
         if (f.currentRate == null) continue;
-        if (best == null || v(f) > v(best!)) best = f;
+        if (best == null || v(f) > v(best)) best = f;
       }
       return best?.id;
     }
@@ -119,13 +129,13 @@ class _Matrix extends StatelessWidget {
       for (final f in funds) {
         final x = v(f);
         if (x == null) continue;
-        if (best == null || x < (v(best!) ?? double.infinity)) best = f;
+        if (best == null || x < (v(best) ?? double.infinity)) best = f;
       }
       return best?.id;
     }
 
     final grossWin = maxBy((f) => f.currentRate ?? 0);
-    final netWin = maxBy(_net);
+    final netWin = maxBy((f) => _net(f, whtPct));
     final minWin = minBy((f) => f.minInvest);
     final feeWin = minBy((f) => f.mgmtFee);
 
@@ -203,7 +213,7 @@ class _Matrix extends StatelessWidget {
               grossWin),
           row(t('compare.net'),
               (f) => f.currentRate != null
-                  ? '${_net(f).toStringAsFixed(2)}%'
+                  ? '${_net(f, whtPct).toStringAsFixed(2)}%'
                   : t('common.dash'),
               netWin),
           row(t('compare.minimum'),
@@ -256,8 +266,8 @@ class _Overlay extends StatelessWidget {
     for (final pts in perFund.values) {
       for (final p in pts) {
         final d = DateTime.parse(p.asOf);
-        if (minD == null || d.isBefore(minD!)) minD = d;
-        if (maxD == null || d.isAfter(maxD!)) maxD = d;
+        if (minD == null || d.isBefore(minD)) minD = d;
+        if (maxD == null || d.isAfter(maxD)) maxD = d;
       }
     }
 

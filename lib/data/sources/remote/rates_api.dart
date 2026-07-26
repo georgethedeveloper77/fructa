@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../../../core/config.dart';
+import '../../models/nav_history.dart';
 import '../../models/rate_history.dart';
 import '../../models/stock_history.dart';
 
@@ -15,7 +16,7 @@ class RatesApi {
   Future<SnapshotResponse?> getSnapshot({String? etag}) async {
     final res = await http.get(
       Uri.parse(Config.snapshotUrl),
-      headers: {if (etag != null) 'If-None-Match': etag},
+      headers: {'If-None-Match': ?etag},
     );
     if (res.statusCode == 304) return null;
     if (res.statusCode == 200) {
@@ -36,6 +37,37 @@ class RatesApi {
     final list = jsonDecode(res.body) as List;
     return list
         .map((e) => RateHistory.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Lazy per-fund NAV history, the third sibling of [getHistory] and
+  /// [getStockHistory].
+  ///
+  /// A priced fund has NO rate history at all, so without this its detail page
+  /// had a headline, a set of terms and nothing in between: `RateChart` sits
+  /// behind `fund.showsYield`, and nothing else ever drew a line. The snapshot's
+  /// `nav_spark` is four pixels for a tile, not a dated axis.
+  ///
+  /// Read straight from PostgREST rather than added to the snapshot, exactly as
+  /// rate history is, because it is per-fund and lazy: pulling every fund's full
+  /// price series into a document every device downloads would pay for a chart
+  /// almost nobody opens.
+  Future<List<NavHistory>> getNavHistory(String fundId) async {
+    final url = '${Config.restBase}/nav_history'
+        '?fund_id=eq.$fundId&order=as_of&select=as_of,price';
+    final res = await http.get(
+      Uri.parse(url),
+      headers: {
+        'apikey': Config.anonKey,
+        'Authorization': 'Bearer ${Config.anonKey}',
+      },
+    );
+    if (res.statusCode != 200) {
+      throw Exception('nav history HTTP ${res.statusCode}');
+    }
+    final list = jsonDecode(res.body) as List;
+    return list
+        .map((e) => NavHistory.fromJson(e as Map<String, dynamic>))
         .toList();
   }
 

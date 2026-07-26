@@ -98,7 +98,7 @@ const _bank = <String, List<String>>{
     "The {cp}% corporate slice is why the yield is fat; it's also where the risk lives.",
   ],
   'usd': [
-    'Earns in dollars and tracks US short rates, not CBK  a hedge as much as a yield.',
+    'Earns in dollars and tracks US short rates,not CBK  a hedge as much as a yield.',
   ],
   'sacco': [
     'Payouts are <b>annual, declared at the AGM</b>  not a daily-accruing rate like an MMF.',
@@ -129,6 +129,12 @@ List<Signal> buildSignals(
   Fund f,
   List<Fund> peers, {
   Map<String, List<String>>? bank,
+  /// Withholding rate from remote config. Defaults to the baked figure so an
+  /// existing call site keeps compiling, but the caller should pass cfg.whtPct:
+  /// the {net} figure printed inside a signal sits on the same screen as the
+  /// triad's net cell, and the two coming from different places is how a config
+  /// change would have moved one and not the other.
+  double whtPct = Tax.defaultWhtPct,
 }) {
   final b = (bank != null && bank.isNotEmpty) ? bank : _bank;
   final seed = _hash(f.id + _today());
@@ -136,7 +142,11 @@ List<Signal> buildSignals(
   final out = <Signal>[];
 
   String fill(String s) {
-    final net = f.taxFree ? (r ?? 0) : Tax.net(r ?? 0);
+    // Fund.netRate already knows about tax-free status AND about net_of, so a
+    // fund quoting net of tax has nothing further deducted. The old line here
+    // deducted 15% from every fund that was not explicitly tax-free, and would
+    // have printed a {net} figure below a hero figure that was already net.
+    final net = f.netRate(whtPct) ?? 0;
     return s
         .replaceAll('{n}', f.name)
         .replaceAll('{r}', (r ?? 0).toStringAsFixed(2))

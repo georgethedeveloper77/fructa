@@ -10,6 +10,7 @@ import '../core/settings_prefs.dart';
 import 'models/alert.dart';
 import 'models/fund.dart';
 import 'models/holding.dart';
+import 'models/nav_history.dart';
 import 'models/rate_history.dart';
 import 'models/stock_history.dart';
 import 'repositories/holdings_repository.dart';
@@ -128,6 +129,52 @@ final historyProvider = FutureProvider.autoDispose
     .family<List<RateHistory>, String>((ref, fundId) {
       return ref.read(ratesApiProvider).getHistory(fundId);
     });
+
+/// Per-fund NAV history for a priced fund's detail chart. autoDispose, so
+/// leaving the page drops it, exactly like [historyProvider].
+///
+/// A fund has one of these series or the other, never both: a yield fund logs
+/// rates and a priced fund logs prices. That is why they are separate providers
+/// off separate tables rather than one series with a unit hidden in a
+/// neighbouring column.
+final navHistoryProvider = FutureProvider.autoDispose
+    .family<List<NavHistory>, String>((ref, fundId) {
+      return ref.read(ratesApiProvider).getNavHistory(fundId);
+    });
+
+/// The other live classes of one multi-class product, including [fundId] itself,
+/// ordered by lock-in and then by label.
+///
+/// Etica Special Wealth is one fund sold as A, B and C: 6, 9 and 12 month
+/// lock-ins at 2.25%, 2.00% and 1.75%, yielding 13.38%, 13.55% and 13.72%.
+/// Three rows in the database, one product to a person choosing between them.
+///
+/// Ordered by lock-in deliberately, and it is the point of the whole feature:
+/// the classes line up cheapest-to-enter first, so the yield rising down the
+/// list reads as what it is, the price of tying money up for longer, rather
+/// than as one class simply being better than its siblings.
+///
+/// Returns an empty list when the fund has no class group, which is nearly
+/// every fund, so callers render nothing without asking whether they should.
+final classSiblingsProvider = Provider.family<List<Fund>, String>((ref, fundId) {
+  final byId = ref.watch(fundsByIdProvider);
+  final me = byId[fundId];
+  final group = me?.classGroup;
+  if (me == null || group == null || group.isEmpty) return const [];
+
+  // No status filter: the snapshot only carries live funds, so anything
+  // reachable through fundsByIdProvider is already published.
+  final out = byId.values.where((f) => f.classGroup == group).toList();
+  if (out.length < 2) return const [];
+
+  out.sort((a, b) {
+    final la = a.lockInMonths ?? 0;
+    final lb = b.lockInMonths ?? 0;
+    if (la != lb) return la.compareTo(lb);
+    return (a.classLabel ?? '').compareTo(b.classLabel ?? '');
+  });
+  return out;
+});
 
 /// Per-stock price history for the detail chart. autoDispose, so leaving the
 /// page drops it: this is the one read in the app that is not the snapshot.

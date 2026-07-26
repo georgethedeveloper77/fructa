@@ -4,17 +4,25 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme.dart';
 import '../markets_controller.dart';
 
-/// Second-tier currency filter, shown only under the Money Market tab. Options
-/// (All · KES · USD · …) are derived from the live data, so they track whatever
-/// currencies admin publishes. Rendered as a lighter, accent-tinted sub-row so
-/// it reads as a refinement of the category above it, not a peer.
+/// Second-tier currency filter. Options
+/// (All, KES, USD and so on) are derived from the live data in the CURRENT tab,
+/// so they track whatever currencies admin publishes and appear under any
+/// category sold in more than one. Special funds are sold in KES and USD exactly
+/// as money market funds are, and while this was nailed to one tab the dollar
+/// version had no chip.
+///
+/// Self-gating: fewer than two currencies and it renders nothing, so a caller
+/// does not need to know which tabs qualify. If markets_page still wraps this in
+/// a `tab == MarketTab.moneyMarket` check, remove it: the widget decides now.
+/// Rendered as a lighter, accent-tinted sub-row so it reads as a refinement of
+/// the category above it, not a peer.
 class MoneyCurrencyTabs extends ConsumerWidget {
   const MoneyCurrencyTabs({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.c;
-    final ccys = ref.watch(moneyMarketCurrenciesProvider);
+    final ccys = ref.watch(tabCurrenciesProvider);
     final selected = ref.watch(marketMoneyCcyProvider);
     if (ccys.length < 2) return const SizedBox.shrink();
 

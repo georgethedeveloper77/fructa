@@ -28,7 +28,7 @@ class LottieHero extends StatelessWidget {
         asset,
         repeat: repeat,
         fit: BoxFit.contain,
-        errorBuilder: (_, __, ___) => Center(child: fallback),
+        errorBuilder: (_, _, _) => Center(child: fallback),
       ),
     );
   }

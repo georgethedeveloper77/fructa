@@ -9,6 +9,7 @@ import 'models/insurer.dart';
 import 'models/learn.dart';
 import 'models/market_event.dart';
 import 'models/market_history.dart';
+import 'models/period_return.dart';
 import 'models/post.dart';
 import 'models/remote_config.dart';
 import 'models/sacco.dart';
@@ -31,6 +32,7 @@ class SnapshotExtras {
   final List<InsuranceType> insuranceTypes;
   final Map<String, double> _deltas; // fundId -> latest rate_change delta
   final Map<String, FundComposition> _composition; // fundId -> breakdown
+  final Map<String, FundReturns> _periodReturns; // fundId -> closed periods
   final RemoteConfig config; // V6 admin-editable copy/flags
   final LearnContent learn; // D2 admin-authored learn content
   final List<Post> posts; // D3 blog posts (articles + briefs)
@@ -51,8 +53,9 @@ class SnapshotExtras {
     required this.templateBank,
     this.insurers = const [],
     this.insuranceTypes = const [],
-    required Map<String, double> deltas,
-    Map<String, FundComposition> composition = const {},
+    required this._deltas,
+    this._composition = const {},
+    this._periodReturns = const {},
     this.config = RemoteConfig.empty,
     this.learn = LearnContent.empty,
     this.posts = const [],
@@ -60,8 +63,7 @@ class SnapshotExtras {
     this.brokers = const [],
     this.saccos = const [],
     this.generatedAt,
-  }) : _deltas = deltas,
-       _composition = composition;
+  });
 
   static const empty = SnapshotExtras(
     schema: 1,
@@ -77,6 +79,7 @@ class SnapshotExtras {
     insuranceTypes: [],
     deltas: {},
     composition: {},
+    periodReturns: {},
     config: RemoteConfig.empty,
   );
 
@@ -88,6 +91,12 @@ class SnapshotExtras {
     final c = _composition[fundId];
     return (c == null || c.isEmpty) ? null : c;
   }
+
+  /// Closed-period returns for a fund. Never null: a fund with none published
+  /// gets an empty [FundReturns], so callers ask it questions without a null
+  /// check and get honest empty answers back.
+  FundReturns returnsFor(String fundId) =>
+      _periodReturns[fundId] ?? FundReturns.empty;
 
   factory SnapshotExtras.parse(String body) {
     final m = jsonDecode(body) as Map<String, dynamic>;
@@ -174,6 +183,27 @@ class SnapshotExtras {
       if (!fc.isEmpty) composition[id] = fc;
     }
 
+    // Period returns  the third series, beside rate_history and nav_history,
+    // and the one a special fund lives on. Grouped by fund and sorted oldest
+    // first here rather than at every call site, because a chart drawn from an
+    // unsorted series is not wrong in a way anyone notices: it just looks like
+    // the fund had a strange year.
+    //
+    // A row whose period or amount will not parse is dropped, not defaulted. A
+    // dropped period leaves a visible gap in a chart; a defaulted one puts a
+    // fabricated return in the middle of a real series.
+    final periodRows = <String, List<PeriodReturn>>{};
+    for (final r in (m['period_returns'] as List? ?? const [])) {
+      final row = PeriodReturn.fromJson((r as Map).cast<String, dynamic>());
+      if (row == null) continue;
+      (periodRows[row.fundId] ??= []).add(row);
+    }
+    final periodReturns = <String, FundReturns>{};
+    periodRows.forEach((id, rows) {
+      rows.sort((a, b) => a.sortKey.compareTo(b.sortKey));
+      periodReturns[id] = FundReturns(rows);
+    });
+
     final learn = m['learn'] is Map
         ? LearnContent.fromJson((m['learn'] as Map).cast<String, dynamic>())
         : LearnContent.empty;
@@ -229,6 +259,7 @@ class SnapshotExtras {
       insuranceTypes: insuranceTypes,
       deltas: deltas,
       composition: composition,
+      periodReturns: periodReturns,
       config: RemoteConfig(
         ((m['config'] as Map?) ?? const {}).cast<String, dynamic>(),
       ),

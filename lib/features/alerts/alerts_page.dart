@@ -44,7 +44,7 @@ class _AlertsPageState extends ConsumerState<AlertsPage> {
           : ListView.separated(
               padding: const EdgeInsets.symmetric(vertical: 8),
               itemCount: alerts.length,
-              separatorBuilder: (_, __) =>
+              separatorBuilder: (_, _) =>
                   Divider(height: 1, color: c.line, indent: 20, endIndent: 20),
               itemBuilder: (context, i) => _AlertRow(
                 alerts[i],

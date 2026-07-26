@@ -67,7 +67,7 @@ class _GapSceneState extends ConsumerState<GapScene> {
           f.fundType == 'mmf' &&
           r != null &&
           min <= amount) {
-        if (best == null || r > (best!.currentRate ?? 0)) best = f;
+        if (best == null || r > (best.currentRate ?? 0)) best = f;
       }
     }
     return best;
@@ -79,7 +79,7 @@ class _GapSceneState extends ConsumerState<GapScene> {
     for (final f in funds) {
       final r = f.currentRate;
       if (f.retail && f.showsYield && f.fundType == 'mmf' && r != null) {
-        if (best == null || r > (best!.currentRate ?? 0)) best = f;
+        if (best == null || r > (best.currentRate ?? 0)) best = f;
       }
     }
     return best;
@@ -94,7 +94,7 @@ class _GapSceneState extends ConsumerState<GapScene> {
           f.showsYield &&
           f.fundType == 'mmf' &&
           f.currentRate != null) {
-        if (m == null || (f.minInvest ?? 0) < (m!.minInvest ?? 0)) m = f;
+        if (m == null || (f.minInvest ?? 0) < (m.minInvest ?? 0)) m = f;
       }
     }
     return m;
@@ -128,7 +128,7 @@ class _GapSceneState extends ConsumerState<GapScene> {
         (canOpen &&
             overall != null &&
             (overall.minInvest ?? 0) > _amount &&
-            overall.id != eligible!.id)
+            overall.id != eligible.id)
         ? overall
         : null;
 
@@ -213,7 +213,7 @@ class _GapSceneState extends ConsumerState<GapScene> {
                         tween: Tween(end: _amount),
                         duration: const Duration(milliseconds: 300),
                         curve: Curves.easeOut,
-                        builder: (_, v, __) => Text.rich(
+                        builder: (_, v, _) => Text.rich(
                           TextSpan(
                             children: [
                               TextSpan(
@@ -324,7 +324,7 @@ class _GapSceneState extends ConsumerState<GapScene> {
                         const SizedBox(height: 12),
                         if (canOpen)
                           Text(
-                            'Top fund you can open: ${eligible!.name}',
+                            'Top fund you can open: ${eligible.name}',
                             style: TextStyle(
                               color: c.faint,
                               fontSize: 11.5,
@@ -375,7 +375,7 @@ class _GapSceneState extends ConsumerState<GapScene> {
                                         milliseconds: 400,
                                       ),
                                       curve: Curves.easeOut,
-                                      builder: (_, v, __) => Text.rich(
+                                      builder: (_, v, _) => Text.rich(
                                         TextSpan(
                                           children: [
                                             TextSpan(
@@ -566,7 +566,7 @@ class _BarState extends State<_Bar> with SingleTickerProviderStateMixin {
             color: widget.track,
             child: AnimatedBuilder(
               animation: _anim,
-              builder: (_, __) => FractionallySizedBox(
+              builder: (_, _) => FractionallySizedBox(
                 alignment: Alignment.centerLeft,
                 widthFactor: _anim.value.clamp(0.0, 1.0),
                 child: DecoratedBox(

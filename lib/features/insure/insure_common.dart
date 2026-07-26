@@ -419,7 +419,7 @@ class _QBar extends StatelessWidget {
             tween: Tween(begin: 0, end: fraction.clamp(0.0, 1.0)),
             duration: const Duration(milliseconds: 900),
             curve: Curves.easeOutCubic,
-            builder: (_, v, __) => FractionallySizedBox(
+            builder: (_, v, _) => FractionallySizedBox(
               widthFactor: v.clamp(0.02, 1.0),
               child: Container(color: best ? c.accent : c.line2),
             ),

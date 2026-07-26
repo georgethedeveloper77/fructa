@@ -116,7 +116,7 @@ class _AlertsSceneState extends ConsumerState<AlertsScene>
                 width: double.infinity,
                 child: AnimatedBuilder(
                   animation: Listenable.merge([_draw, _pulse]),
-                  builder: (_, __) => CustomPaint(
+                  builder: (_, _) => CustomPaint(
                     painter: _AlertChartPainter(
                       drawP: _drawC.value,
                       pulseT: _pulse.value,

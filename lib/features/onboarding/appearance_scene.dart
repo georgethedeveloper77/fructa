@@ -19,7 +19,7 @@ class AppearanceScene extends ConsumerWidget {
     Fund? best;
     for (final f in funds) {
       if (f.retail && f.showsYield && f.currentRate != null) {
-        if (best == null || f.currentRate! > best!.currentRate!) best = f;
+        if (best == null || f.currentRate! > best.currentRate!) best = f;
       }
     }
     return best;

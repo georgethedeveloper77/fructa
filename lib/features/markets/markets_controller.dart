@@ -142,6 +142,25 @@ bool _isNavType(Fund f) =>
     f.fundType == 'balanced' ||
     f.fundType == 'special';
 
+// ── Ranking tiers ───────────────────────────────────────────────────────────
+//
+// A fund is ranked ONLY against funds quoting the same kind of number.
+//
+// The alternative, and what the list did before, was to give a fund with no
+// yield a sort key of negative infinity so it sank to the bottom. That is not a
+// neutral placement. In a mixed tab it puts every special fund beneath every
+// money market fund and invites exactly the reading the whole return basis
+// exists to prevent: that a 4.74% quarter lost to a 13.74% annual yield.
+//
+// Tiers keep both visible and never let them interleave. Inside a tier the
+// comparison is real, because every fund in it is quoting the same thing.
+int _basisTier(Fund f) => switch (f.resolvedBasis) {
+  'yield' => 0,
+  'return' => 1,
+  'nav' => 2,
+  _ => 3,
+};
+
 /// THE consumer cut. The one predicate that decides whether a fund exists at
 /// all as far as the Markets screen is concerned.
 ///
@@ -173,7 +192,14 @@ final visibleMarketTabsProvider = Provider<List<MarketTab>>((ref) {
   // so the tab is driven by the SACCO snapshot. With `saccos.enabled` off the
   // publisher emits none, the list is empty, and the tab simply is not there.
   final hasSaccos = ref.watch(saccosProvider).isNotEmpty;
-  bool hasData(Fund f) => f.currentRate != null || _isNavType(f);
+  // A fund earns its tab when it has SOMETHING to show. A return-basis fund
+  // shows a completed period, which is neither a rate nor a NAV type, and was
+  // therefore invisible to the old test on any fund_type outside the three.
+  final extras = ref.watch(snapshotExtrasProvider);
+  bool hasData(Fund f) =>
+      f.currentRate != null ||
+      _isNavType(f) ||
+      !extras.returnsFor(f.id).isEmpty;
   bool populated(MarketTab t) => switch (t) {
     MarketTab.all => true,
     MarketTab.stock => hasStocks,
@@ -188,28 +214,45 @@ final visibleMarketTabsProvider = Provider<List<MarketTab>>((ref) {
 /// see [moneyMarketCurrenciesProvider].
 final marketMoneyCcyProvider = StateProvider<String?>((_) => null);
 
-/// Distinct currencies present among money-market funds, KES first. Empty or
+/// Distinct currencies present in a given tab, KES first. Empty or
 /// single-entry means no sub-filter is worth showing.
-final moneyMarketCurrenciesProvider = Provider<List<String>>((ref) {
-  final funds = ref.watch(ratesProvider).value ?? const [];
+///
+/// Was hardcoded to Money Market, which was correct while money market was the
+/// only category sold in two currencies. It is not any more: a special fund
+/// exists in a KES and a USD version exactly as an MMF does, they are two
+/// separate rows quoting two different numbers, and with the filter nailed to
+/// one tab the USD one had no chip and no way to be isolated.
+List<String> _currenciesIn(List<Fund> funds, MarketTab tab) {
   final set = <String>{};
   for (final f in funds) {
     // The consumer cut, applied HERE too. Without it this loop saw funds the
     // list does not, so a currency whose funds are all off-app still earned a
     // chip, and tapping it landed the user on a short or empty list.
     if (!_inStream(f)) continue;
-    if (!MarketTab.moneyMarket.matches(f)) continue;
+    if (!tab.matches(f)) continue;
     final ccy = f.currency;
     if (ccy.isNotEmpty) set.add(ccy);
   }
   int rank(String c) => c == 'KES' ? 0 : (c == 'USD' ? 1 : 2);
-  final list = set.toList()
+  return set.toList()
     ..sort((a, b) {
       final r = rank(a).compareTo(rank(b));
       return r != 0 ? r : a.compareTo(b);
     });
-  return list;
+}
+
+/// Currencies available in the tab currently selected. Drives the sub-filter
+/// chips, which now render under any tab that has more than one.
+final tabCurrenciesProvider = Provider<List<String>>((ref) {
+  final funds = ref.watch(ratesProvider).value ?? const [];
+  return _currenciesIn(funds, ref.watch(marketTabProvider));
 });
+
+/// The old name, kept so nothing that imports it breaks mid-migration. It now
+/// answers for the CURRENT tab rather than for Money Market, so under Money
+/// Market it is unchanged and elsewhere it is finally right.
+@Deprecated('Use tabCurrenciesProvider')
+final moneyMarketCurrenciesProvider = tabCurrenciesProvider;
 
 double _rate(Fund f) => f.currentRate ?? double.negativeInfinity;
 num _min(Fund f) => f.minInvest ?? double.infinity; // nulls sort last
@@ -243,8 +286,13 @@ final streamFundsProvider = Provider<AsyncValue<List<Fund>>>((ref) {
     // since D2, a different real return. If a USD fund is off-app it is because
     // someone set retail = false on it, not because this filter is doing it.
     var list = funds.where(_inStream).where(tab.matches);
-    // currency sub-filter only applies within Money Market
-    if (tab == MarketTab.moneyMarket && ccy != null) {
+    // Currency sub-filter, in ANY tab that offers one.
+    //
+    // Guarded on the tab actually having that currency. Selecting USD under
+    // Money Market and then switching to a tab with no dollar fund would
+    // otherwise filter the list down to nothing and read as a broken screen
+    // rather than as a filter that no longer applies.
+    if (ccy != null && _currenciesIn(funds, tab).contains(ccy)) {
       list = list.where((f) => f.currency == ccy);
     }
     if (sort == MarketSort.taxFree) list = list.where((f) => f.taxFree);
@@ -255,12 +303,64 @@ final streamFundsProvider = Provider<AsyncValue<List<Fund>>>((ref) {
             f.manager.toLowerCase().contains(q),
       );
     }
-    final out = list.toList();
+    // ── Collapse share classes to one row ───────────────────────────────────
+    //
+    // Etica Special Wealth is ONE product sold as A, B and C. Left alone it
+    // occupies three of the rows in its category, and Class C tops any yield
+    // sort every time, because it yields most precisely by locking capital for
+    // twelve months. So one product wins the podium three times over and pushes
+    // two genuine competitors off the visible list.
+    //
+    // The class kept is the one with the SHORTEST lock-in, not the highest
+    // yield. A list is a shortlist, and the honest representative of a product
+    // is its most accessible terms; the reader meets the longer-locked, higher
+    // yielding classes on the detail page, next to what they cost in liquidity.
+    // Ranking on the best number would have the list quietly advertise the
+    // hardest class to get out of.
+    final grouped = <String, Fund>{};
+    final collapsed = <Fund>[];
+    for (final f in list) {
+      final g = f.classGroup;
+      if (g == null || g.isEmpty) {
+        collapsed.add(f);
+        continue;
+      }
+      final held = grouped[g];
+      if (held == null ||
+          (f.lockInMonths ?? 0) < (held.lockInMonths ?? 0) ||
+          ((f.lockInMonths ?? 0) == (held.lockInMonths ?? 0) &&
+              (f.classLabel ?? '').compareTo(held.classLabel ?? '') < 0)) {
+        grouped[g] = f;
+      }
+    }
+    collapsed.addAll(grouped.values);
+
+    final out = collapsed.toList();
+
+    // What a fund leads with, for ranking inside its own tier. A yield fund is
+    // ranked on yield net of tax; a return fund on its latest completed period.
+    // The two never meet, because the tier comparison runs first.
+    final extras = ref.watch(snapshotExtrasProvider);
+    double headlineValue(Fund f) => switch (_basisTier(f)) {
+      0 => _net(f, wht),
+      1 =>
+        extras.returnsFor(f.id).latest?.netPct ??
+            f.returnYtd ??
+            double.negativeInfinity,
+      _ => f.return1y ?? double.negativeInfinity,
+    };
+
     switch (sort) {
       case MarketSort.highestYield:
       case MarketSort.taxFree:
-        out.sort((a, b) => _net(b, wht).compareTo(_net(a, wht)));
+        out.sort((a, b) {
+          final t = _basisTier(a).compareTo(_basisTier(b));
+          if (t != 0) return t;
+          return headlineValue(b).compareTo(headlineValue(a));
+        });
       case MarketSort.lowestMinimum:
+        // Minimum investment is the one figure that means the same thing on
+        // every fund, so it sorts flat across bases with no tiering at all.
         out.sort((a, b) => _min(a).compareTo(_min(b)));
     }
     return out;

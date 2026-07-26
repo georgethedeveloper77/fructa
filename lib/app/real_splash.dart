@@ -69,7 +69,7 @@ class _RealSplashState extends State<RealSplash>
                 height: 150,
                 child: AnimatedBuilder(
                   animation: _c,
-                  builder: (_, __) => CustomPaint(
+                  builder: (_, _) => CustomPaint(
                     painter: _SplashLine(
                       Curves.easeInOutCubic.transform(_c.value),
                       line: c.accent,
@@ -81,7 +81,7 @@ class _RealSplashState extends State<RealSplash>
               const SizedBox(height: 26),
               AnimatedBuilder(
                 animation: _c,
-                builder: (_, __) {
+                builder: (_, _) {
                   final o = ((_c.value - 0.78) / 0.22).clamp(0.0, 1.0);
                   return Opacity(
                     opacity: o,

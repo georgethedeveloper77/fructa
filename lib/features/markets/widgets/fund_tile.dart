@@ -129,7 +129,16 @@ class _FundTileState extends ConsumerState<FundTile> {
 
     final rate = f.currentRate;
     final hasRate = f.showsYield && rate != null;
-    final net = hasRate ? f.netRate(wht) : null;
+    // Net is shown only where a deduction is actually still to come. A fund
+    // published net of tax has no second, smaller figure, and printing one
+    // would invent a deduction nobody made.
+    final net = hasRate && f.whtStillDue ? f.netRate(wht) : null;
+
+    // The headline, carrying its own kind. A return-basis fund reaches this
+    // point with a realized period return, and the ONE thing that must never
+    // happen on a list is that figure printing as a bare percentage beside a
+    // column of annual yields. It gets its period stamped underneath instead.
+    final headline = f.headlineWith(ref.watch(latestPeriodReturnProvider(f.id)));
 
     final meta = '${_typeLabel(f)} \u00b7 ${f.currency}';
 
@@ -291,7 +300,11 @@ class _FundTileState extends ConsumerState<FundTile> {
                   ),
                 ),
                 // sparkline from spark[]
-                if (f.spark.length >= 2) ...[
+                // Rate series only. `spark` is built from rate_history, so on a
+                // return-basis fund it is empty anyway, but the explicit gate
+                // means a future fund carrying both cannot draw a rate trend
+                // beside a period return and imply they are the same series.
+                if (f.showsYield && f.spark.length >= 2) ...[
                   const SizedBox(width: 12),
                   SizedBox(
                     width: 52,
@@ -317,9 +330,19 @@ class _FundTileState extends ConsumerState<FundTile> {
                         borderRadius: BorderRadius.circular(7),
                       ),
                       child: Text(
-                        hasRate ? '${rate.toStringAsFixed(2)}%' : '\u2014',
+                        switch (headline) {
+                          YieldHeadline(:final gross) =>
+                            '${gross.toStringAsFixed(2)}%',
+                          ReturnHeadline(:final pct) =>
+                            '${pct >= 0 ? '+' : ''}${pct.toStringAsFixed(2)}%',
+                          NoHeadline() => '\u2014',
+                        },
                         style: TextStyle(
-                          color: hasRate ? c.text : c.faint,
+                          color: switch (headline) {
+                            ReturnHeadline(:final pct) => c.delta(pct),
+                            YieldHeadline() => c.text,
+                            NoHeadline() => c.faint,
+                          },
                           fontFamily: fructaFonts.mono,
                           fontSize: 19,
                           fontWeight: FontWeight.w600,
@@ -327,6 +350,37 @@ class _FundTileState extends ConsumerState<FundTile> {
                         ),
                       ),
                     ),
+                    // The period, directly under the figure. Without it a
+                    // quarterly return and an annual yield are the same two
+                    // digits and a percent sign, and a reader scanning the
+                    // column will rank one against the other.
+                    if (headline case ReturnHeadline(:final label)) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        label,
+                        style: TextStyle(
+                          color: c.faint,
+                          fontFamily: fructaFonts.mono,
+                          fontSize: 10,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                    ],
+                    // The reason a fund has no figure, in place of the label a
+                    // real one would wear. 'NO PRICE YET' is a different fact
+                    // from 'NO RATE', and both are different from a zero.
+                    if (headline case NoHeadline(:final reason)) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        reason,
+                        style: TextStyle(
+                          color: c.faint,
+                          fontFamily: fructaFonts.mono,
+                          fontSize: 9,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                    ],
                     if (net != null && !f.taxFree) ...[
                       const SizedBox(height: 3),
                       Text(

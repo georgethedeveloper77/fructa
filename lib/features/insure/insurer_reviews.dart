@@ -34,7 +34,7 @@ class InsurerReviews extends ConsumerWidget {
         InsureH2(t('insure.review.title'), small: t('insure.review.sub')),
         stats.when(
           loading: () => const _Skeleton(),
-          error: (_, __) => const SizedBox.shrink(),
+          error: (_, _) => const SizedBox.shrink(),
           data: (s) => s.isEmpty
               ? _Empty(insurer: insurer)
               : _Histogram(stats: s, reviews: list.value ?? const []),
@@ -295,7 +295,7 @@ class _Histogram extends StatelessWidget {
                                     milliseconds: 700 + (5 - star) * 60,
                                   ),
                                   curve: Curves.easeOutCubic,
-                                  builder: (_, v, __) => FractionallySizedBox(
+                                  builder: (_, v, _) => FractionallySizedBox(
                                     widthFactor: v.clamp(0.0, 1.0),
                                     child: Container(color: c.accent),
                                   ),

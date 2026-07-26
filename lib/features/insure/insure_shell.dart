@@ -76,7 +76,7 @@ class _LiveDotState extends State<LiveDot>
       child: widget.pulse
           ? AnimatedBuilder(
               animation: _ctrl,
-              builder: (_, __) =>
+              builder: (_, _) =>
                   CustomPaint(painter: _PulsePainter(t: _ctrl.value, color: tint)),
             )
           : CustomPaint(painter: _PulsePainter(t: 1, color: tint)),
@@ -284,7 +284,7 @@ class _GlassNav extends StatelessWidget implements PreferredSizeWidget {
                         ),
                       ),
                     ),
-                    if (actions != null) ...actions!,
+                    ...?actions,
                   ],
                 ),
               ),

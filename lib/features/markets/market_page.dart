@@ -1152,8 +1152,7 @@ class _CountUp extends StatelessWidget {
     required this.style,
     this.suffix = '',
     this.signed = false,
-    this.duration = const Duration(milliseconds: 1000),
-  });
+  }) : duration = const Duration(milliseconds: 1000);
 
   final double value;
   final TextStyle style;

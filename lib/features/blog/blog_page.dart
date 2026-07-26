@@ -86,8 +86,8 @@ class _PostCard extends StatelessWidget {
                 child: CachedNetworkImage(
                   imageUrl: post.heroImageUrl!,
                   fit: BoxFit.cover,
-                  placeholder: (_, __) => Container(color: c.s2),
-                  errorWidget: (_, __, ___) => Container(color: c.s2),
+                  placeholder: (_, _) => Container(color: c.s2),
+                  errorWidget: (_, _, _) => Container(color: c.s2),
                 ),
               ),
             Padding(

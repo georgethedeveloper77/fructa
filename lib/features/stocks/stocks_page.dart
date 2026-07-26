@@ -308,7 +308,7 @@ class StockTile extends ConsumerStatefulWidget {
 }
 
 class _StockTileState extends ConsumerState<StockTile> {
-  bool _showRank = true;
+  final bool _showRank = true;
 
   @override
   Widget build(BuildContext context) {

@@ -1,4 +1,6 @@
 import 'dart:math' as math;
+
+import '../data/models/period_return.dart';
 import 'tax.dart';
 
 /// Daily accrual for money market funds. Rates are quoted as the *effective
@@ -17,9 +19,30 @@ class AccrualEngine {
   static double dailyInterest(double balance, double annualRatePercent) =>
       balance * dailyRate(annualRatePercent);
 
-  /// Net daily interest, after 15% withholding tax.
-  static double dailyInterestNet(double balance, double annualRatePercent) =>
-      Tax.net(dailyInterest(balance, annualRatePercent));
+  /// Net daily interest, after withholding tax WHEN ANY IS OWED.
+  ///
+  /// This engine values what a holding has actually earned, so a wrong answer
+  /// here is wrong in someone's portfolio total rather than on a marketing
+  /// screen. It previously deducted 15% from every fund unconditionally, which
+  /// is right for a money market fund and wrong for one quoting a rate already
+  /// net of tax: that holding accrued 15% less than it really did, every day.
+  ///
+  /// [netOf] and [taxFree] come from the fund. [whtPct] comes from remote
+  /// config. All three default to the money market case, so an existing caller
+  /// that passes none behaves exactly as before.
+  static double dailyInterestNet(
+    double balance,
+    double annualRatePercent, {
+    NetOf? netOf,
+    bool taxFree = false,
+    double whtPct = Tax.defaultWhtPct,
+  }) =>
+      Tax.apply(
+        dailyInterest(balance, annualRatePercent),
+        netOf: netOf,
+        taxFree: taxFree,
+        whtPct: whtPct,
+      );
 
   /// Value of [balance] after [days], daily-compounded.
   /// When [net], WHT is taken from each day's interest before it reinvests.
@@ -28,9 +51,17 @@ class AccrualEngine {
     double annualRatePercent,
     int days, {
     bool net = false,
+    NetOf? netOf,
+    bool taxFree = false,
+    double whtPct = Tax.defaultWhtPct,
   }) {
     final g = dailyRate(annualRatePercent);
-    final effective = net ? g * (1 - Tax.wht) : g;
+    // [net] asks for the after-tax path; Tax.surviving decides whether there is
+    // any tax left to take. A fund quoting net of tax returns a multiplier of 1
+    // and compounds at its full rate, which is what it actually does.
+    final effective = net
+        ? g * Tax.surviving(netOf: netOf, taxFree: taxFree, whtPct: whtPct)
+        : g;
     return balance * math.pow(1 + effective, days).toDouble();
   }
 
@@ -40,6 +71,11 @@ class AccrualEngine {
     double annualRatePercent,
     int days, {
     bool net = false,
+    NetOf? netOf,
+    bool taxFree = false,
+    double whtPct = Tax.defaultWhtPct,
   }) =>
-      accrue(balance, annualRatePercent, days, net: net) - balance;
+      accrue(balance, annualRatePercent, days,
+          net: net, netOf: netOf, taxFree: taxFree, whtPct: whtPct) -
+      balance;
 }

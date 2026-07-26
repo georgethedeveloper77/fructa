@@ -102,7 +102,9 @@ class _AddHoldingPageState extends ConsumerState<AddHoldingPage> {
           final d = _ccyRank(a) - _ccyRank(b);
           return d != 0 ? d : a.compareTo(b);
         });
-      for (final ccy in ccys) buckets.add((type: t, currency: ccy));
+      for (final ccy in ccys) {
+        buckets.add((type: t, currency: ccy));
+      }
     }
     final active = _bucket ?? (buckets.isNotEmpty ? buckets.first : null);
 

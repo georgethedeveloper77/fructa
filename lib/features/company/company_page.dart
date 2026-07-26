@@ -16,6 +16,7 @@ import '../../core/widgets/kit.dart';
 import '../../data/models/agent.dart';
 import '../../data/models/company.dart';
 import '../../data/models/fund.dart';
+import '../../data/models/period_return.dart';
 import '../../data/models/fund_composition.dart';
 import '../../data/models/holding.dart';
 import '../../data/models/remote_config.dart';
@@ -26,6 +27,10 @@ import '../../engine/projection_engine.dart';
 import '../../engine/tax.dart';
 import '../alerts/alerts_page.dart';
 import 'widgets/composition_pie.dart';
+import 'widgets/class_selector.dart';
+import 'widgets/growth_since_inception.dart';
+import 'widgets/nav_chart.dart';
+import 'widgets/period_returns_bar.dart';
 import 'widgets/fund_credentials.dart';
 import 'widgets/fund_performance.dart';
 import 'widgets/peer_compare.dart';
@@ -143,7 +148,19 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
   // first fund detail ever opened, then never again.
   static const _coachKey = 'coach_notif_seen';
 
-  Fund get fund => widget.fund;
+  /// The class currently on screen, when this fund is one of several classes of
+  /// one product. Null means the fund the page was opened with.
+  String? _classId;
+
+  /// Resolved through [fundsByIdProvider] rather than held as a Fund, so a
+  /// snapshot refresh while the page is open updates the selected class along
+  /// with everything else. Falls back to the fund the page was opened with if
+  /// the id ever goes missing, which is the only state that cannot be wrong.
+  Fund get fund {
+    final id = _classId;
+    if (id == null) return widget.fund;
+    return ref.read(fundsByIdProvider)[id] ?? widget.fund;
+  }
 
   @override
   void initState() {
@@ -334,7 +351,12 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
     final d7 = ref.watch(fundDeltaProvider(fund.id));
 
     final rate = fund.currentRate;
-    final netPct = fund.taxFree ? (rate ?? 0) : Tax.net(rate ?? 0);
+    // Was `Tax.net(rate)`, which deducted 15% unconditionally and hardcoded the
+    // rate while the LABEL two hundred lines below read cfg.whtPct. Tax.apply
+    // asks whether tax is owed at all, per the fund's own net_of, and takes the
+    // rate from config so the number and its label cannot disagree.
+    final netPct = Tax.apply(rate ?? 0,
+        netOf: fund.netOf, taxFree: fund.taxFree, whtPct: cfg.whtPct);
 
     // Real return is the NET rate deflated by the inflation of the fund's OWN
     // currency: benchmark.inflation for KES, benchmark.inflation_usd for USD.
@@ -399,6 +421,15 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
     // ── CMA CIS quarterly composition. Null (section hidden) until the
     // snapshot carries a breakdown for this fund.
     final fc = ref.watch(compositionProvider(fund.id));
+
+    // Closed-period returns, from the snapshot's period_returns sibling array.
+    // Empty for every yield and NAV fund, so nothing below it changes for them.
+    final returns = ref.watch(periodReturnsProvider(fund.id));
+
+    // Other classes of the same product. Empty for nearly every fund, in which
+    // case the selector renders nothing and the page is exactly as it was.
+    final siblings = ref.watch(classSiblingsProvider(widget.fund.id));
+    final latestReturn = returns.latest;
 
     // Manager market position (CMA Table 1 via companies): share + rank.
     final allCompanies = ref.watch(companiesProvider);
@@ -522,6 +553,18 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
                 ),
               ),
 
+              // ── Class selector, when this fund is one of several classes
+              //    of one product. Above the figure on purpose: everything
+              //    below changes with the selection, so choosing afterwards
+              //    would mean reading the page twice. ──────────────────────
+              if (siblings.length >= 2)
+                ClassSelector(
+                  siblings: siblings,
+                  selectedId: fund.id,
+                  onSelect: (id) => setState(() => _classId = id),
+                  tint: tint,
+                ),
+
               // ── Big rate + % gross + inline 7d delta ───────────────────
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
@@ -536,39 +579,59 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
                           fontWeight: FontWeight.w600,
                           height: 1,
                         ),
-                        children: fund.showsYield
-                            ? [
-                                if (rate != null) ...[
-                                  TextSpan(
-                                      text: rate.toStringAsFixed(2),
-                                      style: const TextStyle(
-                                          fontSize: 46, letterSpacing: -1.5)),
-                                  TextSpan(
-                                      text: '% gross',
-                                      style: TextStyle(
-                                          fontSize: 18, color: c.muted)),
-                                ] else
-                                  TextSpan(
-                                      text: t('common.dash'),
-                                      style: const TextStyle(
-                                          fontSize: 46, letterSpacing: -1.5)),
-                              ]
-                            : [
-                                if (fund.pricePerUnit != null) ...[
-                                  TextSpan(
-                                      text: fund.pricePerUnit!.toStringAsFixed(2),
-                                      style: const TextStyle(
-                                          fontSize: 46, letterSpacing: -1.5)),
-                                  TextSpan(
-                                      text: ' / unit',
-                                      style: TextStyle(
-                                          fontSize: 18, color: c.muted)),
-                                ] else
-                                  TextSpan(
-                                      text: t('common.dash'),
-                                      style: const TextStyle(
-                                          fontSize: 46, letterSpacing: -1.5)),
-                              ],
+                        // Driven by the sealed Headline rather than by a bool.
+                        // The old two-way branch had nowhere to put a realized
+                        // period return, so a special fund either fell into the
+                        // yield arm and got taxed and compounded, or into the
+                        // NAV arm and rendered a dash. The switch is exhaustive,
+                        // so a fourth kind of number cannot be added later
+                        // without the compiler stopping here first.
+                        children: switch (fund.headlineWith(latestReturn)) {
+                          YieldHeadline(:final gross) => [
+                              TextSpan(
+                                  text: gross.toStringAsFixed(2),
+                                  style: const TextStyle(
+                                      fontSize: 46, letterSpacing: -1.5)),
+                              TextSpan(
+                                  text: '% gross',
+                                  style:
+                                      TextStyle(fontSize: 18, color: c.muted)),
+                            ],
+                          // The period rides WITH the number, never beside it as
+                          // decoration. 4.74% over a quarter and 4.74% over a
+                          // year print identically and are not the same fact.
+                          ReturnHeadline(:final pct, :final label) => [
+                              TextSpan(
+                                  text:
+                                      '${pct >= 0 ? '+' : ''}${pct.toStringAsFixed(2)}',
+                                  style: TextStyle(
+                                      fontSize: 46,
+                                      letterSpacing: -1.5,
+                                      color: c.delta(pct))),
+                              TextSpan(
+                                  text: '% $label',
+                                  style:
+                                      TextStyle(fontSize: 18, color: c.muted)),
+                            ],
+                          NoHeadline() when fund.showsPrice &&
+                                  fund.pricePerUnit != null =>
+                            [
+                              TextSpan(
+                                  text: fund.pricePerUnit!.toStringAsFixed(2),
+                                  style: const TextStyle(
+                                      fontSize: 46, letterSpacing: -1.5)),
+                              TextSpan(
+                                  text: ' / unit',
+                                  style:
+                                      TextStyle(fontSize: 18, color: c.muted)),
+                            ],
+                          NoHeadline() => [
+                              TextSpan(
+                                  text: t('common.dash'),
+                                  style: const TextStyle(
+                                      fontSize: 46, letterSpacing: -1.5)),
+                            ],
+                        },
                       ),
                     ),
                     if (d7 != null && d7 != 0) ...[
@@ -600,7 +663,7 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
               ),
 
               // ── Priced as of (NAV funds only) ──────────────────────────
-              if (!fund.showsYield && fund.priceAsOf != null)
+              if (fund.showsPrice && fund.priceAsOf != null)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 6, 20, 0),
                   child: Text(
@@ -616,7 +679,16 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
               //    1Y return / distribution / min ─────────────────────────
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
-                child: fund.showsYield
+                child: fund.showsPeriodReturn
+                    ? _TriadReturn(
+                        netOf: latestReturn?.netOf ?? fund.netOf,
+                        average: returns.averagePct,
+                        averageLabel: returns.dominantPeriod?.label,
+                        minValue: fund.minInvest != null
+                            ? '${fund.currency} ${_commas(fund.minInvest!)}'
+                            : t('common.dash'),
+                      )
+                    : fund.showsYield
                     ? _Triad(
                         netLabel: fund.taxFree
                             ? 'TAX-FREE'
@@ -667,6 +739,20 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
                 ),
               ],
 
+              // ── Unit price - the same slot the rate history occupies for a
+              //    yield fund. A priced fund had NO chart at all: RateChart
+              //    sits behind showsYield, so the one page where a price
+              //    movement IS the return showed no movement. ─────────────
+              if (fund.showsPrice) ...[
+                _eyebrow(context, 'UNIT PRICE'),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _card(context,
+                      child: NavChart(fund.id,
+                          currency: fund.currency, color: tint)),
+                ),
+              ],
+
               // ── Your position (.pos) - only when held. Sits right after the
               //    chart, before performance/projection, so a holder sees their
               //    own money first. ────────────────────────────────────────
@@ -676,11 +762,39 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
                     usdKes: ref.watch(usdKesProvider)),
               ],
 
+              // ── Completed periods - the chart a return-basis fund lives
+              //    on. A yield fund's rate history is above; this is the same
+              //    slot for a fund whose number is a closed quarter. ────────
+              if (fund.showsPeriodReturn && !returns.isEmpty) ...[
+                _eyebrow(context, 'COMPLETED PERIODS'),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _card(context,
+                      child: PeriodReturnsBar(fund, returns, tint: tint)),
+                ),
+              ],
+
               // ── Trailing performance vs benchmark (Bucket B) ───────────
               if (fund.hasReturns) FundPerformance(fund, tint: tint),
 
-              // ── Project your returns - reuses ProjectionEngine ─────────
-              _ProjectionSection(fund, tint: tint),
+              // ── Project your returns - reuses ProjectionEngine. Renders
+              //    only where compounding a number forward is a claim the fund
+              //    is entitled to make, which means a yield. ────────────────
+              _ProjectionSection(fund, whtPct: cfg.whtPct, tint: tint),
+
+              // ── Growth since inception - what a return fund gets INSTEAD of
+              //    the projection. Same slot, opposite direction in time, so
+              //    it promises nothing. ─────────────────────────────────────
+              if (fund.showsPeriodReturn &&
+                  returns.growthMultiple != null) ...[
+                _eyebrow(context, 'GROWTH SINCE INCEPTION'),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _card(context,
+                      padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
+                      child: GrowthSinceInception(fund, returns, tint: tint)),
+                ),
+              ],
 
               // ── Manager · CMA CIS position ─────────────────────────────
               if (manager?.aumKes != null || manager?.marketShare != null) ...[
@@ -737,7 +851,10 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: _Facts(rows: [
                       if (fund.mgmtFee != null)
-                        _Fact('Mgmt fee', '${fund.mgmtFee}% p.a.'),
+                        _Fact(fund.feeLabel, '${fund.mgmtFee}% p.a.'),
+                      if (fund.hasPerfFee)
+                        _Fact('Performance charge',
+                            '${fund.perfFeePct}% above ${fund.hurdlePct}% p.a.'),
                       if (fund.expenseRatio != null)
                         _Fact('Expense ratio', '${fund.expenseRatio}% p.a.'),
                       if (fund.distributionPct != null)
@@ -746,7 +863,12 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
                           'Tax',
                           fund.taxFree
                               ? 'Tax-free'
-                              : '${cfg.whtPct.toStringAsFixed(0)}% WHT'),
+                              : fund.whtStillDue
+                                  ? '${cfg.whtPct.toStringAsFixed(0)}% WHT'
+                                  // Already deducted by the manager. Printing
+                                  // the rate here would imply it is still to
+                                  // come and understate what the holder keeps.
+                                  : 'Already deducted'),
                       if (benchLabel != null) _Fact('Benchmark', benchLabel),
                       if (fund.topUpMin != null)
                         _Fact('Top-up min',
@@ -780,7 +902,7 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
               ],
 
               // ── Contact - the manager's own published channels ─────────
-              if (contactCard != null) contactCard,
+              ?contactCard,
 
               // ── CTAs ───────────────────────────────────────────────────
               if (topUpUrl != null)
@@ -1307,8 +1429,13 @@ class _RiskBand extends StatelessWidget {
 /// and for tax-free funds even that row becomes a "Tax-free" note. Rendered
 /// only for funds that quote a yield and have a rate.
 class _ProjectionSection extends StatefulWidget {
-  const _ProjectionSection(this.fund, {this.tint});
+  const _ProjectionSection(this.fund, {required this.whtPct, this.tint});
   final Fund fund;
+
+  /// Withholding rate from remote config, passed in rather than read from a
+  /// constant. The ledger row below prints this figure as a label AND uses it
+  /// as a divisor, and before this they came from two different places.
+  final double whtPct;
   final Color? tint;
 
   @override
@@ -1352,7 +1479,10 @@ class _ProjectionSectionState extends State<_ProjectionSection> {
   Widget build(BuildContext context) {
     final fund = widget.fund;
     final rate = fund.currentRate;
-    if (!fund.showsYield || rate == null) return const SizedBox.shrink();
+    // canProject, not showsYield. Same answer today, but it is the model's
+    // stated rule about what may be compounded rather than this widget's
+    // private restatement of it, so the two cannot drift apart.
+    if (!fund.canProject || rate == null) return const SizedBox.shrink();
 
     final c = context.c;
     final tint = widget.tint ?? c.accent;
@@ -1380,14 +1510,27 @@ class _ProjectionSectionState extends State<_ProjectionSection> {
     // the gap it leaves is the tax PLUS the compounding the tax cost you. Under
     // a row that says 15%, it printed 15.5% of gross at two years and 21.8% at
     // ten. The projected value was never wrong; the story told about it was.
+    // `net: !taxFree` was doing two jobs and only knew about one of them. A
+    // fund quoting net of tax already is not tax-free, so it took the taxed
+    // path and lost another 15%. The engine now takes net_of and decides.
+    final due = fund.whtStillDue;
+    final wht = widget.whtPct / 100;
     final projected = ProjectionEngine.project(initial, rate, _months,
-        monthlyTopUp: _topUp, net: !taxFree);
+        monthlyTopUp: _topUp,
+        net: true,
+        whtPct: widget.whtPct,
+        netOf: fund.netOf,
+        taxFree: taxFree);
     final netInterest = projected - contributed;
-    final grossInterest = taxFree ? netInterest : netInterest / (1 - Tax.wht);
+    final grossInterest = due ? netInterest / (1 - wht) : netInterest;
     final whtPaid = grossInterest - netInterest;
 
     final series = ProjectionEngine.series(initial, rate, _months,
-        monthlyTopUp: _topUp, net: !taxFree);
+        monthlyTopUp: _topUp,
+        net: true,
+        whtPct: widget.whtPct,
+        netOf: fund.netOf,
+        taxFree: taxFree);
 
     // Formats in the FUND's currency, not KES. The old name of this closure
     // was `kes`, which is exactly the assumption this delivery is unpicking.
@@ -1489,15 +1632,15 @@ class _ProjectionSectionState extends State<_ProjectionSection> {
                   v: '+${amt(grossInterest)}',
                   vColor: c.up,
                 ),
-                if (taxFree)
+                if (!due)
                   _LedgerRow(
                     k: 'Tax',
-                    v: 'Tax-free',
+                    v: taxFree ? 'Tax-free' : 'Already deducted',
                     vColor: c.muted,
                   )
                 else
                   _LedgerRow(
-                    k: 'Less ${(Tax.wht * 100).toStringAsFixed(0)}% withholding tax',
+                    k: 'Less ${widget.whtPct.toStringAsFixed(0)}% withholding tax',
                     v: '\u2212${amt(whtPaid)}',
                     vColor: c.muted,
                   ),
@@ -1833,6 +1976,68 @@ class _TriadNav extends StatelessWidget {
           v: distribution != null
               ? '${distribution!.toStringAsFixed(2)}%'
               : t('common.dash'),
+        ),
+        divider(),
+        _TriadCell(k: 'MIN INVEST', v: minValue),
+      ],
+    );
+  }
+}
+
+/// The triad for a fund whose headline is a realized period return.
+///
+/// Deliberately NOT the yield triad with different labels. That one leads with
+/// "NET (15% WHT)", and on a fund publishing net of tax already there is no such
+/// figure to show: the number in the hero IS the net one. Printing a second,
+/// smaller number beside it would invent a deduction nobody made.
+///
+/// So the first cell states what has already come out instead, which is the fact
+/// a reader actually needs in order to know whether the hero figure is the one
+/// that lands in their account.
+class _TriadReturn extends StatelessWidget {
+  const _TriadReturn({
+    required this.netOf,
+    required this.average,
+    required this.averageLabel,
+    required this.minValue,
+  });
+
+  final NetOf? netOf;
+  final double? average;
+  final String? averageLabel;
+  final String minValue;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    Widget divider() => Container(
+        width: 1,
+        height: 30,
+        margin: const EdgeInsets.symmetric(horizontal: 14),
+        color: c.line);
+
+    final avgKey = averageLabel == null
+        ? 'AVERAGE'
+        : 'AVG ${averageLabel!.toUpperCase()}';
+
+    return Row(
+      children: [
+        _TriadCell(
+          k: 'QUOTED',
+          v: switch (netOf) {
+            NetOf.feesAndTax => 'Net of fees and tax',
+            NetOf.fees => 'Net of fees',
+            NetOf.nothing => 'Before fees',
+            null => t('common.dash'),
+          },
+        ),
+        divider(),
+        _TriadCell(
+          k: avgKey,
+          v: average != null
+              ? '${average! >= 0 ? '+' : ''}${average!.toStringAsFixed(2)}%'
+              : t('common.dash'),
+          color: average != null ? c.delta(average!) : null,
         ),
         divider(),
         _TriadCell(k: 'MIN INVEST', v: minValue),

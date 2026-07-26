@@ -571,7 +571,7 @@ class _AnimatedHeroSparkState extends State<_AnimatedHeroSpark>
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: _c,
-    builder: (_, __) => CustomPaint(
+    builder: (_, _) => CustomPaint(
       painter: _HeroSpark(
         widget.pts,
         widget.color,

@@ -1,4 +1,17 @@
+import '../data/models/period_return.dart';
 import 'tax.dart';
+
+// A directly-held bond or bill is NOT quoted the way a fund is, so `net_of`
+// does not really apply to it: a Treasury coupon is paid gross and withheld at
+// source, full stop. What was wrong here was the RATE, hardcoded at 15 while
+// the app reads benchmark.wht_pct from config everywhere it prints one.
+//
+// The deduction still routes through Tax.apply rather than an inline
+// multiplication, so there stays exactly one function in the codebase that may
+// reduce a number for tax. NetOf.fees is the argument that means "tax is still
+// due", which is precisely the situation; the "fees" half of the name is
+// vacuous for an instrument nobody manages, and harmless.
+const NetOf _taxStillDue = NetOf.fees;
 
 class CouponPayment {
   final DateTime date;
@@ -16,7 +29,7 @@ class CouponPayment {
 class TbillResult {
   final double price; // what you pay now for [faceValue] at maturity
   final double grossInterest; // faceValue - price
-  final double netInterest; // after 15% WHT
+  final double netInterest; // after withholding, at the configured rate
   const TbillResult({
     required this.price,
     required this.grossInterest,
@@ -36,9 +49,11 @@ class BondEngine {
     double faceValue,
     double couponRatePercent, {
     bool taxFree = false,
+    double whtPct = Tax.defaultWhtPct,
   }) {
     final gross = semiAnnualCouponGross(faceValue, couponRatePercent);
-    return taxFree ? gross : Tax.net(gross);
+    return Tax.apply(gross,
+        netOf: _taxStillDue, taxFree: taxFree, whtPct: whtPct);
   }
 
   /// Full semi-annual coupon schedule; the final payment returns the principal.
@@ -48,10 +63,12 @@ class BondEngine {
     required DateTime start,
     required int tenorYears,
     bool taxFree = false,
+    double whtPct = Tax.defaultWhtPct,
   }) {
     final periods = tenorYears * 2;
     final coupon = semiAnnualCouponGross(faceValue, couponRatePercent);
-    final couponNet = taxFree ? coupon : Tax.net(coupon);
+    final couponNet = Tax.apply(coupon,
+        netOf: _taxStillDue, taxFree: taxFree, whtPct: whtPct);
     final out = <CouponPayment>[];
     for (var i = 1; i <= periods; i++) {
       final isLast = i == periods;
@@ -73,10 +90,20 @@ class BondEngine {
     required double faceValue,
     required double annualYieldPercent,
     required int days,
+    // A T-bill is government paper and is withheld at source. taxFree exists for
+    // symmetry with the coupon path, where an infrastructure bond genuinely is
+    // exempt; on a bill it should stay false.
+    bool taxFree = false,
+    double whtPct = Tax.defaultWhtPct,
   }) {
     final y = annualYieldPercent / 100.0;
     final price = faceValue / (1 + y * (days / 365.0));
     final gross = faceValue - price;
-    return TbillResult(price: price, grossInterest: gross, netInterest: Tax.net(gross));
+    return TbillResult(
+      price: price,
+      grossInterest: gross,
+      netInterest: Tax.apply(gross,
+          netOf: _taxStillDue, taxFree: taxFree, whtPct: whtPct),
+    );
   }
 }

@@ -118,7 +118,7 @@ class _PersonaSceneState extends ConsumerState<PersonaScene>
                 width: double.infinity,
                 child: AnimatedBuilder(
                   animation: _intro,
-                  builder: (_, __) => CustomPaint(
+                  builder: (_, _) => CustomPaint(
                     painter: _ForkPainter(
                       trunkP: _trunk.value,
                       branchP: _branch.value,

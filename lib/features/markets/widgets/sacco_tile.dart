@@ -60,7 +60,7 @@ class SaccoTile extends ConsumerStatefulWidget {
 }
 
 class _SaccoTileState extends ConsumerState<SaccoTile> {
-  bool _showRank = true;
+  final bool _showRank = true;
 
   String _members(int n) {
     final s = n.toString();

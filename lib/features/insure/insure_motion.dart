@@ -45,7 +45,7 @@ class RingGauge extends StatelessWidget {
             tween: Tween(begin: 0, end: fraction.clamp(0.0, 1.0)),
             duration: const Duration(milliseconds: 1100),
             curve: Curves.easeOutCubic,
-            builder: (_, v, __) => CustomPaint(
+            builder: (_, v, _) => CustomPaint(
               size: Size.square(size),
               painter: _RingPainter(
                 frac: v,
@@ -55,7 +55,7 @@ class RingGauge extends StatelessWidget {
               ),
             ),
           ),
-          if (child != null) child!,
+          ?child,
         ],
       ),
     );
@@ -155,7 +155,7 @@ class GradeScale extends StatelessWidget {
                 tween: Tween(begin: 0, end: i < filled ? 1 : 0),
                 duration: Duration(milliseconds: 260 + i * 60),
                 curve: Curves.easeOut,
-                builder: (_, v, __) => Container(
+                builder: (_, v, _) => Container(
                   height: 4,
                   decoration: BoxDecoration(
                     color: Color.lerp(c.s3, tint, v),
@@ -309,7 +309,7 @@ class _Bar extends StatelessWidget {
                   tween: Tween(begin: 0, end: d.value.clamp(0.0, 1.0)),
                   duration: Duration(milliseconds: 900 + index * 70),
                   curve: Curves.easeOutCubic,
-                  builder: (_, v, __) => FractionallySizedBox(
+                  builder: (_, v, _) => FractionallySizedBox(
                     widthFactor: v,
                     child: d.hatched
                         ? CustomPaint(

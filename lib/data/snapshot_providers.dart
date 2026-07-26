@@ -14,6 +14,7 @@ import 'models/insurer.dart';
 import 'models/learn.dart';
 import 'models/market_event.dart';
 import 'models/market_history.dart';
+import 'models/period_return.dart';
 import 'models/post.dart';
 import 'models/remote_config.dart';
 import 'models/sacco.dart';
@@ -83,6 +84,26 @@ final compositionProvider = Provider.family<FundComposition?, String>(
   (ref, fundId) => ref.watch(snapshotExtrasProvider).compositionFor(fundId),
 );
 
+/// Closed-period returns for a fund, oldest first, from the snapshot's
+/// `period_returns` sibling array.
+///
+/// Never null. A fund with nothing published gets [FundReturns.empty], whose
+/// accessors all answer honestly: no series, no chart, no growth multiple. That
+/// keeps the "is there data" question inside the one object that can answer it,
+/// rather than spread across every widget that reads a return.
+final periodReturnsProvider = Provider.family<FundReturns, String>(
+  (ref, fundId) => ref.watch(snapshotExtrasProvider).returnsFor(fundId),
+);
+
+/// The newest closed period, which is what a return-basis fund leads with.
+///
+/// Feeds [Fund.headlineWith], so the tile and the detail page take their
+/// headline from the same row and cannot disagree about what the fund most
+/// recently returned.
+final latestPeriodReturnProvider = Provider.family<PeriodReturn?, String>(
+  (ref, fundId) => ref.watch(periodReturnsProvider(fundId)).latest,
+);
+
 /// V6 remote config  admin-edited copy/flags from the snapshot. Every read
 /// carries a baked fallback, so this can never break rendering.
 final remoteConfigProvider = Provider<RemoteConfig>(
@@ -123,7 +144,7 @@ final postBySlugProvider = Provider.family<Post?, String>((ref, slug) {
 });
 
 /// When the snapshot was last published (local time), or null on a v1/cached
-/// body without a stamp. Drives the Markets "Updated …" line honestly.
+/// body without a stamp. Drives the Markets "Updated" line honestly.
 final snapshotUpdatedProvider = Provider<DateTime?>(
   (ref) => ref.watch(snapshotExtrasProvider).generatedAt,
 );

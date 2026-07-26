@@ -2,6 +2,7 @@
 /// hold lessons hold steps; a step's typed fields are read off its `payload`
 /// by kind. A lesson's [fundId] is resolved to the live rate in the UI, so
 /// content never carries a stale number.
+library;
 
 enum LearnStepKind { explainer, interactive, quiz, image, chart, unknown }
 

@@ -245,7 +245,7 @@ class _LevelHero extends StatelessWidget {
                 tween: Tween(begin: 0, end: pct.clamp(0.0, 1.0)),
                 duration: const Duration(milliseconds: 700),
                 curve: Curves.easeOutCubic,
-                builder: (_, v, __) => FractionallySizedBox(
+                builder: (_, v, _) => FractionallySizedBox(
                   widthFactor: v,
                   child: Container(
                     height: 8,

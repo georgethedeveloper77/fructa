@@ -101,7 +101,7 @@ class _MarketPulseState extends ConsumerState<MarketPulse>
       height: 30,
       child: AnimatedBuilder(
         animation: _c,
-        builder: (_, __) => CustomPaint(
+        builder: (_, _) => CustomPaint(
           size: Size.infinite,
           painter: _PulsePainter(series, color, _c.value),
         ),

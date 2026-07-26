@@ -3,9 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/i18n.dart';
 import '../../core/theme.dart';
-import '../../core/widgets/cta.dart';
 import '../../core/widgets/follow_star.dart';
-import '../../core/widgets/fund_logo.dart';
 import '../../core/widgets/kit.dart';
 import '../../data/models/stock.dart';
 import '../../data/providers.dart';

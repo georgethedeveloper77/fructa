@@ -1,3 +1,5 @@
+import 'period_return.dart';
+
 /// What a fund's tile leads with, and WHAT KIND OF NUMBER it is.
 ///
 /// This type exists because [Fund] can hand out two doubles that print
@@ -37,9 +39,19 @@ final class YieldHeadline extends Headline {
 /// so pointing `engine/tax.dart` at it would understate every equity fund by a
 /// sixth.
 final class ReturnHeadline extends Headline {
-  const ReturnHeadline(this.pct, {this.period = '1Y'});
+  const ReturnHeadline(this.pct, {required this.label, this.netOf});
+
   final double pct;
-  final String period;
+
+  /// What window this covers, in words: '1Y', 'Q1 2026', 'YTD'. Carried rather
+  /// than defaulted, because the default was '1Y' and it was wrong for every
+  /// fund that quotes a quarter. A period return whose period is a guess is the
+  /// exact object this class was built to make impossible.
+  final String label;
+
+  /// What is already deducted. Decides whether anything downstream may deduct
+  /// withholding tax, and null means the fund never said.
+  final NetOf? netOf;
 }
 
 /// No number, and the reason there is none. NOT a zero. A fund whose manager has
@@ -147,6 +159,40 @@ class Fund {
   /// NAV fund (which has no rate and therefore no rate history).
   final List<double> spark;
 
+  // ── Return basis (0074) ───────────────────────────────────────────────────
+
+  /// What is already deducted from this fund's quoted number. See [NetOf].
+  final NetOf? netOf;
+
+  /// The window a realized return covers, for `basis == 'return'` funds.
+  final ReturnPeriod? returnPeriod;
+
+  /// The date that window closed. Distinct from [returnsAsOf], which stamps the
+  /// trailing 1y/3y/5y block rather than one closed period.
+  final String? returnAsOf;
+
+  /// What to call [mgmtFee]: 'mgmt' | 'service' | 'none'. A 5% p.a. financial
+  /// services charge is not a management fee, and labelling it as one said
+  /// nothing at all about the performance charge sitting beside it.
+  final String? feeKind;
+
+  /// Performance charge, % of the return above [hurdlePct]. Meaningless apart,
+  /// so [hasPerfFee] requires both before either is rendered.
+  final double? perfFeePct;
+  final double? hurdlePct;
+
+  /// Share classes: one product sold in several, sharing a [classGroup] and
+  /// distinguished by [classLabel]. Null on almost every fund.
+  final String? classGroup;
+  final String? classLabel;
+
+  /// Top holdings, largest first, as `{name, pct}`. An ordered list because rank
+  /// is part of the fact the sheet is stating.
+  final List<({String name, double pct})>? holdings;
+
+  /// Portfolio by region, percentages. Unordered because regions do not rank.
+  final Map<String, double>? geography;
+
   /// The same idea for a priced fund: a PRICE series, built from `nav_history`.
   ///
   /// A separate field on purpose. Letting `spark` hold a rate for some funds and
@@ -199,6 +245,16 @@ class Fund {
     this.aumNative,
     this.durationYears,
     this.creditQuality,
+    this.netOf,
+    this.returnPeriod,
+    this.returnAsOf,
+    this.feeKind,
+    this.perfFeePct,
+    this.hurdlePct,
+    this.classGroup,
+    this.classLabel,
+    this.holdings,
+    this.geography,
     this.spark = const [],
     this.navSpark = const [],
   });
@@ -247,6 +303,16 @@ class Fund {
     aumNative: (j['aum_native'] as num?)?.toDouble(),
     durationYears: (j['duration_years'] as num?)?.toDouble(),
     creditQuality: _credit(j['credit_quality']),
+    netOf: NetOf.parse(j['net_of'] as String?),
+    returnPeriod: ReturnPeriod.parse(j['return_period'] as String?),
+    returnAsOf: j['return_as_of'] as String?,
+    feeKind: j['fee_kind'] as String?,
+    perfFeePct: (j['perf_fee_pct'] as num?)?.toDouble(),
+    hurdlePct: (j['hurdle_pct'] as num?)?.toDouble(),
+    classGroup: j['class_group'] as String?,
+    classLabel: j['class_label'] as String?,
+    holdings: _holdings(j['holdings']),
+    geography: _pctMap(j['geography']),
     spark: ((j['spark'] as List?) ?? const [])
         .whereType<num>()
         .map((v) => v.toDouble())
@@ -256,6 +322,34 @@ class Fund {
         .map((v) => v.toDouble())
         .toList(),
   );
+
+  /// Top holdings, in the order the fact sheet ranked them. A row missing a name
+  /// or a usable percentage is dropped rather than rendered as an unnamed slice.
+  static List<({String name, double pct})>? _holdings(Object? raw) {
+    if (raw is! List) return null;
+    final out = <({String name, double pct})>[];
+    for (final e in raw) {
+      if (e is! Map) continue;
+      final n = e['name'];
+      final p = e['pct'];
+      if (n is String && n.trim().isNotEmpty && p is num && p > 0) {
+        out.add((name: n, pct: p.toDouble()));
+      }
+    }
+    return out.isEmpty ? null : out;
+  }
+
+  /// A percentage map (geography, and anything else shaped like it). Mirrors
+  /// [_credit]: a malformed or empty object yields null and the section hides,
+  /// rather than rendering a fabricated split.
+  static Map<String, double>? _pctMap(Object? raw) {
+    if (raw is! Map) return null;
+    final m = <String, double>{};
+    raw.forEach((k, v) {
+      if (k is String && v is num && v > 0) m[k] = v.toDouble();
+    });
+    return m.isEmpty ? null : m;
+  }
 
   /// Parsed defensively: a missing or malformed jsonb yields null and the credit
   /// section hides itself, rather than rendering a fabricated split.
@@ -273,19 +367,79 @@ class Fund {
   // change reprices the whole board without a re-scrape. whtPct / inflationPct
   // come from RemoteConfig.benchmark(...).
 
-  /// Whether this fund quotes a single annual yield. MMF + Fixed Income do;
-  /// Equity/Balanced/Special (basis 'none'/'nav') show AUM/composition instead.
-  /// Missing basis (older snapshot) defaults to true for back-compat.
-  bool get showsYield => (basis ?? 'yield') == 'yield';
+  // ── Basis resolution ──────────────────────────────────────────────────────
+
+  /// The basis this fund is actually rendered on, with a missing value resolved
+  /// from EVIDENCE rather than from a blanket assumption.
+  ///
+  /// `basis ?? 'yield'` was the old rule and it fails open in the one direction
+  /// that costs something: it hands an unknown fund the full yield treatment,
+  /// which means a withholding-tax deduction and a compounded projection. That
+  /// is how a special fund carrying a stale `current_rate` came to show a two
+  /// year projected value built on a quarterly figure.
+  ///
+  /// Null basis is not hypothetical. `addFund` in the admin has never set the
+  /// column, so every fund created there since migration 0023 arrives with it
+  /// empty, and the old default is the only reason those funds render at all.
+  /// So this cannot simply be tightened to `false`: it would blank live funds.
+  /// It infers instead, from what the fund actually carries:
+  ///
+  ///   a rate and no price  -> yield, which is what it has been doing
+  ///   a price and no rate  -> nav
+  ///   neither              -> none, rather than an empty yield
+  ///
+  /// Inference is a stopgap, not a design. Backfill the column and this reduces
+  /// to reading it:
+  ///
+  ///   update funds set basis = case
+  ///     when current_rate is not null then 'yield'
+  ///     when price_per_unit is not null then 'nav'
+  ///     else 'none' end
+  ///   where basis is null and kind = 'fund';
+  String get resolvedBasis {
+    final b = basis;
+    if (b != null && b.isNotEmpty) return b;
+    if (currentRate != null) return 'yield';
+    if (hasPrice) return 'nav';
+    return 'none';
+  }
+
+  /// Whether this fund quotes a single annual yield: forward income, taxable,
+  /// compoundable. MMF and Fixed Income do. Equity, Balanced and priced Special
+  /// funds do not.
+  bool get showsYield => resolvedBasis == 'yield';
+
+  /// Whether this fund quotes a REALIZED return for a closed period.
+  ///
+  /// Not a yield and not a price. Backward-looking, may be negative, and never
+  /// annualised by the app: multiplying a quarter by four is the operation that
+  /// turns a 5.23% fact into a 22.6% claim.
+  bool get showsPeriodReturn => resolvedBasis == 'return';
+
+  /// Whether this fund quotes a unit price.
+  bool get showsPrice => resolvedBasis == 'nav';
+
+  /// Whether the app may compound this fund's headline into the future. Only a
+  /// yield qualifies. Everything else gets the backward-looking growth card.
+  bool get canProject => showsYield;
+
+  /// Whether withholding tax is still owed on the headline, per [netOf].
+  bool get whtStillDue =>
+      !taxFree && (netOf ?? NetOf.fees).whtStillDue;
 
   double? get grossRate => currentRate;
 
-  /// After 15% withholding tax (unless the fund is tax-free). Reproduces the
-  /// "After Tax" column exactly.
+  /// After withholding tax, WHEN ANY IS OWED.
+  ///
+  /// Previously this deducted unconditionally unless the fund was tax-free,
+  /// which is right for every money market fund and wrong for anything quoting
+  /// a figure already net of tax. [netOf] is the field that tells them apart,
+  /// and a null [netOf] reads as the money market convention, so nothing about
+  /// an MMF's rendering changes.
   double? netRate(double whtPct) {
     final g = currentRate;
     if (g == null) return null;
-    return taxFree ? g : g * (1 - whtPct / 100);
+    return whtStillDue ? g * (1 - whtPct / 100) : g;
   }
 
   /// Real return after inflation, Fisher: (1 + net) / (1 + infl) - 1.
@@ -359,23 +513,92 @@ class Fund {
   /// The two empty states are distinct because they are different facts and they
   /// ask for different things: a fund with a price but no published return is
   /// waiting on a fact sheet, and a fund with neither is waiting on everything.
-  Headline get headline {
+  /// Words for the window a period return covers: 'Q1 2026', 'Jun 2026', '2025'.
+  ///
+  /// Built from [returnPeriod] and [returnAsOf] so the label can never drift
+  /// from the number it sits beside. Falls back to the period's own name when
+  /// the date is missing or unparseable, which is still infinitely better than
+  /// the bare percentage this replaces.
+  String? get returnPeriodLabel {
+    final p = returnPeriod;
+    if (p == null) return null;
+    final iso = returnAsOf;
+    final d = iso == null ? null : DateTime.tryParse(iso);
+    if (d == null) return p.label;
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+    return switch (p) {
+      ReturnPeriod.quarter => 'Q${((d.month - 1) ~/ 3) + 1} ${d.year}',
+      ReturnPeriod.month => '${months[d.month - 1]} ${d.year}',
+      ReturnPeriod.half => 'H${d.month <= 6 ? 1 : 2} ${d.year}',
+      ReturnPeriod.year => '${d.year}',
+      ReturnPeriod.ytd => 'YTD ${d.year}',
+      ReturnPeriod.sinceInception => 'Since inception',
+    };
+  }
+
+  /// The fund's headline, carrying its own kind so no consumer can print it
+  /// bare. [latestReturn] is the newest row from the snapshot's period series,
+  /// which the model itself cannot reach: the series is a sibling array keyed by
+  /// fund id, exactly like composition, so the caller passes it in.
+  ///
+  /// Without it a return-basis fund still answers honestly, it just falls back
+  /// to the trailing figures from 0027 rather than the latest closed period.
+  Headline headlineWith(PeriodReturn? latestReturn) {
     if (showsYield) {
       final g = currentRate;
       return g == null ? const NoHeadline('NO RATE') : YieldHeadline(g);
     }
+
+    if (showsPeriodReturn) {
+      if (latestReturn != null) {
+        return ReturnHeadline(
+          latestReturn.netPct,
+          label: returnPeriodLabel ?? latestReturn.period.label,
+          netOf: latestReturn.netOf,
+        );
+      }
+      final ytd = returnYtd;
+      if (ytd != null) {
+        return ReturnHeadline(ytd, label: 'YTD', netOf: netOf);
+      }
+      return const NoHeadline('NO PERIOD PUBLISHED');
+    }
+
     final r = return1y;
-    if (r != null) return ReturnHeadline(r);
+    if (r != null) return ReturnHeadline(r, label: '1Y', netOf: netOf);
     return hasPrice
         ? const NoHeadline('NO RETURN YET')
         : const NoHeadline('NO PRICE YET');
   }
+
+  /// The headline a caller with no access to the period series can still get.
+  Headline get headline => headlineWith(null);
 
   /// Whether this fund can appear in a ranked list at all. False funds still
   /// appear in the directory, because a real licensed fund is worth knowing about,
   /// but they are not ranked rather than ranked at zero, which would be a claim
   /// nobody can make. Same rule as [Sacco.hasDepositRate].
   bool get isRankable => headline is! NoHeadline;
+
+  /// Whether a performance charge is publishable: both halves present, and the
+  /// hurdle is what makes the percentage mean anything.
+  bool get hasPerfFee =>
+      perfFeePct != null && perfFeePct! > 0 && hurdlePct != null;
+
+  /// Label for [mgmtFee], from [feeKind]. Defaults to the management fee, which
+  /// is what it is on every fund that has not said otherwise.
+  String get feeLabel => switch (feeKind) {
+    'service' => 'Financial services charge',
+    'none' => 'No recurring charge',
+    _ => 'Management fee',
+  };
+
+  /// Whether this fund is one class of a multi-class product.
+  bool get hasClassSiblings =>
+      classGroup != null && classGroup!.isNotEmpty && classLabel != null;
 
   // ── Bond-fund helpers (0070) ──────────────────────────────────────────────
 

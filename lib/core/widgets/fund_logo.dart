@@ -71,8 +71,8 @@ class FundLogo extends StatelessWidget {
           imageUrl: src,
           fit: BoxFit.contain,
           fadeInDuration: const Duration(milliseconds: 150),
-          placeholder: (_, __) => monogram,
-          errorWidget: (_, __, ___) => monogram,
+          placeholder: (_, _) => monogram,
+          errorWidget: (_, _, _) => monogram,
         ),
       ),
     );

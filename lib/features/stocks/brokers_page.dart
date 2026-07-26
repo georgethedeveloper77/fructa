@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/i18n.dart';
 import '../../core/theme.dart';
-import '../../core/widgets/kit.dart';
 import '../../data/snapshot_providers.dart';
 import 'widgets/broker_row.dart';
 

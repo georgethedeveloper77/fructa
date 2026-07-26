@@ -270,7 +270,7 @@ class _Full extends ConsumerWidget {
                           tween: Tween(begin: 0, end: totalKes),
                           duration: const Duration(milliseconds: 650),
                           curve: Curves.easeOutCubic,
-                          builder: (_, v, __) =>
+                          builder: (_, v, _) =>
                               _bigText(context, money('KES', v)),
                         ),
                       ),

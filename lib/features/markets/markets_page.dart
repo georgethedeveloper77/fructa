@@ -55,7 +55,7 @@ String _eatNow() {
   return '$hh:$mm EAT';
 }
 
-// "Updated …" from the snapshot's real publish time  no more hardcoded "today".
+// "Updated" from the snapshot's real publish time  no more hardcoded "today".
 String _updatedLabel(DateTime? at) {
   const src = 'CBK, CMA & industry sources';
   if (at == null) return 'Updated recently \u00b7 $src';
@@ -101,8 +101,9 @@ class _LearnPrimer extends ConsumerWidget {
     if (ref.watch(onboardingPersonaProvider) != 'learn') {
       return const SizedBox.shrink();
     }
-    if (ref.watch(_learnPrimerDismissedProvider))
+    if (ref.watch(_learnPrimerDismissedProvider)) {
       return const SizedBox.shrink();
+    }
     if (ref.watch(learnProvider).isEmpty) return const SizedBox.shrink();
     if (ref.watch(learnProgressProvider).completed.isNotEmpty) {
       return const SizedBox.shrink();
@@ -343,13 +344,16 @@ class MarketsPage extends ConsumerWidget {
                             compareMode: compareMode,
                             isStock: isStock,
                             isSacco: isSacco,
-                            showCcy:
-                                ref.watch(marketTabProvider) ==
-                                    MarketTab.moneyMarket &&
-                                ref
-                                        .watch(moneyMarketCurrenciesProvider)
-                                        .length >
-                                    1,
+                            // Currency chips under ANY tab that has more than
+                            // one currency, not just Money Market. A special
+                            // fund is sold in a KES and a USD version exactly as
+                            // an MMF is, and while this was nailed to one tab
+                            // the dollar version had no chip and no way to be
+                            // isolated. tabCurrenciesProvider answers for the
+                            // tab currently selected, so Money Market behaves
+                            // exactly as before and every other tab is finally
+                            // right.
+                            showCcy: ref.watch(tabCurrenciesProvider).length > 1,
                             showSector:
                                 isStock &&
                                 ref.watch(stockSectorsProvider).length > 1,

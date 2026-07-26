@@ -39,7 +39,6 @@ class $AssetsLangGen {
   const $AssetsLangGen();
 
   final String en = 'assets/lang/en.json';
-  final String enInsureV2 = 'assets/lang/en.insure_v2.json';
 }
 
 class $AssetsLottieGen {

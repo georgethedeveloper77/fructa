@@ -673,8 +673,8 @@ class _NetImage extends StatelessWidget {
           child: CachedNetworkImage(
             imageUrl: url!,
             fit: BoxFit.cover,
-            placeholder: (_, __) => Container(height: 160, color: c.s2),
-            errorWidget: (_, __, ___) => Container(
+            placeholder: (_, _) => Container(height: 160, color: c.s2),
+            errorWidget: (_, _, _) => Container(
               height: 120,
               alignment: Alignment.center,
               color: c.s2,
@@ -825,7 +825,7 @@ class _Bar extends StatelessWidget {
                 tween: Tween(begin: 0, end: frac.clamp(0.0, 1.0)),
                 duration: const Duration(milliseconds: 700),
                 curve: Curves.easeOutCubic,
-                builder: (_, v, __) => FractionallySizedBox(
+                builder: (_, v, _) => FractionallySizedBox(
                   widthFactor: v,
                   child: Container(height: 9, color: color),
                 ),
