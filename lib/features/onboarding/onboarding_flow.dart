@@ -7,21 +7,27 @@ import 'alerts_scene.dart';
 import 'appearance_scene.dart';
 import 'gap_scene.dart';
 import 'persona_scene.dart';
+import 'top_rate_scene.dart';
 
 /// First-launch sequence:
-///   gap -> persona -> appearance -> alerts -> done.
+///   topRate -> gap -> persona -> appearance -> alerts -> done.
+///
+/// topRate opens with the single best KES money market rate in the country,
+/// which is the claim the whole app rests on, and it is also the composition
+/// the Play Store listing leads with. gap then turns that rate into a figure in
+/// the user's own money.
 ///
 /// The persona ('rates' | 'learn') is persisted so Markets can pin the Learn
 /// primer for a 'learn' user once Phase 4 ships. "I just want the rates" skips
-/// straight to the alerts opt-in. Completing flips the persisted `onboarded`
-/// flag, which rebuilds AppRoot into the main scaffold.
+/// straight to the alerts opt-in from either opening stage. Completing flips the
+/// persisted `onboarded` flag, which rebuilds AppRoot into the main scaffold.
 ///
 /// Navigation is internal (a stage enum, not the Navigator), so Android back
 /// has nothing to pop and would close the app. A [PopScope] plus a small stage
 /// history fixes that: back walks the stages in reverse, and only the opening
 /// stage lets the OS close the app. The history also makes the skip path pop
-/// correctly, going gap -> alerts on skip, then alerts -> gap on back, never
-/// surfacing the appearance stage the user skipped.
+/// correctly, going topRate -> alerts on skip, then alerts -> topRate on back,
+/// never surfacing the stages the user skipped.
 class OnboardingFlow extends ConsumerStatefulWidget {
   const OnboardingFlow({super.key});
 
@@ -29,10 +35,10 @@ class OnboardingFlow extends ConsumerStatefulWidget {
   ConsumerState<OnboardingFlow> createState() => _OnboardingFlowState();
 }
 
-enum _Stage { gap, persona, appearance, alerts }
+enum _Stage { topRate, gap, persona, appearance, alerts }
 
 class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
-  _Stage _stage = _Stage.gap;
+  _Stage _stage = _Stage.topRate;
 
   // Stages the user has already passed through, most recent last. Back pops
   // this; when it is empty we are on the opening stage and the OS may close.
@@ -49,6 +55,12 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
       _history.add(_stage);
       _stage = next;
     });
+  }
+
+  /// Take the skip path: the user wants the market, not the tour.
+  void _skipToAlerts() {
+    _setPersona('rates');
+    _advance(_Stage.alerts);
   }
 
   /// Step back one stage. Returns false when there is nowhere left to go, which
@@ -72,13 +84,15 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
         transitionBuilder: (child, anim) =>
             FadeTransition(opacity: anim, child: child),
         child: switch (_stage) {
+          _Stage.topRate => TopRateScene(
+            key: const ValueKey('topRate'),
+            onNext: () => _advance(_Stage.gap),
+            onSkip: _skipToAlerts,
+          ),
           _Stage.gap => GapScene(
             key: const ValueKey('gap'),
             onNext: () => _advance(_Stage.persona),
-            onSkip: () {
-              _setPersona('rates');
-              _advance(_Stage.alerts);
-            },
+            onSkip: _skipToAlerts,
           ),
           _Stage.persona => PersonaScene(
             key: const ValueKey('persona'),

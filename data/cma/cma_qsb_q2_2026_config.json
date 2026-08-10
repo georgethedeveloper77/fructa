@@ -1,0 +1,157 @@
+{
+  "_source": "CMA Quarterly Statistical Bulletin Issue 67/2026 (quarter ended June 2026), with two figures superseded by later KNBS and CBK releases. See _action on each key.",
+  "_generated": "2026-08-10",
+  "_how_to_apply": "Admin > Config. Each entry below is one row: paste the object in `value` verbatim into the row named by the key. Keys marked no_write must be left alone. Rebuild the snapshot after saving.",
+  "benchmark.inflation": {
+    "_action": "WRITE",
+    "_why": "The bulletin prints 6.4 per cent for June 2026, but KNBS released July on 31 July at 6.5 per cent (CPI 155.20, core 3.2, non-core 15.0). Writing the bulletin figure would publish a number that is already one month stale. Current baked fallback is 6.7 (May), so this is a real move either way.",
+    "value": {
+      "rate": 6.5,
+      "as_of": "2026-07-31",
+      "source": "KNBS CPI July 2026"
+    }
+  },
+  "benchmark.cbr": {
+    "_action": "WRITE",
+    "_why": "Held at 8.75 at the 9 June 2026 MPC, the second consecutive hold. Matches the existing baked fallback, so this write only refreshes as_of and source. The next MPC sits on 11 August 2026, so re-check this key the day after.",
+    "value": {
+      "rate": 8.75,
+      "as_of": "2026-06-09",
+      "source": "CBK MPC"
+    }
+  },
+  "benchmark.tbill_91": {
+    "_action": "DO_NOT_WRITE",
+    "_why": "The bulletin's 8.83 for June is a monthly WEIGHTED AVERAGE across all auctions in the month, not an auction cut-off yield. The key is consumed as a current rate alongside tbill_182 and tbill_364, which are auction yields. Mixing the two measures makes the curve inconsistent, and a June average is stale against whatever CBK last auctioned. Leave this to the CBK auction source.",
+    "reference_only": {
+      "weighted_average_pct": 8.83,
+      "month": "2026-06",
+      "series": [
+        {
+          "month": "2026-04",
+          "pct": 8.04
+        },
+        {
+          "month": "2026-05",
+          "pct": 8.39
+        },
+        {
+          "month": "2026-06",
+          "pct": 8.83
+        }
+      ]
+    }
+  },
+  "benchmark.tbill_182": {
+    "_action": "DO_NOT_WRITE",
+    "_why": "Not published in this bulletin. CBK auction results are the source."
+  },
+  "benchmark.tbill_364": {
+    "_action": "DO_NOT_WRITE",
+    "_why": "Not published in this bulletin. CBK auction results are the source."
+  },
+  "benchmark.wht_pct": {
+    "_action": "NO_CHANGE",
+    "_why": "No Finance Act change in the period. 15 per cent on interest stands."
+  },
+  "benchmark.dividend_wht_pct": {
+    "_action": "NO_CHANGE",
+    "_why": "No Finance Act change in the period. 5 per cent final tax on resident dividends stands."
+  },
+  "benchmark.inflation_usd": {
+    "_action": "NO_CHANGE",
+    "_why": "US CPI is not in a CMA bulletin. BLS is the source."
+  },
+  "market.asset_classes": {
+    "_action": "WRITE_OPTIONAL",
+    "_why": "The bulletin's Table 37 (as at 31 March 2026) reproduces every share already baked into _assetClassFallback: 44.0 / 23.5 / 14.1 / 8.8 / 7.0 / 1.9 / 0.4 / 0.3. Independent confirmation that the current value is correct. Writing it changes no share, only stamps as_of and source, and adds per-class KES values the CIS report did not give.",
+    "value": {
+      "as_of": "2026-03-31",
+      "source": "CMA QSB 67/2026 Table 37",
+      "classes": [
+        {
+          "class": "gok",
+          "share": 44.0,
+          "value_kes": 374593461269
+        },
+        {
+          "class": "fixed_deposits",
+          "share": 23.5,
+          "value_kes": 200204645703
+        },
+        {
+          "class": "cash",
+          "share": 14.1,
+          "value_kes": 120217712388
+        },
+        {
+          "class": "unlisted",
+          "share": 8.8,
+          "value_kes": 74623323923
+        },
+        {
+          "class": "listed",
+          "share": 7.0,
+          "value_kes": 59204697507
+        },
+        {
+          "class": "offshore",
+          "share": 1.9,
+          "value_kes": 16597362538
+        },
+        {
+          "class": "other_cis",
+          "share": 0.4,
+          "value_kes": 3362087547
+        },
+        {
+          "class": "alternative",
+          "share": 0.3,
+          "value_kes": 2905219412
+        }
+      ]
+    },
+    "_note": "marketAssetClasses() ignores value_kes, so this is forward-compatible and harmless. Total is 851,708,510,285 KES."
+  },
+  "market.aum_by_fund_type": {
+    "_action": "DO_NOT_WRITE",
+    "_why": "The bulletin reports AUM per SCHEME (43 managers), never per fund type. The mmf / fixed_income / equity / balanced / special split only exists in the dedicated CIS quarterly report. The Q1 2026 value in place stays correct: the underlying period (31 March 2026) has not moved.",
+    "cross_check": {
+      "total_kes_bulletin": 851708510285,
+      "total_kes_current_key": 851708510285,
+      "match": true
+    }
+  },
+  "fx.spread_pct": {
+    "_action": "NO_CHANGE",
+    "_why": "The bulletin's 129.50 USD/KES is the CBK end-period indicative, the same interbank series the doc comment on fxSpreadPct explicitly forbids wiring here. Nothing in this report is a retail quote. 1.5 stands until a real bank quote is captured."
+  },
+  "fx.pair": {
+    "_action": "NO_CHANGE"
+  },
+  "_proposed_new_keys": {
+    "_status": "NOT ready to paste. RemoteConfig has no parser for either, so these need Dart before the Config rows mean anything. Listed so the shape is agreed before code.",
+    "market.cis_size": {
+      "as_of": "2026-03-31",
+      "source": "CMA QSB 67/2026",
+      "total_aum_kes": 851708510285,
+      "prior_aum_kes": 756266044500,
+      "change_pct": 13.0,
+      "scheme_count": 43
+    },
+    "market.nse": {
+      "as_of": "2026-06-30",
+      "source": "CMA QSB 67/2026",
+      "nasi": 224.15,
+      "nasi_qoq_pct": 15.05,
+      "nse_20": 3755.44,
+      "nse_20_qoq_pct": 9.44,
+      "bond_index": 1129.57,
+      "bond_index_qoq_pct": -4.89,
+      "market_cap_kes_bn": 3761.74,
+      "market_cap_qoq_pct": 16.44,
+      "listed_counters": 71,
+      "foreign_participation_pct": 25.58
+    }
+  }
+}

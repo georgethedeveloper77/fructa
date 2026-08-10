@@ -7,6 +7,7 @@ import '../../core/widgets/fund_logo.dart';
 import '../../data/models/stock.dart';
 import '../../data/snapshot_providers.dart';
 import 'stock_page.dart';
+import 'widgets/nse_header.dart';
 
 /// Stocks list. The tile is a deliberate sibling of `FundTile`: same shell
 /// (Material + r16 + hairline), same logo/rank/name/meta/spark/figure rhythm,
@@ -111,6 +112,7 @@ class _StocksPageState extends ConsumerState<StocksPage> {
                     ),
                   ),
                 ),
+                const NseHeaderCard(),
                 if (!pricesLive) _noPriceNote(context),
                 const SizedBox(height: 12),
                 if (sectors.length > 1) ...[

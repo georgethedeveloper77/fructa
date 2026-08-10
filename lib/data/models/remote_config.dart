@@ -25,6 +25,88 @@ class MarketAssetClass {
   final double share; // percent of total market assets
 }
 
+/// How big the whole CIS market is and how fast it grew last quarter.
+/// Published under `market.cis_size`.
+///
+/// Separate from [MarketFundType] on purpose. The fund-type split answers where
+/// the money sits; this answers how much of it there is, which the split cannot
+/// because the app only ever renders shares from it. It also carries the prior
+/// period, so the card can state the quarter move in shillings rather than in a
+/// percentage nobody can picture.
+class MarketSize {
+  const MarketSize({
+    required this.totalKes,
+    this.priorKes,
+    this.changePct,
+    this.schemeCount,
+    this.asOf,
+    this.priorAsOf,
+    this.source,
+  });
+
+  final double totalKes;
+  final double? priorKes;
+  final double? changePct;
+  final int? schemeCount;
+  final String? asOf;
+  final String? priorAsOf;
+  final String? source;
+
+  /// New money since the prior period, in shillings. Null when no prior figure
+  /// is published, and never derived from [changePct]: a rounded percentage
+  /// reflated into a shilling amount invents precision the source never had.
+  double? get addedKes {
+    final p = priorKes;
+    return p == null ? null : totalKes - p;
+  }
+}
+
+/// The NSE at a quarter end, from the CMA quarterly bulletin. Published under
+/// `market.nse`.
+///
+/// EVERY FIGURE HERE IS A QUARTER-END READING and the Stocks page renders it
+/// directly above end-of-day prices. Anything consuming this must say which
+/// period it belongs to, because by the time the next bulletin lands these are
+/// months old while the rows beneath them moved this morning.
+class NseSnapshot {
+  const NseSnapshot({
+    required this.nasi,
+    required this.nse20,
+    this.nasiQoqPct,
+    this.nse20QoqPct,
+    this.bondIndex = 0,
+    this.bondIndexQoqPct,
+    this.marketCapKesBn = 0,
+    this.marketCapQoqPct,
+    this.listedCounters,
+    this.foreignParticipationPct = 0,
+    this.asOf,
+    this.source,
+  });
+
+  final double nasi;
+  final double nse20;
+  final double? nasiQoqPct;
+  final double? nse20QoqPct;
+  final double bondIndex;
+  final double? bondIndexQoqPct;
+
+  /// In BILLIONS of shillings, which is how the bulletin prints it. Do not
+  /// store raw shillings here or the formatter will read 3,761.74 as pocket
+  /// change.
+  final double marketCapKesBn;
+  final double? marketCapQoqPct;
+
+  /// Counters listed at the exchange, including suspensions, REITs and ETFs.
+  /// This is NOT the number of stocks the app carries and the two must never be
+  /// printed next to each other.
+  final int? listedCounters;
+
+  final double foreignParticipationPct;
+  final String? asOf;
+  final String? source;
+}
+
 /// Admin-editable key/value config, published inside the snapshot (`config`).
 /// Every getter takes a baked-in fallback so the app renders correctly with
 /// an old snapshot, an empty table, or a bad value  remote config can only
@@ -80,7 +162,7 @@ class RemoteConfig {
       benchmark(key)?.rate ?? fallback;
 
   // Convenience  fallbacks are the live figures at build time (Jun 2026).
-  double get inflationPct => benchmarkRate('benchmark.inflation', 6.7);
+  double get inflationPct => benchmarkRate('benchmark.inflation', 6.5);
   double get cbrPct => benchmarkRate('benchmark.cbr', 8.75);
   double get tbill91Pct => benchmarkRate('benchmark.tbill_91', 8.71);
   double get tbill182Pct => benchmarkRate('benchmark.tbill_182', 8.60);
@@ -254,4 +336,86 @@ class RemoteConfig {
   /// Which pair the currency comparison runs on. One key so a future KES/GBP
   /// or KES/EUR view needs no code change.
   String get fxPair => string('fx.pair', 'USD/KES');
+
+  // ── Market size (CMA quarterly) ──────────────────────────────────────────
+  // market.cis_size:
+  //   {"as_of":"2026-03-31","source":"CMA QSB 67/2026",
+  //    "total_kes":851708510285,"prior_kes":756266044500,
+  //    "prior_as_of":"2025-12-31","change_pct":12.6,"scheme_count":43}
+
+  static const _sizeFallback = MarketSize(
+    totalKes: 851708510285,
+    priorKes: 756266044500,
+    changePct: 12.6,
+    schemeCount: 43,
+    asOf: '2026-03-31',
+    priorAsOf: '2025-12-31',
+    source: 'CMA QSB 67/2026',
+  );
+
+  /// Total CIS market size, or the baked Q1-2026 figure when the key is unset
+  /// or malformed. Never null, because the card that reads it is not optional.
+  MarketSize? marketSize() {
+    final v = _values['market.cis_size'];
+    if (v is Map && v['total_kes'] is num) {
+      return MarketSize(
+        totalKes: (v['total_kes'] as num).toDouble(),
+        priorKes: (v['prior_kes'] as num?)?.toDouble(),
+        changePct: (v['change_pct'] as num?)?.toDouble(),
+        schemeCount: (v['scheme_count'] as num?)?.toInt(),
+        asOf: v['as_of'] as String?,
+        priorAsOf: v['prior_as_of'] as String?,
+        source: v['source'] as String?,
+      );
+    }
+    return _sizeFallback;
+  }
+
+  // ── NSE quarter end (CMA quarterly) ──────────────────────────────────────
+  // market.nse:
+  //   {"as_of":"2026-06-30","source":"CMA QSB 67/2026","nasi":224.15,
+  //    "nasi_qoq_pct":15.05,"nse_20":3755.44,"nse_20_qoq_pct":9.44,
+  //    "bond_index":1129.57,"bond_index_qoq_pct":-4.89,
+  //    "market_cap_kes_bn":3761.74,"market_cap_qoq_pct":16.44,
+  //    "listed_counters":71,"foreign_participation_pct":25.58}
+
+  static const _nseFallback = NseSnapshot(
+    nasi: 224.15,
+    nse20: 3755.44,
+    nasiQoqPct: 15.05,
+    nse20QoqPct: 9.44,
+    bondIndex: 1129.57,
+    bondIndexQoqPct: -4.89,
+    marketCapKesBn: 3761.74,
+    marketCapQoqPct: 16.44,
+    listedCounters: 71,
+    foreignParticipationPct: 25.58,
+    asOf: '2026-06-30',
+    source: 'CMA QSB 67/2026',
+  );
+
+  /// NSE quarter-end figures, falling back to the baked Q2-2026 reading. Both
+  /// index levels are required: a card with one index and a hole in it is worse
+  /// than the baked pair, which at least agree with each other.
+  NseSnapshot? nse() {
+    final v = _values['market.nse'];
+    if (v is Map && v['nasi'] is num && v['nse_20'] is num) {
+      return NseSnapshot(
+        nasi: (v['nasi'] as num).toDouble(),
+        nse20: (v['nse_20'] as num).toDouble(),
+        nasiQoqPct: (v['nasi_qoq_pct'] as num?)?.toDouble(),
+        nse20QoqPct: (v['nse_20_qoq_pct'] as num?)?.toDouble(),
+        bondIndex: (v['bond_index'] as num?)?.toDouble() ?? 0,
+        bondIndexQoqPct: (v['bond_index_qoq_pct'] as num?)?.toDouble(),
+        marketCapKesBn: (v['market_cap_kes_bn'] as num?)?.toDouble() ?? 0,
+        marketCapQoqPct: (v['market_cap_qoq_pct'] as num?)?.toDouble(),
+        listedCounters: (v['listed_counters'] as num?)?.toInt(),
+        foreignParticipationPct:
+            (v['foreign_participation_pct'] as num?)?.toDouble() ?? 0,
+        asOf: v['as_of'] as String?,
+        source: v['source'] as String?,
+      );
+    }
+    return _nseFallback;
+  }
 }

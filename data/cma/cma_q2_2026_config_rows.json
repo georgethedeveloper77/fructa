@@ -1,0 +1,40 @@
+{
+  "_note": "Paste each value into the matching Admin > Config row, then rebuild the snapshot. Both keys have baked fallbacks in RemoteConfig, so the app renders these exact figures even before the row exists.",
+
+  "benchmark.inflation": {
+    "rate": 6.5,
+    "as_of": "2026-07-31",
+    "source": "KNBS CPI July 2026"
+  },
+
+  "benchmark.cbr": {
+    "rate": 8.75,
+    "as_of": "2026-06-09",
+    "source": "CBK MPC"
+  },
+
+  "market.cis_size": {
+    "as_of": "2026-03-31",
+    "prior_as_of": "2025-12-31",
+    "source": "CMA QSB 67/2026",
+    "total_kes": 851708510285,
+    "prior_kes": 756266044500,
+    "change_pct": 12.6,
+    "scheme_count": 43
+  },
+
+  "market.nse": {
+    "as_of": "2026-06-30",
+    "source": "CMA QSB 67/2026",
+    "nasi": 224.15,
+    "nasi_qoq_pct": 15.05,
+    "nse_20": 3755.44,
+    "nse_20_qoq_pct": 9.44,
+    "bond_index": 1129.57,
+    "bond_index_qoq_pct": -4.89,
+    "market_cap_kes_bn": 3761.74,
+    "market_cap_qoq_pct": 16.44,
+    "listed_counters": 71,
+    "foreign_participation_pct": 25.58
+  }
+}

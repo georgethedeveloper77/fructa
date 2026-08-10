@@ -75,13 +75,19 @@ String _pct(double v) {
   return s.endsWith('.0') ? s.substring(0, s.length - 2) : s;
 }
 
-/// "2026-03-31" → "Q1 '26"; unparseable passes through.
+/// "2026-03-31" -> "MAR 2026"; unparseable passes through.
+///
+/// Deliberately a month, not a quarter. "Q1 '26" beside "CMA CIS" reads as a
+/// report edition rather than as the date the figures were struck, and those
+/// two things are never the same here: the CMA bulletin for the quarter ended
+/// June carries CIS as at 31 March, so a quarter tag invites the reader to
+/// conclude the app is a quarter behind when it is exactly current.
 String _asOfTag(String iso) {
   final m = RegExp(r'^(\d{4})-(\d{2})').firstMatch(iso);
   if (m == null) return iso;
-  final year = m.group(1)!.substring(2);
-  final q = ((int.parse(m.group(2)!) - 1) ~/ 3) + 1;
-  return "Q$q '$year";
+  final mo = int.parse(m.group(2)!);
+  if (mo < 1 || mo > 12) return iso;
+  return '${_months[mo - 1].toUpperCase()} ${m.group(1)}';
 }
 
 /// "2026-03-31" → "31 Mar 2026"; unparseable passes through.

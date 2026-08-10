@@ -255,7 +255,46 @@ final tabCurrenciesProvider = Provider<List<String>>((ref) {
 final moneyMarketCurrenciesProvider = tabCurrenciesProvider;
 
 double _rate(Fund f) => f.currentRate ?? double.negativeInfinity;
-num _min(Fund f) => f.minInvest ?? double.infinity; // nulls sort last
+/// Minimum investment, CONVERTED TO A COMMON CURRENCY.
+///
+/// The raw column is a bare number whose unit lives in a neighbouring field, so
+/// comparing two of them directly compares a shilling against a dollar. Under
+/// Lowest Minimum that put "USD 100" at the top of the list, above a KES 1,000
+/// money market fund, when USD 100 is about KES 12,950. The cheapest way into
+/// the market was being shown as one of the more expensive ones, and the sort
+/// that exists specifically to help someone with little money was the one
+/// getting it wrong.
+///
+/// [toKes] maps a currency to its rate against the shilling. Anything missing
+/// from it is not guessed at: see below.
+num _min(Fund f, Map<String, double> toKes) {
+  final m = f.minInvest;
+  if (m == null) return double.infinity; // nulls sort last
+  final ccy = f.currency;
+  if (ccy == 'KES') return m;
+  final rate = toKes[ccy];
+  // No rate, no conversion, and no pretending. A fund whose currency the app
+  // cannot price sorts to the end rather than being compared on a number that
+  // means something else. That is one fund out of position; converting at a
+  // guessed rate would be every fund out of position, silently.
+  return rate == null || rate <= 0 ? double.infinity : m * rate;
+}
+
+/// Currency to shillings, from the published FX rows.
+///
+/// KES is 1 by definition. Everything else needs a rate, and a pair that is
+/// absent is simply left out so [_min] can tell "cannot convert" apart from
+/// "converts to zero".
+Map<String, double> _toKes(Map<String, double> fx) {
+  final out = <String, double>{'KES': 1};
+  for (final e in fx.entries) {
+    final parts = e.key.split('/');
+    if (parts.length != 2 || e.value <= 0) continue;
+    // 'USD/KES' means one USD is e.value KES.
+    if (parts[1] == 'KES') out[parts[0]] = e.value;
+  }
+  return out;
+}
 
 /// Net-of-withholding-tax yield  the honest comparator. Tax-free funds keep
 /// gross, so they rank on their real advantage. wht comes from remote config.
@@ -359,9 +398,11 @@ final streamFundsProvider = Provider<AsyncValue<List<Fund>>>((ref) {
           return headlineValue(b).compareTo(headlineValue(a));
         });
       case MarketSort.lowestMinimum:
-        // Minimum investment is the one figure that means the same thing on
-        // every fund, so it sorts flat across bases with no tiering at all.
-        out.sort((a, b) => _min(a).compareTo(_min(b)));
+        // Flat across bases: what it costs to get in means the same thing
+        // whether a fund quotes a yield, a price or a return. It does NOT mean
+        // the same thing across currencies, which is what _min now handles.
+        final toKes = _toKes(extras.fx);
+        out.sort((a, b) => _min(a, toKes).compareTo(_min(b, toKes)));
     }
     return out;
   });

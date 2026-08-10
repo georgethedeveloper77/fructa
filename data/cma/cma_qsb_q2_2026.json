@@ -1,0 +1,5009 @@
+{
+  "meta": {
+    "source": "Capital Markets Authority Kenya",
+    "document": "Quarterly Statistical Bulletin (QSB)",
+    "issue": "67/2026",
+    "quarter": "Q2.2026",
+    "quarter_end": "2026-06-30",
+    "url": "https://www.cma.or.ke",
+    "cis_as_of": "2026-03-31",
+    "notes": [
+      "CIS assets under management and asset-class distribution in this bulletin are reported as at 31 March 2026, one quarter behind the bulletin period.",
+      "June 2026 equity turnover of KShs 233.55bn includes a single Safaricom block of KShs 210.15bn. Treat June as an outlier in any turnover or foreign-participation series.",
+      "Section 1.1 of the source contains a typo: CBR revised downwards to 8.75 per cent in March 2026 from 10.75 per cent in March 2026. The second date should read March 2025.",
+      "Percentage changes in Tables 20, 21 and 44 are printed unsigned. Direction is indicated by colour in the source and has been signed correctly here."
+    ]
+  },
+  "economy": {
+    "gdp": {
+      "period": "Q1 2026",
+      "growth_pct": 5.3,
+      "prior_year_growth_pct": 4.9,
+      "q1_series": [
+        {
+          "year": 2022,
+          "growth_pct": 5.9
+        },
+        {
+          "year": 2023,
+          "growth_pct": 5.4
+        },
+        {
+          "year": 2024,
+          "growth_pct": 4.7
+        },
+        {
+          "year": 2025,
+          "growth_pct": 4.9
+        },
+        {
+          "year": 2026,
+          "growth_pct": 5.3
+        }
+      ],
+      "sectors_q1_2026": [
+        {
+          "sector": "Accommodation and Food Service",
+          "growth_pct": 14.7,
+          "prior_pct": 8.0
+        },
+        {
+          "sector": "Mining and Quarrying",
+          "growth_pct": 9.1,
+          "prior_pct": null
+        },
+        {
+          "sector": "Construction",
+          "growth_pct": 6.6,
+          "prior_pct": -4.5
+        },
+        {
+          "sector": "Financial and Insurance",
+          "growth_pct": 6.3,
+          "prior_pct": 5.3
+        },
+        {
+          "sector": "Information and Communication",
+          "growth_pct": 5.0,
+          "prior_pct": 5.5
+        },
+        {
+          "sector": "Agriculture, Forestry and Fishing",
+          "growth_pct": 4.9,
+          "prior_pct": 5.3
+        },
+        {
+          "sector": "Manufacturing",
+          "growth_pct": 4.4,
+          "prior_pct": 2.8
+        },
+        {
+          "sector": "Electricity and Water Supply",
+          "growth_pct": 4.3,
+          "prior_pct": 4.1
+        },
+        {
+          "sector": "Transportation and Storage",
+          "growth_pct": 3.6,
+          "prior_pct": 3.6
+        }
+      ]
+    },
+    "inflation": {
+      "latest": {
+        "month": "2026-06",
+        "annual_pct": 6.4,
+        "monthly_pct": 0.2,
+        "cpi_index": 154.91,
+        "prev_cpi_index": 154.56,
+        "core_pct": 3.1,
+        "non_core_pct": 15.1,
+        "drivers": [
+          {
+            "basket": "Transport",
+            "annual_pct": 16.1
+          },
+          {
+            "basket": "Food and Non-Alcoholic Beverages",
+            "annual_pct": 8.6
+          },
+          {
+            "basket": "Housing, Water, Electricity, Gas and Other Fuels",
+            "annual_pct": 3.4
+          }
+        ]
+      },
+      "monthly_series": [
+        {
+          "month": "2014-01",
+          "annual_pct": 7.21
+        },
+        {
+          "month": "2014-02",
+          "annual_pct": 6.86
+        },
+        {
+          "month": "2014-03",
+          "annual_pct": 6.27
+        },
+        {
+          "month": "2014-04",
+          "annual_pct": 6.41
+        },
+        {
+          "month": "2014-05",
+          "annual_pct": 7.3
+        },
+        {
+          "month": "2014-06",
+          "annual_pct": 7.39
+        },
+        {
+          "month": "2014-07",
+          "annual_pct": 7.67
+        },
+        {
+          "month": "2014-08",
+          "annual_pct": 8.36
+        },
+        {
+          "month": "2014-09",
+          "annual_pct": 6.6
+        },
+        {
+          "month": "2014-10",
+          "annual_pct": 6.43
+        },
+        {
+          "month": "2014-11",
+          "annual_pct": 6.09
+        },
+        {
+          "month": "2014-12",
+          "annual_pct": 6.02
+        },
+        {
+          "month": "2015-01",
+          "annual_pct": 5.53
+        },
+        {
+          "month": "2015-02",
+          "annual_pct": 5.61
+        },
+        {
+          "month": "2015-03",
+          "annual_pct": 6.31
+        },
+        {
+          "month": "2015-04",
+          "annual_pct": 7.08
+        },
+        {
+          "month": "2015-05",
+          "annual_pct": 6.87
+        },
+        {
+          "month": "2015-06",
+          "annual_pct": 7.03
+        },
+        {
+          "month": "2015-07",
+          "annual_pct": 6.62
+        },
+        {
+          "month": "2015-08",
+          "annual_pct": 5.84
+        },
+        {
+          "month": "2015-09",
+          "annual_pct": 5.97
+        },
+        {
+          "month": "2015-10",
+          "annual_pct": 6.72
+        },
+        {
+          "month": "2015-11",
+          "annual_pct": 7.32
+        },
+        {
+          "month": "2015-12",
+          "annual_pct": 8.01
+        },
+        {
+          "month": "2016-01",
+          "annual_pct": 7.78
+        },
+        {
+          "month": "2016-02",
+          "annual_pct": 6.84
+        },
+        {
+          "month": "2016-03",
+          "annual_pct": 6.45
+        },
+        {
+          "month": "2016-04",
+          "annual_pct": 5.27
+        },
+        {
+          "month": "2016-05",
+          "annual_pct": 5.0
+        },
+        {
+          "month": "2016-06",
+          "annual_pct": 5.8
+        },
+        {
+          "month": "2016-07",
+          "annual_pct": 6.39
+        },
+        {
+          "month": "2016-08",
+          "annual_pct": 6.26
+        },
+        {
+          "month": "2016-09",
+          "annual_pct": 6.34
+        },
+        {
+          "month": "2016-10",
+          "annual_pct": 6.47
+        },
+        {
+          "month": "2016-11",
+          "annual_pct": 6.68
+        },
+        {
+          "month": "2016-12",
+          "annual_pct": 6.35
+        },
+        {
+          "month": "2017-01",
+          "annual_pct": 6.99
+        },
+        {
+          "month": "2017-02",
+          "annual_pct": 9.04
+        },
+        {
+          "month": "2017-03",
+          "annual_pct": 10.28
+        },
+        {
+          "month": "2017-04",
+          "annual_pct": 11.48
+        },
+        {
+          "month": "2017-05",
+          "annual_pct": 11.7
+        },
+        {
+          "month": "2017-06",
+          "annual_pct": 9.21
+        },
+        {
+          "month": "2017-07",
+          "annual_pct": 7.47
+        },
+        {
+          "month": "2017-08",
+          "annual_pct": 8.04
+        },
+        {
+          "month": "2017-09",
+          "annual_pct": 7.06
+        },
+        {
+          "month": "2017-10",
+          "annual_pct": 5.72
+        },
+        {
+          "month": "2017-11",
+          "annual_pct": 4.73
+        },
+        {
+          "month": "2017-12",
+          "annual_pct": 4.5
+        },
+        {
+          "month": "2018-01",
+          "annual_pct": 4.83
+        },
+        {
+          "month": "2018-02",
+          "annual_pct": 4.46
+        },
+        {
+          "month": "2018-03",
+          "annual_pct": 4.18
+        },
+        {
+          "month": "2018-04",
+          "annual_pct": 3.73
+        },
+        {
+          "month": "2018-05",
+          "annual_pct": 3.95
+        },
+        {
+          "month": "2018-06",
+          "annual_pct": 4.28
+        },
+        {
+          "month": "2018-07",
+          "annual_pct": 4.35
+        },
+        {
+          "month": "2018-08",
+          "annual_pct": 4.04
+        },
+        {
+          "month": "2018-09",
+          "annual_pct": 5.7
+        },
+        {
+          "month": "2018-10",
+          "annual_pct": 5.53
+        },
+        {
+          "month": "2018-11",
+          "annual_pct": 5.58
+        },
+        {
+          "month": "2018-12",
+          "annual_pct": 5.71
+        },
+        {
+          "month": "2019-01",
+          "annual_pct": 4.7
+        },
+        {
+          "month": "2019-02",
+          "annual_pct": 4.14
+        },
+        {
+          "month": "2019-03",
+          "annual_pct": 4.35
+        },
+        {
+          "month": "2019-04",
+          "annual_pct": 6.58
+        },
+        {
+          "month": "2019-05",
+          "annual_pct": 5.49
+        },
+        {
+          "month": "2019-06",
+          "annual_pct": 5.7
+        },
+        {
+          "month": "2019-07",
+          "annual_pct": 6.27
+        },
+        {
+          "month": "2019-08",
+          "annual_pct": 5.0
+        },
+        {
+          "month": "2019-09",
+          "annual_pct": 3.83
+        },
+        {
+          "month": "2019-10",
+          "annual_pct": 4.95
+        },
+        {
+          "month": "2019-11",
+          "annual_pct": 5.56
+        },
+        {
+          "month": "2019-12",
+          "annual_pct": 5.82
+        },
+        {
+          "month": "2020-01",
+          "annual_pct": 5.78
+        },
+        {
+          "month": "2020-02",
+          "annual_pct": 6.8
+        },
+        {
+          "month": "2020-03",
+          "annual_pct": 5.51
+        },
+        {
+          "month": "2020-04",
+          "annual_pct": 5.62
+        },
+        {
+          "month": "2020-05",
+          "annual_pct": 5.47
+        },
+        {
+          "month": "2020-06",
+          "annual_pct": 4.59
+        },
+        {
+          "month": "2020-07",
+          "annual_pct": 4.36
+        },
+        {
+          "month": "2020-08",
+          "annual_pct": 4.36
+        },
+        {
+          "month": "2020-09",
+          "annual_pct": 4.2
+        },
+        {
+          "month": "2020-10",
+          "annual_pct": 4.84
+        },
+        {
+          "month": "2020-11",
+          "annual_pct": 5.33
+        },
+        {
+          "month": "2020-12",
+          "annual_pct": 5.62
+        },
+        {
+          "month": "2021-01",
+          "annual_pct": 5.69
+        },
+        {
+          "month": "2021-02",
+          "annual_pct": 5.78
+        },
+        {
+          "month": "2021-03",
+          "annual_pct": 5.9
+        },
+        {
+          "month": "2021-04",
+          "annual_pct": 5.76
+        },
+        {
+          "month": "2021-05",
+          "annual_pct": 5.87
+        },
+        {
+          "month": "2021-06",
+          "annual_pct": 6.32
+        },
+        {
+          "month": "2021-07",
+          "annual_pct": 6.44
+        },
+        {
+          "month": "2021-08",
+          "annual_pct": 6.57
+        },
+        {
+          "month": "2021-09",
+          "annual_pct": 6.91
+        },
+        {
+          "month": "2021-10",
+          "annual_pct": 6.45
+        },
+        {
+          "month": "2021-11",
+          "annual_pct": 5.8
+        },
+        {
+          "month": "2021-12",
+          "annual_pct": 5.73
+        },
+        {
+          "month": "2022-01",
+          "annual_pct": 5.39
+        },
+        {
+          "month": "2022-02",
+          "annual_pct": 5.08
+        },
+        {
+          "month": "2022-03",
+          "annual_pct": 5.56
+        },
+        {
+          "month": "2022-04",
+          "annual_pct": 6.47
+        },
+        {
+          "month": "2022-05",
+          "annual_pct": 7.08
+        },
+        {
+          "month": "2022-06",
+          "annual_pct": 7.91
+        },
+        {
+          "month": "2022-07",
+          "annual_pct": 8.32
+        },
+        {
+          "month": "2022-08",
+          "annual_pct": 8.53
+        },
+        {
+          "month": "2022-09",
+          "annual_pct": 9.18
+        },
+        {
+          "month": "2022-10",
+          "annual_pct": 9.59
+        },
+        {
+          "month": "2022-11",
+          "annual_pct": 9.48
+        },
+        {
+          "month": "2022-12",
+          "annual_pct": 9.1
+        },
+        {
+          "month": "2023-01",
+          "annual_pct": 9.0
+        },
+        {
+          "month": "2023-02",
+          "annual_pct": 9.2
+        },
+        {
+          "month": "2023-03",
+          "annual_pct": 9.2
+        },
+        {
+          "month": "2023-04",
+          "annual_pct": 7.9
+        },
+        {
+          "month": "2023-05",
+          "annual_pct": 8.0
+        },
+        {
+          "month": "2023-06",
+          "annual_pct": 7.9
+        },
+        {
+          "month": "2023-07",
+          "annual_pct": 7.3
+        },
+        {
+          "month": "2023-08",
+          "annual_pct": 6.7
+        },
+        {
+          "month": "2023-09",
+          "annual_pct": 6.8
+        },
+        {
+          "month": "2023-10",
+          "annual_pct": 6.9
+        },
+        {
+          "month": "2023-11",
+          "annual_pct": 6.8
+        },
+        {
+          "month": "2023-12",
+          "annual_pct": 6.6
+        },
+        {
+          "month": "2024-01",
+          "annual_pct": 6.9
+        },
+        {
+          "month": "2024-02",
+          "annual_pct": 6.3
+        },
+        {
+          "month": "2024-03",
+          "annual_pct": 5.7
+        },
+        {
+          "month": "2024-04",
+          "annual_pct": 5.0
+        },
+        {
+          "month": "2024-05",
+          "annual_pct": 5.1
+        },
+        {
+          "month": "2024-06",
+          "annual_pct": 4.6
+        },
+        {
+          "month": "2024-07",
+          "annual_pct": 4.3
+        },
+        {
+          "month": "2024-08",
+          "annual_pct": 4.4
+        },
+        {
+          "month": "2024-09",
+          "annual_pct": 3.6
+        },
+        {
+          "month": "2024-10",
+          "annual_pct": 2.7
+        },
+        {
+          "month": "2024-11",
+          "annual_pct": 2.8
+        },
+        {
+          "month": "2024-12",
+          "annual_pct": 3.0
+        },
+        {
+          "month": "2025-01",
+          "annual_pct": 3.3
+        },
+        {
+          "month": "2025-02",
+          "annual_pct": 3.5
+        },
+        {
+          "month": "2025-03",
+          "annual_pct": 3.6
+        },
+        {
+          "month": "2025-04",
+          "annual_pct": 4.1
+        },
+        {
+          "month": "2025-05",
+          "annual_pct": 3.8
+        },
+        {
+          "month": "2025-06",
+          "annual_pct": 3.8
+        },
+        {
+          "month": "2025-07",
+          "annual_pct": 4.1
+        },
+        {
+          "month": "2025-08",
+          "annual_pct": 4.5
+        },
+        {
+          "month": "2025-09",
+          "annual_pct": 4.6
+        },
+        {
+          "month": "2025-10",
+          "annual_pct": 4.6
+        },
+        {
+          "month": "2025-11",
+          "annual_pct": 4.5
+        },
+        {
+          "month": "2025-12",
+          "annual_pct": 4.5
+        },
+        {
+          "month": "2026-01",
+          "annual_pct": 4.4
+        },
+        {
+          "month": "2026-02",
+          "annual_pct": 4.3
+        },
+        {
+          "month": "2026-03",
+          "annual_pct": 4.4
+        },
+        {
+          "month": "2026-04",
+          "annual_pct": 5.6
+        },
+        {
+          "month": "2026-05",
+          "annual_pct": 6.7
+        },
+        {
+          "month": "2026-06",
+          "annual_pct": 6.4
+        }
+      ]
+    },
+    "balance_of_payments": {
+      "unit": "KShs billion",
+      "commentary": {
+        "period": "Q1 2026",
+        "current_account_deficit": 120.9,
+        "current_account_widened_pct": 72.7,
+        "net_services_surplus": 56.2,
+        "diaspora_remittances": 168.9,
+        "primary_income_deficit": 66.7,
+        "financial_account_net_inflows": 243.5,
+        "reserve_assets": 173.6,
+        "eurobond_issuance_usd_bn": 2.25
+      },
+      "series": [
+        {
+          "period": "Q1 2022",
+          "current_account": -139.29,
+          "capital_account": 7.35,
+          "financial_account": -82.9,
+          "net_errors_omissions": -74.48,
+          "overall_balance": 120.63,
+          "reserves_and_related": -120.63,
+          "gross_official_reserves": 969.29
+        },
+        {
+          "period": "Q1 2023",
+          "current_account": -69.8,
+          "capital_account": 6.92,
+          "financial_account": 56.35,
+          "net_errors_omissions": -8.61,
+          "overall_balance": 127.84,
+          "reserves_and_related": -127.84,
+          "gross_official_reserves": 921.27
+        },
+        {
+          "period": "Q1 2024",
+          "current_account": -42.1,
+          "capital_account": 8.45,
+          "financial_account": -7.2,
+          "net_errors_omissions": -9.56,
+          "overall_balance": 36.01,
+          "reserves_and_related": -36.01,
+          "gross_official_reserves": 1029.75
+        },
+        {
+          "period": "Q1 2025",
+          "current_account": -66.65,
+          "capital_account": 0.0,
+          "financial_account": -48.62,
+          "net_errors_omissions": 95.02,
+          "overall_balance": -76.99,
+          "reserves_and_related": 76.99,
+          "gross_official_reserves": 1378.74
+        },
+        {
+          "period": "Q1 2026",
+          "current_account": -120.9,
+          "capital_account": 8.95,
+          "financial_account": -243.51,
+          "net_errors_omissions": 44.47,
+          "overall_balance": -176.02,
+          "reserves_and_related": 173.59,
+          "gross_official_reserves": 1786.13
+        }
+      ]
+    },
+    "remittances": {
+      "unit": "USD thousand",
+      "latest": {
+        "month": "2026-05",
+        "value_usd_thousand": 394235,
+        "mom_change_pct": -0.89,
+        "share_north_america_pct": 51.87,
+        "share_europe_pct": 21.08,
+        "share_rest_of_world_pct": 27.05
+      },
+      "monthly_series": [
+        {
+          "month": "2018-01",
+          "value_usd_thousand": 208922
+        },
+        {
+          "month": "2018-02",
+          "value_usd_thousand": 210362
+        },
+        {
+          "month": "2018-03",
+          "value_usd_thousand": 222223
+        },
+        {
+          "month": "2018-04",
+          "value_usd_thousand": 217101
+        },
+        {
+          "month": "2018-05",
+          "value_usd_thousand": 253734
+        },
+        {
+          "month": "2018-06",
+          "value_usd_thousand": 266187
+        },
+        {
+          "month": "2018-07",
+          "value_usd_thousand": 215268
+        },
+        {
+          "month": "2018-08",
+          "value_usd_thousand": 215556
+        },
+        {
+          "month": "2018-09",
+          "value_usd_thousand": 205135
+        },
+        {
+          "month": "2018-10",
+          "value_usd_thousand": 219208
+        },
+        {
+          "month": "2018-11",
+          "value_usd_thousand": 220215
+        },
+        {
+          "month": "2018-12",
+          "value_usd_thousand": 243552
+        },
+        {
+          "month": "2019-01",
+          "value_usd_thousand": 244833
+        },
+        {
+          "month": "2019-02",
+          "value_usd_thousand": 199074
+        },
+        {
+          "month": "2019-03",
+          "value_usd_thousand": 221926
+        },
+        {
+          "month": "2019-04",
+          "value_usd_thousand": 245360
+        },
+        {
+          "month": "2019-05",
+          "value_usd_thousand": 243193
+        },
+        {
+          "month": "2019-06",
+          "value_usd_thousand": 295317
+        },
+        {
+          "month": "2019-07",
+          "value_usd_thousand": 224487
+        },
+        {
+          "month": "2019-08",
+          "value_usd_thousand": 214314
+        },
+        {
+          "month": "2019-09",
+          "value_usd_thousand": 214654
+        },
+        {
+          "month": "2019-10",
+          "value_usd_thousand": 224297
+        },
+        {
+          "month": "2019-11",
+          "value_usd_thousand": 218845
+        },
+        {
+          "month": "2019-12",
+          "value_usd_thousand": 250308
+        },
+        {
+          "month": "2020-01",
+          "value_usd_thousand": 259393
+        },
+        {
+          "month": "2020-02",
+          "value_usd_thousand": 218992
+        },
+        {
+          "month": "2020-03",
+          "value_usd_thousand": 228811
+        },
+        {
+          "month": "2020-04",
+          "value_usd_thousand": 208218
+        },
+        {
+          "month": "2020-05",
+          "value_usd_thousand": 258150
+        },
+        {
+          "month": "2020-06",
+          "value_usd_thousand": 288544
+        },
+        {
+          "month": "2020-07",
+          "value_usd_thousand": 276988
+        },
+        {
+          "month": "2020-08",
+          "value_usd_thousand": 274138
+        },
+        {
+          "month": "2020-09",
+          "value_usd_thousand": 260672
+        },
+        {
+          "month": "2020-10",
+          "value_usd_thousand": 263101
+        },
+        {
+          "month": "2020-11",
+          "value_usd_thousand": 257686
+        },
+        {
+          "month": "2020-12",
+          "value_usd_thousand": 299579
+        },
+        {
+          "month": "2021-01",
+          "value_usd_thousand": 278347
+        },
+        {
+          "month": "2021-02",
+          "value_usd_thousand": 260286
+        },
+        {
+          "month": "2021-03",
+          "value_usd_thousand": 290771
+        },
+        {
+          "month": "2021-04",
+          "value_usd_thousand": 299290
+        },
+        {
+          "month": "2021-05",
+          "value_usd_thousand": 315802
+        },
+        {
+          "month": "2021-06",
+          "value_usd_thousand": 305902
+        },
+        {
+          "month": "2021-07",
+          "value_usd_thousand": 336711
+        },
+        {
+          "month": "2021-08",
+          "value_usd_thousand": 312931
+        },
+        {
+          "month": "2021-09",
+          "value_usd_thousand": 309804
+        },
+        {
+          "month": "2021-10",
+          "value_usd_thousand": 337413
+        },
+        {
+          "month": "2021-11",
+          "value_usd_thousand": 320074
+        },
+        {
+          "month": "2021-12",
+          "value_usd_thousand": 350562
+        },
+        {
+          "month": "2022-01",
+          "value_usd_thousand": 338720
+        },
+        {
+          "month": "2022-02",
+          "value_usd_thousand": 321532
+        },
+        {
+          "month": "2022-03",
+          "value_usd_thousand": 363582
+        },
+        {
+          "month": "2022-04",
+          "value_usd_thousand": 355037
+        },
+        {
+          "month": "2022-05",
+          "value_usd_thousand": 339683
+        },
+        {
+          "month": "2022-06",
+          "value_usd_thousand": 326060
+        },
+        {
+          "month": "2022-07",
+          "value_usd_thousand": 319404
+        },
+        {
+          "month": "2022-08",
+          "value_usd_thousand": 310507
+        },
+        {
+          "month": "2022-09",
+          "value_usd_thousand": 317981
+        },
+        {
+          "month": "2022-10",
+          "value_usd_thousand": 332629
+        },
+        {
+          "month": "2022-11",
+          "value_usd_thousand": 345449
+        },
+        {
+          "month": "2022-12",
+          "value_usd_thousand": 357299
+        },
+        {
+          "month": "2023-01",
+          "value_usd_thousand": 349392
+        },
+        {
+          "month": "2023-02",
+          "value_usd_thousand": 309173
+        },
+        {
+          "month": "2023-03",
+          "value_usd_thousand": 356980
+        },
+        {
+          "month": "2023-04",
+          "value_usd_thousand": 320317
+        },
+        {
+          "month": "2023-05",
+          "value_usd_thousand": 352106
+        },
+        {
+          "month": "2023-06",
+          "value_usd_thousand": 345863
+        },
+        {
+          "month": "2023-07",
+          "value_usd_thousand": 378053
+        },
+        {
+          "month": "2023-08",
+          "value_usd_thousand": 354433
+        },
+        {
+          "month": "2023-09",
+          "value_usd_thousand": 340444
+        },
+        {
+          "month": "2023-10",
+          "value_usd_thousand": 355624
+        },
+        {
+          "month": "2023-11",
+          "value_usd_thousand": 354966
+        },
+        {
+          "month": "2023-12",
+          "value_usd_thousand": 372570
+        },
+        {
+          "month": "2024-01",
+          "value_usd_thousand": 412410
+        },
+        {
+          "month": "2024-02",
+          "value_usd_thousand": 385934
+        },
+        {
+          "month": "2024-03",
+          "value_usd_thousand": 407772
+        },
+        {
+          "month": "2024-04",
+          "value_usd_thousand": 397297
+        },
+        {
+          "month": "2024-05",
+          "value_usd_thousand": 404447
+        },
+        {
+          "month": "2024-06",
+          "value_usd_thousand": 371593
+        },
+        {
+          "month": "2024-07",
+          "value_usd_thousand": 414258
+        },
+        {
+          "month": "2024-08",
+          "value_usd_thousand": 427201
+        },
+        {
+          "month": "2024-09",
+          "value_usd_thousand": 418495
+        },
+        {
+          "month": "2024-10",
+          "value_usd_thousand": 437182
+        },
+        {
+          "month": "2024-11",
+          "value_usd_thousand": 423249
+        },
+        {
+          "month": "2024-12",
+          "value_usd_thousand": 445385
+        },
+        {
+          "month": "2025-01",
+          "value_usd_thousand": 427375
+        },
+        {
+          "month": "2025-02",
+          "value_usd_thousand": 382245
+        },
+        {
+          "month": "2025-03",
+          "value_usd_thousand": 422897
+        },
+        {
+          "month": "2025-04",
+          "value_usd_thousand": 422891
+        },
+        {
+          "month": "2025-05",
+          "value_usd_thousand": 440076
+        },
+        {
+          "month": "2025-06",
+          "value_usd_thousand": 422834
+        },
+        {
+          "month": "2025-07",
+          "value_usd_thousand": 410093
+        },
+        {
+          "month": "2025-08",
+          "value_usd_thousand": 426133
+        },
+        {
+          "month": "2025-09",
+          "value_usd_thousand": 419625
+        },
+        {
+          "month": "2025-10",
+          "value_usd_thousand": 438789
+        },
+        {
+          "month": "2025-11",
+          "value_usd_thousand": 388304
+        },
+        {
+          "month": "2025-12",
+          "value_usd_thousand": 435496
+        },
+        {
+          "month": "2026-01",
+          "value_usd_thousand": 411334
+        },
+        {
+          "month": "2026-02",
+          "value_usd_thousand": 412718
+        },
+        {
+          "month": "2026-03",
+          "value_usd_thousand": 450286
+        },
+        {
+          "month": "2026-04",
+          "value_usd_thousand": 397784
+        },
+        {
+          "month": "2026-05",
+          "value_usd_thousand": 394235
+        }
+      ],
+      "by_source_2026": [
+        {
+          "month": "2026-01",
+          "north_america_usd_mn": 210.9,
+          "europe_usd_mn": 87.28,
+          "row_usd_mn": 113.15,
+          "total_usd_mn": 411.33
+        },
+        {
+          "month": "2026-02",
+          "north_america_usd_mn": 223.56,
+          "europe_usd_mn": 84.15,
+          "row_usd_mn": 105.01,
+          "total_usd_mn": 412.72
+        },
+        {
+          "month": "2026-03",
+          "north_america_usd_mn": 240.87,
+          "europe_usd_mn": 93.89,
+          "row_usd_mn": 115.53,
+          "total_usd_mn": 450.29
+        },
+        {
+          "month": "2026-04",
+          "north_america_usd_mn": 207.64,
+          "europe_usd_mn": 81.78,
+          "row_usd_mn": 108.37,
+          "total_usd_mn": 397.78
+        },
+        {
+          "month": "2026-05",
+          "north_america_usd_mn": 204.48,
+          "europe_usd_mn": 83.09,
+          "row_usd_mn": 106.66,
+          "total_usd_mn": 394.23
+        }
+      ]
+    },
+    "public_debt": {
+      "unit": "KShs billion",
+      "as_of": "2026-03-31",
+      "latest": {
+        "domestic": 7149.72,
+        "external": 5683.22,
+        "total": 12832.94,
+        "mom_change_pct": -0.08
+      },
+      "series": [
+        {
+          "month": "2024-01",
+          "domestic": 5050.44,
+          "external": 6189.97,
+          "total": 11240.41
+        },
+        {
+          "month": "2024-02",
+          "domestic": 5200.21,
+          "external": 5653.89,
+          "total": 10854.11
+        },
+        {
+          "month": "2024-03",
+          "domestic": 5235.19,
+          "external": 5163.42,
+          "total": 10398.61
+        },
+        {
+          "month": "2024-04",
+          "domestic": 5323.71,
+          "external": 5198.81,
+          "total": 10522.52
+        },
+        {
+          "month": "2024-05",
+          "domestic": 5319.89,
+          "external": 5118.31,
+          "total": 10438.19
+        },
+        {
+          "month": "2024-06",
+          "domestic": 5410.3,
+          "external": 5150.84,
+          "total": 10561.14
+        },
+        {
+          "month": "2024-07",
+          "domestic": 5453.0,
+          "external": 5162.48,
+          "total": 10615.48
+        },
+        {
+          "month": "2024-08",
+          "domestic": 5558.35,
+          "external": 5176.1,
+          "total": 10734.45
+        },
+        {
+          "month": "2024-09",
+          "domestic": 5601.71,
+          "external": 5188.37,
+          "total": 10790.08
+        },
+        {
+          "month": "2024-10",
+          "domestic": 5693.54,
+          "external": 5120.31,
+          "total": 10813.85
+        },
+        {
+          "month": "2024-11",
+          "domestic": 5809.3,
+          "external": 5138.13,
+          "total": 10947.43
+        },
+        {
+          "month": "2024-12",
+          "domestic": 5868.27,
+          "external": 5057.01,
+          "total": 10925.28
+        },
+        {
+          "month": "2025-01",
+          "domestic": 5927.81,
+          "external": 5083.4,
+          "total": 11011.21
+        },
+        {
+          "month": "2025-02",
+          "domestic": 6062.7,
+          "external": 5071.51,
+          "total": 11134.21
+        },
+        {
+          "month": "2025-03",
+          "domestic": 6126.7,
+          "external": 5238.3,
+          "total": 11365.0
+        },
+        {
+          "month": "2025-04",
+          "domestic": 6164.1,
+          "external": 5326.27,
+          "total": 11490.37
+        },
+        {
+          "month": "2025-05",
+          "domestic": 6203.54,
+          "external": 5308.18,
+          "total": 11511.72
+        },
+        {
+          "month": "2025-06",
+          "domestic": 6326.01,
+          "external": 5484.83,
+          "total": 11810.84
+        },
+        {
+          "month": "2025-07",
+          "domestic": 6386.24,
+          "external": 5385.3,
+          "total": 11771.54
+        },
+        {
+          "month": "2025-08",
+          "domestic": 6564.52,
+          "external": 5403.28,
+          "total": 11967.8
+        },
+        {
+          "month": "2025-09",
+          "domestic": 6660.42,
+          "external": 5393.53,
+          "total": 12053.95
+        },
+        {
+          "month": "2025-10",
+          "domestic": 6737.57,
+          "external": 5451.89,
+          "total": 12189.46
+        },
+        {
+          "month": "2025-11",
+          "domestic": 6784.15,
+          "external": 5469.19,
+          "total": 12253.34
+        },
+        {
+          "month": "2025-12",
+          "domestic": 6837.51,
+          "external": 5461.97,
+          "total": 12299.48
+        },
+        {
+          "month": "2026-01",
+          "domestic": 6892.02,
+          "external": 5506.99,
+          "total": 12399.01
+        },
+        {
+          "month": "2026-02",
+          "domestic": 7064.68,
+          "external": 5779.07,
+          "total": 12843.75
+        },
+        {
+          "month": "2026-03",
+          "domestic": 7149.72,
+          "external": 5683.22,
+          "total": 12832.94
+        }
+      ]
+    },
+    "exchange_rates": {
+      "as_of": "2026-06-30",
+      "base": "KES",
+      "rates": [
+        {
+          "currency": "USD",
+          "code": "USD",
+          "rate": 129.5,
+          "prior_year": 129.23,
+          "change_pct": -0.21,
+          "direction": "depreciation"
+        },
+        {
+          "currency": "Pound Sterling",
+          "code": "GBP",
+          "rate": 171.33,
+          "prior_year": 177.52,
+          "change_pct": 3.49,
+          "direction": "appreciation"
+        },
+        {
+          "currency": "Euro",
+          "code": "EUR",
+          "rate": 147.51,
+          "prior_year": 151.65,
+          "change_pct": 2.73,
+          "direction": "appreciation"
+        },
+        {
+          "currency": "South African Rand",
+          "code": "ZAR",
+          "rate": 7.86,
+          "prior_year": 7.28,
+          "change_pct": -7.97,
+          "direction": "depreciation"
+        },
+        {
+          "currency": "Uganda Shilling",
+          "code": "UGX",
+          "rate": 0.0353,
+          "prior_year": 0.0359,
+          "change_pct": 1.7,
+          "direction": "appreciation"
+        },
+        {
+          "currency": "Tanzania Shilling",
+          "code": "TZS",
+          "rate": 0.0493,
+          "prior_year": 0.0488,
+          "change_pct": -1.11,
+          "direction": "depreciation"
+        },
+        {
+          "currency": "Rwanda Franc",
+          "code": "RWF",
+          "rate": 0.0884,
+          "prior_year": 0.0897,
+          "change_pct": 1.48,
+          "direction": "appreciation"
+        },
+        {
+          "currency": "Burundi Franc",
+          "code": "BIF",
+          "rate": 0.0435,
+          "prior_year": 0.0434,
+          "change_pct": -0.34,
+          "direction": "depreciation"
+        }
+      ]
+    },
+    "interest_rates": {
+      "unit": "percent",
+      "latest": {
+        "month": "2026-06",
+        "cbr": 8.75,
+        "tbill_91d": 8.83,
+        "deposit": 6.88,
+        "savings": 3.31,
+        "lending": 14.69,
+        "overdraft": 13.29,
+        "bank_rates_as_of": "2026-04",
+        "note": "Commercial bank deposit, savings, lending and overdraft rates for May and June 2026 were not available at the time of publication."
+      },
+      "mpc": {
+        "cbr": 8.75,
+        "decision": "held",
+        "meeting": "2026-06",
+        "note": "MPC paused the easing cycle citing elevated global energy prices."
+      },
+      "series": [
+        {
+          "month": "2025-01",
+          "deposit": 10.05,
+          "savings": 4.08,
+          "lending": 16.64,
+          "overdraft": 15.38,
+          "tbill_91d": 9.63,
+          "cbr": 11.25
+        },
+        {
+          "month": "2025-02",
+          "deposit": 9.76,
+          "savings": 4.02,
+          "lending": 16.41,
+          "overdraft": 15.1,
+          "tbill_91d": 8.94,
+          "cbr": 10.75
+        },
+        {
+          "month": "2025-03",
+          "deposit": 9.33,
+          "savings": 3.09,
+          "lending": 15.77,
+          "overdraft": 14.33,
+          "tbill_91d": 8.79,
+          "cbr": 10.75
+        },
+        {
+          "month": "2025-04",
+          "deposit": 8.87,
+          "savings": 3.66,
+          "lending": 15.65,
+          "overdraft": 14.08,
+          "tbill_91d": 8.44,
+          "cbr": 10.0
+        },
+        {
+          "month": "2025-05",
+          "deposit": 8.7,
+          "savings": 3.31,
+          "lending": 15.44,
+          "overdraft": 13.73,
+          "tbill_91d": 8.29,
+          "cbr": 10.0
+        },
+        {
+          "month": "2025-06",
+          "deposit": 8.37,
+          "savings": 3.76,
+          "lending": 15.28,
+          "overdraft": 13.49,
+          "tbill_91d": 8.14,
+          "cbr": 9.75
+        },
+        {
+          "month": "2025-07",
+          "deposit": 8.07,
+          "savings": 3.76,
+          "lending": 15.24,
+          "overdraft": 13.61,
+          "tbill_91d": 8.11,
+          "cbr": 9.75
+        },
+        {
+          "month": "2025-08",
+          "deposit": 7.74,
+          "savings": 3.61,
+          "lending": 15.17,
+          "overdraft": 13.89,
+          "tbill_91d": 8.0,
+          "cbr": 9.5
+        },
+        {
+          "month": "2025-09",
+          "deposit": 7.63,
+          "savings": 3.77,
+          "lending": 15.07,
+          "overdraft": 13.72,
+          "tbill_91d": 7.91,
+          "cbr": 9.5
+        },
+        {
+          "month": "2025-10",
+          "deposit": 7.5,
+          "savings": 3.76,
+          "lending": 15.0,
+          "overdraft": 13.23,
+          "tbill_91d": 7.81,
+          "cbr": 9.25
+        },
+        {
+          "month": "2025-11",
+          "deposit": 7.28,
+          "savings": 3.67,
+          "lending": 14.88,
+          "overdraft": 13.36,
+          "tbill_91d": 7.78,
+          "cbr": 9.25
+        },
+        {
+          "month": "2025-12",
+          "deposit": 7.13,
+          "savings": 3.22,
+          "lending": 14.82,
+          "overdraft": 13.38,
+          "tbill_91d": 7.74,
+          "cbr": 9.0
+        },
+        {
+          "month": "2026-01",
+          "deposit": 7.03,
+          "savings": 3.18,
+          "lending": 14.81,
+          "overdraft": 13.56,
+          "tbill_91d": 7.63,
+          "cbr": 9.0
+        },
+        {
+          "month": "2026-02",
+          "deposit": 6.92,
+          "savings": 3.17,
+          "lending": 14.78,
+          "overdraft": 13.31,
+          "tbill_91d": 7.58,
+          "cbr": 8.75
+        },
+        {
+          "month": "2026-03",
+          "deposit": 6.86,
+          "savings": 3.22,
+          "lending": 14.17,
+          "overdraft": 13.04,
+          "tbill_91d": 7.43,
+          "cbr": 8.75
+        },
+        {
+          "month": "2026-04",
+          "deposit": 6.88,
+          "savings": 3.31,
+          "lending": 14.69,
+          "overdraft": 13.29,
+          "tbill_91d": 8.04,
+          "cbr": 8.75
+        },
+        {
+          "month": "2026-05",
+          "deposit": null,
+          "savings": null,
+          "lending": null,
+          "overdraft": null,
+          "tbill_91d": 8.39,
+          "cbr": 8.75
+        },
+        {
+          "month": "2026-06",
+          "deposit": null,
+          "savings": null,
+          "lending": null,
+          "overdraft": null,
+          "tbill_91d": 8.83,
+          "cbr": 8.75
+        }
+      ]
+    }
+  },
+  "bond_market": {
+    "primary": {
+      "treasury_bonds": {
+        "quarter": "Q2.2026",
+        "unit": "KShs billion",
+        "issues_count": 19,
+        "breakdown": {
+          "re_openings": 12,
+          "new": 1,
+          "tap_sales": 4,
+          "switch": 2
+        },
+        "target": 355.0,
+        "received": 428.36,
+        "accepted": 328.06,
+        "acceptance_rate_pct": 92.41,
+        "auctions": [
+          {
+            "month": "2025-06",
+            "bond": "FXD1/2020/015",
+            "amount_issued": 50.0,
+            "amount_received": 84.73,
+            "amount_accepted": 57.87,
+            "issue_type": "Re-opened"
+          },
+          {
+            "month": "2025-06",
+            "bond": "SDB1/2011/030",
+            "amount_issued": null,
+            "amount_received": 16.62,
+            "amount_accepted": 13.77,
+            "issue_type": "Re-opened"
+          },
+          {
+            "month": "2025-07",
+            "bond": "FXD1/2018/020",
+            "amount_issued": 50.0,
+            "amount_received": 33.08,
+            "amount_accepted": 30.57,
+            "issue_type": "Re-opened"
+          },
+          {
+            "month": "2025-07",
+            "bond": "FXD1/2018/025",
+            "amount_issued": null,
+            "amount_received": 43.83,
+            "amount_accepted": 36.08,
+            "issue_type": "Re-opened"
+          },
+          {
+            "month": "2025-08",
+            "bond": "IFB1/2018/015",
+            "amount_issued": 90.0,
+            "amount_received": 215.94,
+            "amount_accepted": 50.66,
+            "issue_type": "Re-opened"
+          },
+          {
+            "month": "2025-08",
+            "bond": "IFB1/2022/019",
+            "amount_issued": null,
+            "amount_received": 107.49,
+            "amount_accepted": 44.36,
+            "issue_type": "Re-opened"
+          },
+          {
+            "month": "2025-08",
+            "bond": "IFB1/2018/015",
+            "amount_issued": 50.0,
+            "amount_received": 130.34,
+            "amount_accepted": 127.98,
+            "issue_type": "Tap Sale"
+          },
+          {
+            "month": "2025-08",
+            "bond": "IFB1/2022/019",
+            "amount_issued": null,
+            "amount_received": 77.11,
+            "amount_accepted": 51.79,
+            "issue_type": "Tap Sale"
+          },
+          {
+            "month": "2025-09",
+            "bond": "FXD1/2018/020",
+            "amount_issued": 40.0,
+            "amount_received": 33.38,
+            "amount_accepted": 23.51,
+            "issue_type": "Re-opened"
+          },
+          {
+            "month": "2025-09",
+            "bond": "FXD1/2022/025",
+            "amount_issued": null,
+            "amount_received": 63.91,
+            "amount_accepted": 37.93,
+            "issue_type": "Re-opened"
+          },
+          {
+            "month": "2025-09",
+            "bond": "SDB1/2011/030",
+            "amount_issued": 20.0,
+            "amount_received": 8.07,
+            "amount_accepted": 2.4,
+            "issue_type": "Re-opened"
+          },
+          {
+            "month": "2025-10",
+            "bond": "FXD1/2018/015",
+            "amount_issued": 50.0,
+            "amount_received": 44.99,
+            "amount_accepted": 31.57,
+            "issue_type": "Re-opened"
+          },
+          {
+            "month": "2025-10",
+            "bond": "FXD1/2021/020",
+            "amount_issued": null,
+            "amount_received": 73.9,
+            "amount_accepted": 53.7,
+            "issue_type": "Re-opened"
+          },
+          {
+            "month": "2025-11",
+            "bond": "FXD1/2012/020",
+            "amount_issued": 40.0,
+            "amount_received": 35.32,
+            "amount_accepted": 19.48,
+            "issue_type": "Re-opened"
+          },
+          {
+            "month": "2025-11",
+            "bond": "FXD1/2022/015",
+            "amount_issued": null,
+            "amount_received": 57.58,
+            "amount_accepted": 33.35,
+            "issue_type": "Re-opened"
+          },
+          {
+            "month": "2025-11",
+            "bond": "FXD1/2023/003",
+            "amount_issued": 30.0,
+            "amount_received": 34.3,
+            "amount_accepted": 20.08,
+            "issue_type": "Buyback"
+          },
+          {
+            "month": "2025-11",
+            "bond": "FXD3/2019/015",
+            "amount_issued": 40.0,
+            "amount_received": 33.71,
+            "amount_accepted": 20.19,
+            "issue_type": "Re-opened"
+          },
+          {
+            "month": "2025-11",
+            "bond": "FXD1/2022/025",
+            "amount_issued": null,
+            "amount_received": 82.14,
+            "amount_accepted": 34.57,
+            "issue_type": "Re-opened"
+          },
+          {
+            "month": "2025-12",
+            "bond": "SDB1/2011/030",
+            "amount_issued": 40.0,
+            "amount_received": 4.59,
+            "amount_accepted": 3.9,
+            "issue_type": "Re-opened"
+          },
+          {
+            "month": "2025-12",
+            "bond": "FXD1/2021/025",
+            "amount_issued": null,
+            "amount_received": 48.54,
+            "amount_accepted": 43.21,
+            "issue_type": "Re-opened"
+          },
+          {
+            "month": "2026-01",
+            "bond": "FXD1/2019/020",
+            "amount_issued": 60.0,
+            "amount_received": 23.36,
+            "amount_accepted": 20.24,
+            "issue_type": "Re-opened"
+          },
+          {
+            "month": "2026-01",
+            "bond": "FXD1/2022/025",
+            "amount_issued": null,
+            "amount_received": 73.9,
+            "amount_accepted": 40.34,
+            "issue_type": "Re-opened"
+          },
+          {
+            "month": "2026-01",
+            "bond": "FXD1/2022/015",
+            "amount_issued": 20.0,
+            "amount_received": 26.49,
+            "amount_accepted": 25.17,
+            "issue_type": "Switch"
+          },
+          {
+            "month": "2026-02",
+            "bond": "FXD3/2019/015",
+            "amount_issued": 50.0,
+            "amount_received": 133.79,
+            "amount_accepted": 54.79,
+            "issue_type": "Re-opened"
+          },
+          {
+            "month": "2026-02",
+            "bond": "FXD1/2018/025",
+            "amount_issued": null,
+            "amount_received": 79.94,
+            "amount_accepted": 45.75,
+            "issue_type": "Re-opened"
+          },
+          {
+            "month": "2026-03",
+            "bond": "FXD1/2019/020",
+            "amount_issued": 60.0,
+            "amount_received": 50.5,
+            "amount_accepted": 44.85,
+            "issue_type": "Re-opened"
+          },
+          {
+            "month": "2026-03",
+            "bond": "FXD1/2021/025",
+            "amount_issued": null,
+            "amount_received": 66.94,
+            "amount_accepted": 16.14,
+            "issue_type": "Re-opened"
+          },
+          {
+            "month": "2026-03",
+            "bond": "FXD3/2019/015",
+            "amount_issued": 15.0,
+            "amount_received": 22.21,
+            "amount_accepted": 18.4,
+            "issue_type": "Switch"
+          },
+          {
+            "month": "2026-04",
+            "bond": "FXD1/2020/015",
+            "amount_issued": 40.0,
+            "amount_received": 41.42,
+            "amount_accepted": 36.49,
+            "issue_type": "Re-opened"
+          },
+          {
+            "month": "2026-04",
+            "bond": "FXD1/2018/025",
+            "amount_issued": null,
+            "amount_received": 33.47,
+            "amount_accepted": 9.95,
+            "issue_type": "Re-opened"
+          },
+          {
+            "month": "2026-04",
+            "bond": "FXD1/2018/015",
+            "amount_issued": 20.0,
+            "amount_received": 2.56,
+            "amount_accepted": 1.75,
+            "issue_type": "Switch"
+          },
+          {
+            "month": "2026-04",
+            "bond": "SDB1/2011/030",
+            "amount_issued": 20.0,
+            "amount_received": 7.05,
+            "amount_accepted": 6.57,
+            "issue_type": "Re-opened"
+          },
+          {
+            "month": "2026-04",
+            "bond": "FXD1/2026/030",
+            "amount_issued": null,
+            "amount_received": 31.28,
+            "amount_accepted": 23.49,
+            "issue_type": "New"
+          },
+          {
+            "month": "2026-05",
+            "bond": "FXD1/2021/020",
+            "amount_issued": 10.0,
+            "amount_received": 7.61,
+            "amount_accepted": 4.53,
+            "issue_type": "Switch"
+          },
+          {
+            "month": "2026-05",
+            "bond": "FXD1/2012/020",
+            "amount_issued": 80.0,
+            "amount_received": 47.95,
+            "amount_accepted": 47.53,
+            "issue_type": "Re-opened"
+          },
+          {
+            "month": "2026-05",
+            "bond": "FXD1/2019/020",
+            "amount_issued": null,
+            "amount_received": 17.57,
+            "amount_accepted": 14.54,
+            "issue_type": "Re-opened"
+          },
+          {
+            "month": "2026-05",
+            "bond": "FXD1/2021/025",
+            "amount_issued": null,
+            "amount_received": 40.5,
+            "amount_accepted": 31.97,
+            "issue_type": "Re-opened"
+          },
+          {
+            "month": "2026-05",
+            "bond": "FXD3/2019/015",
+            "amount_issued": 50.0,
+            "amount_received": 20.64,
+            "amount_accepted": 14.43,
+            "issue_type": "Re-opened"
+          },
+          {
+            "month": "2026-05",
+            "bond": "FXD1/2021/020",
+            "amount_issued": null,
+            "amount_received": 26.52,
+            "amount_accepted": 22.17,
+            "issue_type": "Re-opened"
+          },
+          {
+            "month": "2026-06",
+            "bond": "FXD1/2020/015",
+            "amount_issued": 40.0,
+            "amount_received": 20.16,
+            "amount_accepted": 20.16,
+            "issue_type": "Re-opened"
+          },
+          {
+            "month": "2026-06",
+            "bond": "FXD1/2018/025",
+            "amount_issued": null,
+            "amount_received": 14.23,
+            "amount_accepted": 14.22,
+            "issue_type": "Re-opened"
+          },
+          {
+            "month": "2026-06",
+            "bond": "FXD1/2020/015",
+            "amount_issued": 15.0,
+            "amount_received": 6.12,
+            "amount_accepted": 5.95,
+            "issue_type": "Tap Sale"
+          },
+          {
+            "month": "2026-06",
+            "bond": "FXD1/2018/025",
+            "amount_issued": null,
+            "amount_received": 2.64,
+            "amount_accepted": 2.5,
+            "issue_type": "Tap Sale"
+          },
+          {
+            "month": "2026-06",
+            "bond": "FXD1/2018/020",
+            "amount_issued": 60.0,
+            "amount_received": 22.68,
+            "amount_accepted": 19.56,
+            "issue_type": "Re-opened"
+          },
+          {
+            "month": "2026-06",
+            "bond": "FXD1/2021/025",
+            "amount_issued": null,
+            "amount_received": 54.95,
+            "amount_accepted": 23.01,
+            "issue_type": "Re-opened"
+          },
+          {
+            "month": "2026-06",
+            "bond": "FXD1/2018/020",
+            "amount_issued": 20.0,
+            "amount_received": 6.39,
+            "amount_accepted": 6.1,
+            "issue_type": "Tap Sale"
+          },
+          {
+            "month": "2026-06",
+            "bond": "FXD1/2021/025",
+            "amount_issued": null,
+            "amount_received": 24.62,
+            "amount_accepted": 23.14,
+            "issue_type": "Tap Sale"
+          }
+        ]
+      },
+      "corporate_bonds": {
+        "as_of": "2026-03-31",
+        "unit": "KShs",
+        "active_issuers": 8,
+        "total_outstanding": 95769821854,
+        "change_from_dec_2025_pct": -0.75,
+        "holders": [
+          {
+            "holder": "Fund managers and nominee accounts",
+            "amount": 59460000000,
+            "share_pct": 62.1
+          },
+          {
+            "holder": "Banks",
+            "share_pct": 23.5
+          },
+          {
+            "holder": "Investment companies and institutions",
+            "share_pct": 7.5
+          }
+        ],
+        "issues": [
+          {
+            "issuer": "EABL Fixed Medium Term Note Tranche 1",
+            "arranger": "ABSA Investment Bank",
+            "issued": 16762190000,
+            "issue_date": "2025-11-18",
+            "maturity": "2026-10-29",
+            "outstanding": 16762190000
+          },
+          {
+            "issuer": "Real People Medium Term Note",
+            "arranger": "NCBA Investment Bank",
+            "issued": 1631500000,
+            "maturity": "2025-02-28",
+            "outstanding": 100000000
+          },
+          {
+            "issuer": "Family Bank Medium Term Note",
+            "arranger": "NCBA",
+            "issued": 4000000000,
+            "outstanding": 4000000000
+          },
+          {
+            "issuer": "Kenya Mortgage Refinance Company",
+            "arranger": "NCBA Investment Bank",
+            "issued": 1400000000,
+            "issue_date": "2022-04-03",
+            "maturity": "2029-02-23",
+            "outstanding": 936690400
+          },
+          {
+            "issuer": "Linzi Finco Trust Tranche 1",
+            "arranger": "Liaison Financial Services",
+            "issued": 3000000000,
+            "issue_date": "2024-04-22",
+            "maturity": "2039-05-03"
+          },
+          {
+            "issuer": "Batian Income Properties",
+            "issued": 6666505000,
+            "outstanding": 6666505000
+          },
+          {
+            "issuer": "Linzi Finco Trust 003 ABS",
+            "arranger": "Liaison Financial Services",
+            "issued": 44791000000,
+            "issue_date": "2025-07-08",
+            "maturity": "2040-07-08",
+            "outstanding": 44304436454
+          },
+          {
+            "issuer": "Safaricom",
+            "arranger": "SBG, Stanbic, Standard Chartered",
+            "issued": 20000000000,
+            "issue_date": "2025-12-11",
+            "maturity": "2030-12-11",
+            "outstanding": 20000000000
+          }
+        ]
+      }
+    },
+    "secondary": {
+      "unit": "KShs billion",
+      "quarter": "Q2.2026",
+      "total_turnover": 621.83,
+      "treasury_turnover": 621.71,
+      "corporate_turnover": 0.12,
+      "qoq_change_pct": -42.49,
+      "yoy_change_pct": -6.7,
+      "h1_2026": {
+        "total": 1703.14,
+        "treasury": 1701.83,
+        "corporate": 1.31
+      },
+      "monthly": [
+        {
+          "month": "2026-01",
+          "treasury": 296.9,
+          "corporate": 0.0,
+          "total": 296.9
+        },
+        {
+          "month": "2026-02",
+          "treasury": 417.03,
+          "corporate": 1.12,
+          "total": 418.15
+        },
+        {
+          "month": "2026-03",
+          "treasury": 366.18,
+          "corporate": 0.06,
+          "total": 366.25
+        },
+        {
+          "month": "2026-04",
+          "treasury": 236.98,
+          "corporate": 0.0,
+          "total": 236.98
+        },
+        {
+          "month": "2026-05",
+          "treasury": 139.13,
+          "corporate": 0.0,
+          "total": 139.13
+        },
+        {
+          "month": "2026-06",
+          "treasury": 245.6,
+          "corporate": 0.12,
+          "total": 245.72
+        }
+      ],
+      "annual": [
+        {
+          "year": 2020,
+          "treasury": 690.58,
+          "corporate": 1.18,
+          "total": 691.76
+        },
+        {
+          "year": 2021,
+          "treasury": 956.11,
+          "corporate": 0.86,
+          "total": 956.97
+        },
+        {
+          "year": 2022,
+          "treasury": 741.5,
+          "corporate": 0.35,
+          "total": 741.85
+        },
+        {
+          "year": 2023,
+          "treasury": 643.83,
+          "corporate": 0.17,
+          "total": 644.0
+        },
+        {
+          "year": 2024,
+          "treasury": 1544.38,
+          "corporate": 0.0004,
+          "total": 1544.38
+        },
+        {
+          "year": 2025,
+          "treasury": 2710.11,
+          "corporate": 0.84,
+          "total": 2710.94
+        },
+        {
+          "year": 2026,
+          "treasury": 1701.83,
+          "corporate": 1.31,
+          "total": 1703.14,
+          "partial": "to 30 June 2026"
+        }
+      ]
+    }
+  },
+  "equity_market": {
+    "quarter": "Q2.2026",
+    "indices": {
+      "nse_20": {
+        "close": 3755.44,
+        "prior_quarter": 3431.56,
+        "qoq_pct": 9.44,
+        "prior_year": 2440.26,
+        "yoy_pct": 53.9
+      },
+      "nasi": {
+        "close": 224.15,
+        "prior_quarter": 194.82,
+        "qoq_pct": 15.05,
+        "prior_year": 153.43,
+        "yoy_pct": 46.09
+      },
+      "bond_index": {
+        "close": 1129.57,
+        "prior_quarter": 1187.64,
+        "qoq_pct": -4.89
+      }
+    },
+    "market_cap": {
+      "unit": "KShs billion",
+      "close": 3761.74,
+      "prior_quarter": 3230.73,
+      "qoq_pct": 16.44,
+      "prior_year": 2417.06,
+      "yoy_pct": 55.63
+    },
+    "turnover": {
+      "unit": "KShs billion",
+      "equity": 263.87,
+      "prior_quarter": 58.39,
+      "qoq_pct": 351.93,
+      "prior_year": 29.76,
+      "yoy_pct": 786.68,
+      "note": "June alone contributed KShs 233.55bn, of which a single Safaricom block was KShs 210.15bn."
+    },
+    "volume": {
+      "unit": "million shares",
+      "traded": 7697.64,
+      "prior_quarter": 1886.19,
+      "qoq_pct": 308.1,
+      "prior_year": 1442.44,
+      "yoy_pct": 433.65
+    },
+    "outstanding": {
+      "unit": "KShs billion",
+      "treasury_bonds": 6009.9,
+      "treasury_bonds_qoq_pct": 3.61,
+      "corporate_bonds": 102.38,
+      "corporate_bonds_qoq_pct": 17.89
+    },
+    "monthly": [
+      {
+        "month": "2026-01",
+        "turnover_bn": 13.83,
+        "volume_mn": 410.21,
+        "nse20": 3299.28,
+        "market_cap_bn": 3083.07
+      },
+      {
+        "month": "2026-02",
+        "turnover_bn": 24.97,
+        "volume_mn": 845.21,
+        "nse20": 3750.45,
+        "market_cap_bn": 3410.07
+      },
+      {
+        "month": "2026-03",
+        "turnover_bn": 19.58,
+        "volume_mn": 630.77,
+        "nse20": 3431.56,
+        "market_cap_bn": 3230.73
+      },
+      {
+        "month": "2026-04",
+        "turnover_bn": 15.29,
+        "volume_mn": 653.6,
+        "nse20": 3547.53,
+        "market_cap_bn": 3405.29
+      },
+      {
+        "month": "2026-05",
+        "turnover_bn": 15.03,
+        "volume_mn": 386.32,
+        "nse20": 3513.12,
+        "market_cap_bn": 3411.28
+      },
+      {
+        "month": "2026-06",
+        "turnover_bn": 233.55,
+        "volume_mn": 6657.72,
+        "nse20": 3755.44,
+        "market_cap_bn": 3761.74
+      }
+    ],
+    "annual": [
+      {
+        "year": 2022,
+        "turnover_bn": 94.29,
+        "volume_mn": 3080.91,
+        "nse20": 1676.1,
+        "market_cap_bn": 1986.08
+      },
+      {
+        "year": 2023,
+        "turnover_bn": 88.23,
+        "volume_mn": 3745.18,
+        "nse20": 1501.16,
+        "market_cap_bn": 1439.02
+      },
+      {
+        "year": 2024,
+        "turnover_bn": 105.97,
+        "volume_mn": 4937.51,
+        "nse20": 2010.65,
+        "market_cap_bn": 1939.74
+      },
+      {
+        "year": 2025,
+        "turnover_bn": 145.47,
+        "volume_mn": 6335.51,
+        "nse20": 3139.19,
+        "market_cap_bn": 2944.54
+      },
+      {
+        "year": 2026,
+        "turnover_bn": 322.26,
+        "volume_mn": 9583.84,
+        "nse20": 3755.44,
+        "market_cap_bn": 3761.74,
+        "partial": "to 30 June 2026"
+      }
+    ],
+    "new_issues": {
+      "ipos": [
+        {
+          "company": "Kenya Pipeline Company",
+          "code": "KPC",
+          "shares": 11812644350,
+          "date": "2026-01",
+          "price": 9.0,
+          "currency": "KES",
+          "subscription_pct": 105.7
+        },
+        {
+          "company": "ALP I-REIT",
+          "code": "ALP",
+          "shares": 39950000,
+          "date": "2026-03",
+          "price": 1.0,
+          "currency": "USD",
+          "subscription_pct": 115.0
+        },
+        {
+          "company": "Trific Green I-REIT",
+          "code": "TRFC",
+          "shares": 30820000,
+          "date": "2026-06",
+          "price": 1.0,
+          "currency": "USD",
+          "subscription_pct": 103.3,
+          "note": "Africa's first US dollar denominated green income REIT. Raised USD 30.82 million."
+        }
+      ],
+      "listings_by_introduction": [
+        {
+          "company": "Shri Krishana Overseas",
+          "code": "SKL",
+          "shares": 50500000,
+          "year": 2025,
+          "price": 5.9
+        },
+        {
+          "company": "Satrix MSCI World Feeder ETF",
+          "code": "SMWF",
+          "shares": 6000000,
+          "year": 2025,
+          "price": 761.0
+        },
+        {
+          "company": "Family Bank",
+          "code": "FMLY",
+          "shares": 1662654760,
+          "year": 2026,
+          "price": 18.0,
+          "quarter": "Q2.2026"
+        }
+      ],
+      "additional_offers": [],
+      "rights_issues": [],
+      "bonus_issues": [],
+      "stock_splits": [],
+      "share_buybacks": []
+    },
+    "suspended": [
+      "Deacons (East Africa) Plc",
+      "ARM Cement Plc",
+      "Mumias Sugar Co. Ltd",
+      "Bamburi Cement",
+      "Trans-Century Plc",
+      "East Africa Cables"
+    ],
+    "listed_counters": 71,
+    "delisted_count": 6,
+    "top_10_by_market_cap": [
+      {
+        "code": "SCOM",
+        "apr": 1189.94,
+        "may": 1224.0,
+        "jun": 1364.23,
+        "average": 1259.39
+      },
+      {
+        "code": "EQTY",
+        "apr": 277.37,
+        "may": 280.2,
+        "jun": 301.89,
+        "average": 286.48
+      },
+      {
+        "code": "KCB",
+        "apr": 215.3,
+        "may": 214.5,
+        "jun": 253.06,
+        "average": 227.62
+      },
+      {
+        "code": "EABL",
+        "apr": 192.55,
+        "may": 196.11,
+        "jun": 212.72,
+        "average": 200.46
+      },
+      {
+        "code": "COOP",
+        "apr": 183.64,
+        "may": 188.34,
+        "jun": 201.24,
+        "average": 191.07
+      },
+      {
+        "code": "KPC",
+        "apr": 167.92,
+        "may": 166.1,
+        "jun": 171.92,
+        "average": 168.65
+      },
+      {
+        "code": "ABSA",
+        "apr": 165.66,
+        "may": 156.16,
+        "jun": 174.08,
+        "average": 165.3
+      },
+      {
+        "code": "NCBA",
+        "apr": 146.63,
+        "may": 143.75,
+        "jun": 147.45,
+        "average": 145.94
+      },
+      {
+        "code": "SCBK",
+        "apr": 132.63,
+        "may": 125.92,
+        "jun": 123.84,
+        "average": 127.47
+      },
+      {
+        "code": "SBIC",
+        "apr": 113.06,
+        "may": 106.54,
+        "jun": 110.79,
+        "average": 110.13
+      }
+    ],
+    "top_10_by_turnover": [
+      {
+        "code": "SCOM",
+        "apr": 4275.82,
+        "may": 2496.96,
+        "jun": 210152.92,
+        "average": 72308.57
+      },
+      {
+        "code": "EQTY",
+        "apr": 2961.14,
+        "may": 3937.76,
+        "jun": 10797.06,
+        "average": 5898.65
+      },
+      {
+        "code": "KCB",
+        "apr": 1712.61,
+        "may": 3198.29,
+        "jun": 3020.1,
+        "average": 2643.67
+      },
+      {
+        "code": "KPC",
+        "apr": 2362.95,
+        "may": 349.89,
+        "jun": 211.75,
+        "average": 974.86
+      },
+      {
+        "code": "EABL",
+        "apr": 326.34,
+        "may": 550.31,
+        "jun": 1818.42,
+        "average": 898.36
+      },
+      {
+        "code": "NCBA",
+        "apr": 128.88,
+        "may": 490.62,
+        "jun": 1878.05,
+        "average": 832.52
+      },
+      {
+        "code": "COOP",
+        "apr": 489.43,
+        "may": 442.3,
+        "jun": 643.39,
+        "average": 525.04
+      },
+      {
+        "code": "ABSA",
+        "apr": 328.33,
+        "may": 427.32,
+        "jun": 715.75,
+        "average": 490.47
+      },
+      {
+        "code": "IMH",
+        "apr": 512.82,
+        "may": 244.72,
+        "jun": 601.94,
+        "average": 453.16
+      },
+      {
+        "code": "SBIC",
+        "apr": 80.23,
+        "may": 344.29,
+        "jun": 686.16,
+        "average": 370.23
+      }
+    ]
+  },
+  "capital_markets_update": {
+    "approvals": [
+      {
+        "entity": "Madison Investment Managers",
+        "detail": "Register the Madison USD Fixed Income Special Fund as an additional sub-fund of the Madison Unit Trust Scheme"
+      },
+      {
+        "entity": "Karsis Asset Managers",
+        "detail": "Establish the Karsis Unit Trust Scheme comprising 12 sub-funds"
+      },
+      {
+        "entity": "Cinemark Investment Bank",
+        "detail": "Establish the Cinemark Unit Trust Fund comprising 7 sub-funds"
+      },
+      {
+        "entity": "Absa Asset Management",
+        "detail": "Register Absa Global Multi-Asset Special Funds as additional sub-funds of the Absa Unit Trust Scheme"
+      }
+    ],
+    "licences": [
+      {
+        "entity": "Frictionless Enterprises Limited",
+        "licence": "Intermediary service platform provider"
+      },
+      {
+        "entity": "Istithmar Lulu Makmoon",
+        "licence": "REIT manager"
+      },
+      {
+        "entity": "Everstrong Asset Management Limited",
+        "licence": "Fund manager"
+      },
+      {
+        "entity": "Finaltus Limited",
+        "licence": "Investment adviser"
+      },
+      {
+        "entity": "Karsis Asset Managers Limited",
+        "licence": "Fund manager"
+      },
+      {
+        "entity": "Saffron Coffee Marketers Limited",
+        "licence": "Coffee broker"
+      },
+      {
+        "entity": "Entrust Advisory Limited",
+        "licence": "Fund manager"
+      },
+      {
+        "entity": "Adar Asset Management Limited",
+        "licence": "Fund manager"
+      },
+      {
+        "entity": "Vepris Cap Limited",
+        "licence": "Investment adviser"
+      },
+      {
+        "entity": "E-GUM Ventures Limited",
+        "licence": "Venture capital"
+      },
+      {
+        "entity": "Moneto Ventures Limited",
+        "licence": "Intermediary service platform provider"
+      },
+      {
+        "entity": "Fintrust Securities Limited",
+        "licence": "Investment bank"
+      },
+      {
+        "entity": "Dealogic Africa Limited",
+        "licence": "Investment adviser"
+      },
+      {
+        "entity": "AIB-AXYS Africa Limited",
+        "licence": "Investment bank"
+      },
+      {
+        "entity": "Pesa Bridge Ventures Limited",
+        "licence": "Intermediary service platform provider"
+      },
+      {
+        "entity": "Ava Trade Kenya Limited",
+        "licence": "Non-dealing online foreign exchange broker"
+      },
+      {
+        "entity": "Enwealth Trustee Services Limited",
+        "licence": "Corporate trustee"
+      },
+      {
+        "entity": "Cinemark Investment Bank Limited",
+        "licence": "Investment bank"
+      },
+      {
+        "entity": "KCB Asset Management Limited",
+        "licence": "Corporate trustee"
+      },
+      {
+        "entity": "Ahadi Coffee Limited",
+        "licence": "Coffee broker"
+      },
+      {
+        "entity": "Caffora Coffee Company Limited",
+        "licence": "Coffee broker"
+      }
+    ],
+    "investor_numbers": {
+      "equity": {
+        "east_african_corporate": 251,
+        "east_african_individuals": 7404,
+        "junior": 417,
+        "brokers": 6,
+        "foreign_corporate": 381,
+        "foreign_individual": 8006,
+        "local_corporate": 40684,
+        "local_individual": 1277612
+      },
+      "corporate_bond": {
+        "east_african_individuals": 8,
+        "foreign_corporate": 3,
+        "foreign_individual": 52,
+        "junior": 5,
+        "local_corporate": 628,
+        "local_individual": 3337
+      }
+    },
+    "holdings_share_pct": {
+      "equities": {
+        "brokers": 0.012,
+        "east_african_corporate": 4.577,
+        "east_african_individuals": 0.104,
+        "foreign_corporate": 13.052,
+        "foreign_individual": 0.465,
+        "junior": 0.003,
+        "local_corporate": 69.753,
+        "local_individual": 12.034
+      },
+      "corporate_bonds": {
+        "east_african_individuals": 0.019,
+        "foreign_corporate": 2.248,
+        "foreign_individual": 0.615,
+        "junior": 0.001,
+        "local_corporate": 97.116,
+        "local_individual": 9.524
+      }
+    },
+    "investors_by_gender": {
+      "female": {
+        "investors": 737891,
+        "shares_held": 5879596778
+      },
+      "male": {
+        "investors": 1517868,
+        "shares_held": 15044424028
+      },
+      "total": {
+        "investors": 2255759,
+        "shares_held": 20924020806
+      }
+    },
+    "share_pledges": {
+      "investors": 38899,
+      "quantity_pledged": 3427153252,
+      "quantity_frozen": 3061078972,
+      "total": 6488232224
+    },
+    "foreign_participation": {
+      "quarter_avg_pct": 25.58,
+      "prior_quarter_avg_pct": 32.27,
+      "change_pp": -6.69,
+      "purchases_bn": 18.4,
+      "sales_bn": 19.6,
+      "monthly": [
+        {
+          "month": "2026-04",
+          "purchases_mn": 4480,
+          "sales_mn": 6456,
+          "equity_turnover_mn": 15292,
+          "participation_pct": 35.76
+        },
+        {
+          "month": "2026-05",
+          "purchases_mn": 5795,
+          "sales_mn": 5509,
+          "equity_turnover_mn": 15028,
+          "participation_pct": 37.61
+        },
+        {
+          "month": "2026-06",
+          "purchases_mn": 8150,
+          "sales_mn": 7664,
+          "equity_turnover_mn": 233552,
+          "participation_pct": 3.39,
+          "note": "Suppressed by the Safaricom block trade, not a fall in foreign activity."
+        }
+      ]
+    },
+    "fiscal_contribution": {
+      "as_of": "2026-03-31",
+      "financial_year": "2025/2026",
+      "capital_markets_contribution_pct": 91.51,
+      "fiscal_deficit_incl_grants_bn": 923.2,
+      "net_external_borrowing_bn": 287.7,
+      "net_domestic_borrowing_bn": 635.5,
+      "government_securities_outstanding_bn": 841.897
+    },
+    "shareholding_by_company": [
+      {
+        "company": "Eaagads Ltd",
+        "code": "EGAD",
+        "month": "2026-05",
+        "total_shares": 32157000,
+        "foreign_pct": 21.27,
+        "local_individual_pct": 11.37,
+        "local_institution_pct": 67.36
+      },
+      {
+        "company": "Kakuzi Plc",
+        "code": "KUKZ",
+        "month": "2026-05",
+        "total_shares": 19599999,
+        "foreign_pct": 30.31,
+        "local_individual_pct": 41.15,
+        "local_institution_pct": 28.55
+      },
+      {
+        "company": "Kapchorua Tea Kenya Plc",
+        "code": "KAPC",
+        "month": "2026-05",
+        "total_shares": 15648000,
+        "foreign_pct": 29.1,
+        "local_individual_pct": 16.32,
+        "local_institution_pct": 54.58
+      },
+      {
+        "company": "The Limuru Tea Co. Plc",
+        "code": "LIMT",
+        "month": "2026-05",
+        "total_shares": 2400000,
+        "foreign_pct": 0.85,
+        "local_individual_pct": 39.54,
+        "local_institution_pct": 59.61
+      },
+      {
+        "company": "Sasini Plc",
+        "code": "SASN",
+        "month": "2026-05",
+        "total_shares": 228055500,
+        "foreign_pct": 0.96,
+        "local_individual_pct": 21.15,
+        "local_institution_pct": 77.89
+      },
+      {
+        "company": "Williamson Tea Kenya Plc",
+        "code": "WTK",
+        "month": "2026-05",
+        "total_shares": 35025280,
+        "foreign_pct": 58.53,
+        "local_individual_pct": 29.12,
+        "local_institution_pct": 12.34
+      },
+      {
+        "company": "Car & General (K) Ltd",
+        "code": "CGEN",
+        "month": "2026-05",
+        "total_shares": 80206616,
+        "foreign_pct": 0.83,
+        "local_individual_pct": 19.62,
+        "local_institution_pct": 79.55
+      },
+      {
+        "company": "ABSA Bank Kenya Plc",
+        "code": "ABSA",
+        "month": "2026-05",
+        "total_shares": 5431536000,
+        "foreign_pct": 70.03,
+        "local_individual_pct": 13.89,
+        "local_institution_pct": 16.07
+      },
+      {
+        "company": "BK Group Plc",
+        "code": "BKG",
+        "month": "2026-05",
+        "total_shares": 264239482,
+        "foreign_pct": 92.16,
+        "local_individual_pct": 0.71,
+        "local_institution_pct": 7.13
+      },
+      {
+        "company": "Diamond Trust Bank Kenya Ltd",
+        "code": "DTK",
+        "month": "2026-05",
+        "total_shares": 279602220,
+        "foreign_pct": 51.1,
+        "local_individual_pct": 19.5,
+        "local_institution_pct": 29.4
+      },
+      {
+        "company": "Equity Group Holdings Plc",
+        "code": "EQTY",
+        "month": "2026-05",
+        "total_shares": 3773674802,
+        "foreign_pct": 41.51,
+        "local_individual_pct": 10.84,
+        "local_institution_pct": 47.65
+      },
+      {
+        "company": "HF Group Plc",
+        "code": "HFCK",
+        "month": "2026-05",
+        "total_shares": 1979762417,
+        "foreign_pct": 0.28,
+        "local_individual_pct": 11.83,
+        "local_institution_pct": 87.88
+      },
+      {
+        "company": "I&M Group Plc",
+        "code": "IMH",
+        "month": "2026-05",
+        "total_shares": 1740121476,
+        "foreign_pct": 17.96,
+        "local_individual_pct": 10.52,
+        "local_institution_pct": 71.52
+      },
+      {
+        "company": "KCB Group Plc",
+        "code": "KCB",
+        "month": "2026-05",
+        "total_shares": 3213462815,
+        "foreign_pct": 9.16,
+        "local_individual_pct": 24.62,
+        "local_institution_pct": 66.22
+      },
+      {
+        "company": "NCBA Group Plc",
+        "code": "NCBA",
+        "month": "2026-05",
+        "total_shares": 1647519532,
+        "foreign_pct": 0.35,
+        "local_individual_pct": 10.36,
+        "local_institution_pct": 89.29
+      },
+      {
+        "company": "Stanbic Holdings Plc",
+        "code": "SBIC",
+        "month": "2026-05",
+        "total_shares": 395321638,
+        "foreign_pct": 81.39,
+        "local_individual_pct": 3.45,
+        "local_institution_pct": 15.15
+      },
+      {
+        "company": "Standard Chartered Bank Kenya Ltd",
+        "code": "SCBK",
+        "month": "2026-05",
+        "total_shares": 377850589,
+        "foreign_pct": 75.12,
+        "local_individual_pct": 13.3,
+        "local_institution_pct": 11.59
+      },
+      {
+        "company": "The Co-operative Bank of Kenya Ltd",
+        "code": "COOP",
+        "month": "2026-05",
+        "total_shares": 5867174695,
+        "foreign_pct": 0.25,
+        "local_individual_pct": 16.42,
+        "local_institution_pct": 83.33
+      },
+      {
+        "company": "Deacons (East Africa) Plc",
+        "code": "DCON",
+        "month": "2026-05",
+        "total_shares": 123558228,
+        "foreign_pct": 28.94,
+        "local_individual_pct": 23.45,
+        "local_institution_pct": 47.61
+      },
+      {
+        "company": "Eveready East Africa Ltd",
+        "code": "EVRD",
+        "month": "2024-12",
+        "total_shares": 210000000,
+        "foreign_pct": 45.57,
+        "local_individual_pct": 29.76,
+        "local_institution_pct": 24.67
+      },
+      {
+        "company": "Express Kenya Plc",
+        "code": "XPRS",
+        "month": "2026-05",
+        "total_shares": 47711481,
+        "foreign_pct": 0.21,
+        "local_individual_pct": 20.83,
+        "local_institution_pct": 78.96
+      },
+      {
+        "company": "Kenya Airways Ltd",
+        "code": "KQ",
+        "month": "2026-05",
+        "total_shares": 5718012429,
+        "foreign_pct": 8.02,
+        "local_individual_pct": 3.26,
+        "local_institution_pct": 88.72
+      },
+      {
+        "company": "Longhorn Publishers Plc",
+        "code": "LKL",
+        "month": "2026-05",
+        "total_shares": 272440473,
+        "foreign_pct": 0.51,
+        "local_individual_pct": 17.62,
+        "local_institution_pct": 81.87
+      },
+      {
+        "company": "Nairobi Business Ventures Plc",
+        "code": "NBV",
+        "month": "2026-05",
+        "total_shares": 1353711934,
+        "foreign_pct": 32.13,
+        "local_individual_pct": 34.77,
+        "local_institution_pct": 33.1
+      },
+      {
+        "company": "Nation Media Group Plc",
+        "code": "NMG",
+        "month": "2026-05",
+        "total_shares": 207396515,
+        "foreign_pct": 11.0,
+        "local_individual_pct": 20.53,
+        "local_institution_pct": 68.47
+      },
+      {
+        "company": "Sameer Africa Plc",
+        "code": "SMER",
+        "month": "2026-05",
+        "total_shares": 278342393,
+        "foreign_pct": 0.42,
+        "local_individual_pct": 15.94,
+        "local_institution_pct": 83.64
+      },
+      {
+        "company": "Standard Group Plc",
+        "code": "SGL",
+        "month": "2026-05",
+        "total_shares": 81731808,
+        "foreign_pct": 69.28,
+        "local_individual_pct": 7.33,
+        "local_institution_pct": 23.38
+      },
+      {
+        "company": "TPS Eastern Africa Ltd",
+        "code": "TPSE",
+        "month": "2026-05",
+        "total_shares": 282650579,
+        "foreign_pct": 76.81,
+        "local_individual_pct": 6.08,
+        "local_institution_pct": 17.11
+      },
+      {
+        "company": "Uchumi Supermarket Plc",
+        "code": "UCHM",
+        "month": "2025-10",
+        "total_shares": 364959616,
+        "foreign_pct": 10.17,
+        "local_individual_pct": 39.11,
+        "local_institution_pct": 50.73
+      },
+      {
+        "company": "WPP Scangroup Plc",
+        "code": "SCAN",
+        "month": "2026-05",
+        "total_shares": 432155985,
+        "foreign_pct": 71.48,
+        "local_individual_pct": 24.35,
+        "local_institution_pct": 4.16
+      },
+      {
+        "company": "Homeboyz Entertainment Plc",
+        "code": "HBE",
+        "month": "2026-05",
+        "total_shares": 63200000,
+        "foreign_pct": 0.0,
+        "local_individual_pct": 90.33,
+        "local_institution_pct": 9.67
+      },
+      {
+        "company": "ARM Cement Plc",
+        "code": "ARM",
+        "month": "2026-05",
+        "total_shares": 959940200,
+        "foreign_pct": 46.13,
+        "local_individual_pct": 33.25,
+        "local_institution_pct": 20.62
+      },
+      {
+        "company": "Bamburi Cement Plc",
+        "code": "BAMB",
+        "month": "2026-05",
+        "total_shares": 362959275,
+        "foreign_pct": 0.0,
+        "local_individual_pct": 0.0,
+        "local_institution_pct": 100.0
+      },
+      {
+        "company": "Crown Paints Kenya Plc",
+        "code": "CRWN",
+        "month": "2026-05",
+        "total_shares": 142362000,
+        "foreign_pct": 44.1,
+        "local_individual_pct": 6.21,
+        "local_institution_pct": 49.68
+      },
+      {
+        "company": "E.A.Cables Ltd",
+        "code": "CABL",
+        "month": "2026-05",
+        "total_shares": 253125000,
+        "foreign_pct": 0.64,
+        "local_individual_pct": 24.45,
+        "local_institution_pct": 74.91
+      },
+      {
+        "company": "E.A.Portland Cement Co. Ltd",
+        "code": "PORT",
+        "month": "2025-04",
+        "total_shares": 90000000,
+        "foreign_pct": 29.35,
+        "local_individual_pct": 1.66,
+        "local_institution_pct": 69.0
+      },
+      {
+        "company": "KenGen Co. Plc",
+        "code": "KEGN",
+        "month": "2026-05",
+        "total_shares": 6594522339,
+        "foreign_pct": 9.97,
+        "local_individual_pct": 14.21,
+        "local_institution_pct": 75.82
+      },
+      {
+        "company": "Kenya Power & Lighting Co Plc",
+        "code": "KPLC",
+        "month": "2026-05",
+        "total_shares": 1951467045,
+        "foreign_pct": 6.81,
+        "local_individual_pct": 27.81,
+        "local_institution_pct": 65.38
+      },
+      {
+        "company": "TotalEnergies Marketing Kenya Plc",
+        "code": "TOTL",
+        "month": "2026-05",
+        "total_shares": 629542458,
+        "foreign_pct": 94.99,
+        "local_individual_pct": 3.79,
+        "local_institution_pct": 1.22
+      },
+      {
+        "company": "Umeme Ltd",
+        "code": "UMME",
+        "month": "2026-02",
+        "total_shares": 96257747,
+        "foreign_pct": 9.7,
+        "local_individual_pct": 46.57,
+        "local_institution_pct": 43.73
+      },
+      {
+        "company": "Kenya Pipeline Company Plc",
+        "code": "KPC",
+        "month": "2026-05",
+        "total_shares": 18173299000,
+        "foreign_pct": 0.08,
+        "local_individual_pct": 1.32,
+        "local_institution_pct": 98.6
+      },
+      {
+        "company": "Britam Holdings Plc",
+        "code": "BRIT",
+        "month": "2026-05",
+        "total_shares": 2523486816,
+        "foreign_pct": 42.6,
+        "local_individual_pct": 20.78,
+        "local_institution_pct": 36.62
+      },
+      {
+        "company": "CIC Insurance Group Plc",
+        "code": "CIC",
+        "month": "2026-05",
+        "total_shares": 2877092115,
+        "foreign_pct": 0.99,
+        "local_individual_pct": 21.56,
+        "local_institution_pct": 77.45
+      },
+      {
+        "company": "Jubilee Holdings Ltd",
+        "code": "JUB",
+        "month": "2026-05",
+        "total_shares": 72472950,
+        "foreign_pct": 68.13,
+        "local_individual_pct": 17.96,
+        "local_institution_pct": 13.91
+      },
+      {
+        "company": "Kenya Re Insurance Corporation Ltd",
+        "code": "KNRE",
+        "month": "2026-05",
+        "total_shares": 5599592544,
+        "foreign_pct": 1.03,
+        "local_individual_pct": 22.15,
+        "local_institution_pct": 76.82
+      },
+      {
+        "company": "Liberty Kenya Holdings Ltd",
+        "code": "LBTY",
+        "month": "2026-05",
+        "total_shares": 535707499,
+        "foreign_pct": 73.62,
+        "local_individual_pct": 18.59,
+        "local_institution_pct": 7.79
+      },
+      {
+        "company": "Sanlam Kenya Plc",
+        "code": "SLAM",
+        "month": "2026-05",
+        "total_shares": 543420465,
+        "foreign_pct": 0.48,
+        "local_individual_pct": 6.29,
+        "local_institution_pct": 93.23
+      },
+      {
+        "company": "Centum Investment Co Plc",
+        "code": "CTUM",
+        "month": "2026-05",
+        "total_shares": 665441714,
+        "foreign_pct": 1.79,
+        "local_individual_pct": 68.35,
+        "local_institution_pct": 29.85
+      },
+      {
+        "company": "Home Afrika Ltd",
+        "code": "HAFR",
+        "month": "2026-05",
+        "total_shares": 405255320,
+        "foreign_pct": 3.81,
+        "local_individual_pct": 72.17,
+        "local_institution_pct": 24.02
+      },
+      {
+        "company": "Kurwitu Ventures Ltd",
+        "code": "KURV",
+        "month": "2026-05",
+        "total_shares": 102272,
+        "foreign_pct": 0.0,
+        "local_individual_pct": 99.96,
+        "local_institution_pct": 0.04
+      },
+      {
+        "company": "Olympia Capital Holdings Ltd",
+        "code": "OCH",
+        "month": "2026-05",
+        "total_shares": 40000000,
+        "foreign_pct": 0.26,
+        "local_individual_pct": 40.07,
+        "local_institution_pct": 59.67
+      },
+      {
+        "company": "Trans-Century Plc",
+        "code": "TCL",
+        "month": "2026-05",
+        "total_shares": 1128028321,
+        "foreign_pct": 76.32,
+        "local_individual_pct": 21.55,
+        "local_institution_pct": 2.13
+      },
+      {
+        "company": "B.O.C Kenya Plc",
+        "code": "BOC",
+        "month": "2026-05",
+        "total_shares": 19525446,
+        "foreign_pct": 69.69,
+        "local_individual_pct": 28.13,
+        "local_institution_pct": 2.19
+      },
+      {
+        "company": "British American Tobacco Kenya Plc",
+        "code": "BAT",
+        "month": "2026-05",
+        "total_shares": 100000000,
+        "foreign_pct": 73.92,
+        "local_individual_pct": 8.74,
+        "local_institution_pct": 17.35
+      },
+      {
+        "company": "Carbacid Investments Plc",
+        "code": "CARB",
+        "month": "2026-05",
+        "total_shares": 254851985,
+        "foreign_pct": 10.65,
+        "local_individual_pct": 27.48,
+        "local_institution_pct": 61.87
+      },
+      {
+        "company": "East African Breweries Plc",
+        "code": "EABL",
+        "month": "2026-05",
+        "total_shares": 790774356,
+        "foreign_pct": 9.51,
+        "local_individual_pct": 6.33,
+        "local_institution_pct": 84.17
+      },
+      {
+        "company": "Flame Tree Group Holdings Ltd",
+        "code": "FTGH",
+        "month": "2026-05",
+        "total_shares": 178053486,
+        "foreign_pct": 0.54,
+        "local_individual_pct": 96.12,
+        "local_institution_pct": 3.34
+      },
+      {
+        "company": "Africa Mega Agricorp Plc",
+        "code": "AMAC",
+        "month": "2024-10",
+        "total_shares": 12859262,
+        "foreign_pct": 0.04,
+        "local_individual_pct": 65.58,
+        "local_institution_pct": 34.37
+      },
+      {
+        "company": "Mumias Sugar Co. Ltd",
+        "code": "MSC",
+        "month": "2025-11",
+        "total_shares": 1530000000,
+        "foreign_pct": 2.7,
+        "local_individual_pct": 64.56,
+        "local_institution_pct": 32.74
+      },
+      {
+        "company": "Unga Group Ltd",
+        "code": "UNGA",
+        "month": "2026-05",
+        "total_shares": 75706986,
+        "foreign_pct": 1.94,
+        "local_individual_pct": 14.25,
+        "local_institution_pct": 83.82
+      },
+      {
+        "company": "Shri Krishana Overseas Plc",
+        "code": "SKL",
+        "month": "2026-05",
+        "total_shares": 50500000,
+        "foreign_pct": 1.94,
+        "local_individual_pct": 97.83,
+        "local_institution_pct": 0.23
+      },
+      {
+        "company": "Safaricom Plc",
+        "code": "SCOM",
+        "month": "2026-05",
+        "total_shares": 40065428000,
+        "foreign_pct": 6.38,
+        "local_individual_pct": 4.24,
+        "local_institution_pct": 89.39
+      },
+      {
+        "company": "Nairobi Securities Exchange Plc",
+        "code": "NSE",
+        "month": "2026-05",
+        "total_shares": 260912980,
+        "foreign_pct": 49.02,
+        "local_individual_pct": 15.95,
+        "local_institution_pct": 35.03
+      },
+      {
+        "company": "LAPTRUST IMARA I-REIT",
+        "code": "LAPR",
+        "month": "2025-05",
+        "total_shares": 346231413,
+        "foreign_pct": 0.0,
+        "local_individual_pct": 0.0,
+        "local_institution_pct": 100.0
+      },
+      {
+        "company": "ALP Industrial REIT",
+        "code": "ALP",
+        "month": "2026-05",
+        "total_shares": 39950000,
+        "foreign_pct": 73.59,
+        "local_individual_pct": 0.53,
+        "local_institution_pct": 25.88
+      },
+      {
+        "company": "ABSA New Gold ETF",
+        "code": "GLD",
+        "month": "2026-05",
+        "total_shares": 362200,
+        "foreign_pct": 45.17,
+        "local_individual_pct": 14.04,
+        "local_institution_pct": 40.8
+      }
+    ]
+  },
+  "derivatives": {
+    "quarter": "Q2.2026",
+    "open_interest_contracts": 10092,
+    "deals": 684,
+    "deals_qoq_pct": 5.39,
+    "volume_contracts": 68936,
+    "volume_qoq_pct": -12.01,
+    "turnover_mn": 320,
+    "turnover_qoq_pct": 0.7,
+    "monthly": [
+      {
+        "month": "2026-04",
+        "deals": 132,
+        "volume": 19834,
+        "turnover_mn": 86.8
+      },
+      {
+        "month": "2026-05",
+        "deals": 85,
+        "volume": 13639,
+        "turnover_mn": 59.6
+      },
+      {
+        "month": "2026-06",
+        "deals": 467,
+        "volume": 35463,
+        "turnover_mn": 173.0
+      }
+    ],
+    "open_interest_series": [
+      {
+        "quarter": "Q1 2025",
+        "contracts": 1,
+        "value_kes": 48000
+      },
+      {
+        "quarter": "Q2 2025",
+        "contracts": 3,
+        "value_kes": 90180
+      },
+      {
+        "quarter": "Q3 2025",
+        "contracts": 125,
+        "value_kes": 3497400
+      },
+      {
+        "quarter": "Q4 2025",
+        "contracts": 5936,
+        "value_kes": 23117688
+      },
+      {
+        "quarter": "Q1 2026",
+        "contracts": 11983,
+        "value_kes": 54357881
+      },
+      {
+        "quarter": "Q2 2026",
+        "contracts": 10092,
+        "value_kes": null
+      }
+    ]
+  },
+  "collective_investment_schemes": {
+    "as_of": "2026-03-31",
+    "prior_period": "2025-12-31",
+    "total_aum_kes": 851708510285,
+    "prior_total_aum_kes": 756266044500,
+    "change_pct": 13.0,
+    "scheme_count": 43,
+    "commentary": "Growth attributed to existing CIS funds, additional funds registered by existing umbrella schemes that commenced reporting in Q1 2026, and intensified marketing by fund managers.",
+    "schemes": [
+      {
+        "scheme": "Sanlam Unit Trust Scheme",
+        "aum_mar_2026": 161017593553,
+        "aum_dec_2025": 144310234841,
+        "change_pct": 11.6,
+        "market_share_pct": 18.91
+      },
+      {
+        "scheme": "Standard Investment Trust Fund",
+        "aum_mar_2026": 153153595139,
+        "aum_dec_2025": 125314716090,
+        "change_pct": 22.2,
+        "market_share_pct": 17.98
+      },
+      {
+        "scheme": "CIC Unit Trust Scheme",
+        "aum_mar_2026": 103168617145,
+        "aum_dec_2025": 102043788524,
+        "change_pct": 1.1,
+        "market_share_pct": 12.11
+      },
+      {
+        "scheme": "Britam Unit Trust Scheme",
+        "aum_mar_2026": 61857396056,
+        "aum_dec_2025": 53099994031,
+        "change_pct": 16.5,
+        "market_share_pct": 7.26
+      },
+      {
+        "scheme": "NCBA Unit Trust Scheme",
+        "aum_mar_2026": 54294581715,
+        "aum_dec_2025": 52350284304,
+        "change_pct": 3.7,
+        "market_share_pct": 6.37
+      },
+      {
+        "scheme": "Old Mutual Unit Trust Scheme",
+        "aum_mar_2026": 34949481280,
+        "aum_dec_2025": 30608803720,
+        "change_pct": 14.2,
+        "market_share_pct": 4.1
+      },
+      {
+        "scheme": "Absa Unit Trust Funds",
+        "aum_mar_2026": 29445586879,
+        "aum_dec_2025": 29082256518,
+        "change_pct": 1.2,
+        "market_share_pct": 3.46
+      },
+      {
+        "scheme": "Jubilee Unit Trust Scheme",
+        "aum_mar_2026": 26914858646,
+        "aum_dec_2025": 21732595728,
+        "change_pct": 23.8,
+        "market_share_pct": 3.16
+      },
+      {
+        "scheme": "Coop Unit Trust Scheme",
+        "aum_mar_2026": 25564263558,
+        "aum_dec_2025": 24255119346,
+        "change_pct": 5.4,
+        "market_share_pct": 3.0
+      },
+      {
+        "scheme": "ICEA Unit Trust Scheme",
+        "aum_mar_2026": 23218486496,
+        "aum_dec_2025": 22914229748,
+        "change_pct": 1.3,
+        "market_share_pct": 2.73
+      },
+      {
+        "scheme": "KCB Unit Trust Scheme",
+        "aum_mar_2026": 22036219742,
+        "aum_dec_2025": 18904895898,
+        "change_pct": 16.6,
+        "market_share_pct": 2.59
+      },
+      {
+        "scheme": "Etica Unit Trust Fund",
+        "aum_mar_2026": 20593548131,
+        "aum_dec_2025": 17620359761,
+        "change_pct": 16.9,
+        "market_share_pct": 2.42
+      },
+      {
+        "scheme": "Ziidi Money Market Fund",
+        "aum_mar_2026": 18222742199,
+        "aum_dec_2025": 15368017765,
+        "change_pct": 18.6,
+        "market_share_pct": 2.14
+      },
+      {
+        "scheme": "Madison Unit Trust Funds",
+        "aum_mar_2026": 17754720395,
+        "aum_dec_2025": 15902336429,
+        "change_pct": 11.6,
+        "market_share_pct": 2.08
+      },
+      {
+        "scheme": "Faida Unit Trust Funds",
+        "aum_mar_2026": 15751137933,
+        "aum_dec_2025": 9212518165,
+        "change_pct": 71.0,
+        "market_share_pct": 1.85
+      },
+      {
+        "scheme": "Nabo Africa Funds",
+        "aum_mar_2026": 13684079188,
+        "aum_dec_2025": 12000805860,
+        "change_pct": 14.0,
+        "market_share_pct": 1.61
+      },
+      {
+        "scheme": "Arvocap Unit Trust Funds",
+        "aum_mar_2026": 11021681934,
+        "aum_dec_2025": 7945687728,
+        "change_pct": 38.7,
+        "market_share_pct": 1.29
+      },
+      {
+        "scheme": "Dry Associates Unit Trust",
+        "aum_mar_2026": 8372776242,
+        "aum_dec_2025": 8089423363,
+        "change_pct": 3.5,
+        "market_share_pct": 0.98
+      },
+      {
+        "scheme": "Stanbic Unit Trust Funds",
+        "aum_mar_2026": 5858136405,
+        "aum_dec_2025": 5294994790,
+        "change_pct": 10.6,
+        "market_share_pct": 0.69
+      },
+      {
+        "scheme": "CPF Unit Trust Scheme",
+        "aum_mar_2026": 5677480339,
+        "aum_dec_2025": 3366586965,
+        "change_pct": 68.6,
+        "market_share_pct": 0.67
+      },
+      {
+        "scheme": "Lofty Corban Unit Trust Scheme",
+        "aum_mar_2026": 5186749244,
+        "aum_dec_2025": 4672073159,
+        "change_pct": 11.0,
+        "market_share_pct": 0.61
+      },
+      {
+        "scheme": "Zimele Unit Trust",
+        "aum_mar_2026": 4959765295,
+        "aum_dec_2025": 4332174964,
+        "change_pct": 14.5,
+        "market_share_pct": 0.58
+      },
+      {
+        "scheme": "GenAfrica Unit Trust Scheme",
+        "aum_mar_2026": 4933376924,
+        "aum_dec_2025": 4939839449,
+        "change_pct": -0.1,
+        "market_share_pct": 0.58
+      },
+      {
+        "scheme": "Kuza Unit Trust Scheme",
+        "aum_mar_2026": 4271074922,
+        "aum_dec_2025": 3714585819,
+        "change_pct": 15.0,
+        "market_share_pct": 0.5
+      },
+      {
+        "scheme": "Mayfair Unit Trust Funds",
+        "aum_mar_2026": 3855747867,
+        "aum_dec_2025": 3744178221,
+        "change_pct": 3.0,
+        "market_share_pct": 0.45
+      },
+      {
+        "scheme": "Apollo Unit Trust Scheme",
+        "aum_mar_2026": 3567140889,
+        "aum_dec_2025": 4064180476,
+        "change_pct": -12.2,
+        "market_share_pct": 0.42
+      },
+      {
+        "scheme": "Cytonn Unit Trust Fund",
+        "aum_mar_2026": 3019771748,
+        "aum_dec_2025": 2770627286,
+        "change_pct": 9.0,
+        "market_share_pct": 0.35
+      },
+      {
+        "scheme": "Mali Money Market Fund",
+        "aum_mar_2026": 2213054816,
+        "aum_dec_2025": 2269060696,
+        "change_pct": -2.5,
+        "market_share_pct": 0.26
+      },
+      {
+        "scheme": "Enwealth Unit Trust",
+        "aum_mar_2026": 1990816548,
+        "aum_dec_2025": 1739995609,
+        "change_pct": 14.4,
+        "market_share_pct": 0.23
+      },
+      {
+        "scheme": "African Alliance Kenya Unit Trust",
+        "aum_mar_2026": 1565077071,
+        "aum_dec_2025": 1660330377,
+        "change_pct": -5.7,
+        "market_share_pct": 0.18
+      },
+      {
+        "scheme": "Gulfcap Unit Trust Funds",
+        "aum_mar_2026": 1399413523,
+        "aum_dec_2025": 856325557,
+        "change_pct": 63.4,
+        "market_share_pct": 0.16
+      },
+      {
+        "scheme": "Orient Unit Trust Scheme",
+        "aum_mar_2026": 585190642,
+        "aum_dec_2025": 631326461,
+        "change_pct": -7.3,
+        "market_share_pct": 0.07
+      },
+      {
+        "scheme": "Genghis Unit Trust Funds",
+        "aum_mar_2026": 583989697,
+        "aum_dec_2025": 623801655,
+        "change_pct": -6.4,
+        "market_share_pct": 0.07
+      },
+      {
+        "scheme": "Faulu Unit Trust Scheme",
+        "aum_mar_2026": 299449525,
+        "aum_dec_2025": 304872151,
+        "change_pct": -1.8,
+        "market_share_pct": 0.04
+      },
+      {
+        "scheme": "Taifa Unit Trust Scheme",
+        "aum_mar_2026": 295203601,
+        "aum_dec_2025": 291774226,
+        "change_pct": 1.2,
+        "market_share_pct": 0.03
+      },
+      {
+        "scheme": "VCG Offshore Opportunities Special Fund",
+        "aum_mar_2026": 115230166,
+        "aum_dec_2025": null,
+        "change_pct": null,
+        "market_share_pct": 0.01
+      },
+      {
+        "scheme": "Ziidi Shariah Money Market Fund",
+        "aum_mar_2026": 113919531,
+        "aum_dec_2025": 68226724,
+        "change_pct": 67.0,
+        "market_share_pct": 0.01
+      },
+      {
+        "scheme": "Equity Investment Bank",
+        "aum_mar_2026": 105262726,
+        "aum_dec_2025": 110060874,
+        "change_pct": -4.4,
+        "market_share_pct": 0.01
+      },
+      {
+        "scheme": "Kibaba Unit Trust Funds",
+        "aum_mar_2026": 46480216,
+        "aum_dec_2025": null,
+        "change_pct": null,
+        "market_share_pct": 0.01
+      },
+      {
+        "scheme": "XENO Unit Trust Funds",
+        "aum_mar_2026": 22542644,
+        "aum_dec_2025": 24762562,
+        "change_pct": -9.0,
+        "market_share_pct": 0.0
+      },
+      {
+        "scheme": "Amana Unit Trust Funds",
+        "aum_mar_2026": 21265300,
+        "aum_dec_2025": 29228767,
+        "change_pct": -27.2,
+        "market_share_pct": 0.0
+      },
+      {
+        "scheme": "Wanafunzi Fixed Income Fund",
+        "aum_mar_2026": 960311,
+        "aum_dec_2025": 938343,
+        "change_pct": 2.3,
+        "market_share_pct": 0.0
+      },
+      {
+        "scheme": "Jaza Unit Trust Fund",
+        "aum_mar_2026": 44106,
+        "aum_dec_2025": 31550,
+        "change_pct": 39.8,
+        "market_share_pct": 0.0
+      }
+    ],
+    "asset_classes": [
+      {
+        "class": "Securities Issued by GoK",
+        "key": "gok",
+        "value_mar_2026": 374593461269,
+        "value_dec_2025": 323612122718,
+        "share_pct": 44.0,
+        "change_pct": 15.8
+      },
+      {
+        "class": "Fixed Deposits",
+        "key": "fixed_deposits",
+        "value_mar_2026": 200204645703,
+        "value_dec_2025": 213083065039,
+        "share_pct": 23.5,
+        "change_pct": -6.0
+      },
+      {
+        "class": "Cash & Demand Deposits",
+        "key": "cash",
+        "value_mar_2026": 120217712388,
+        "value_dec_2025": 88466726442,
+        "share_pct": 14.1,
+        "change_pct": 35.9
+      },
+      {
+        "class": "Unlisted Securities",
+        "key": "unlisted",
+        "value_mar_2026": 74623323923,
+        "value_dec_2025": 26914339133,
+        "share_pct": 8.8,
+        "change_pct": 177.3
+      },
+      {
+        "class": "Listed Securities",
+        "key": "listed",
+        "value_mar_2026": 59204697507,
+        "value_dec_2025": 10714296949,
+        "share_pct": 7.0,
+        "change_pct": 452.6
+      },
+      {
+        "class": "Off-shore investments",
+        "key": "offshore",
+        "value_mar_2026": 16597362538,
+        "value_dec_2025": 79167358687,
+        "share_pct": 1.9,
+        "change_pct": -79.0
+      },
+      {
+        "class": "Other Collective Investment Schemes",
+        "key": "other_cis",
+        "value_mar_2026": 3362087547,
+        "value_dec_2025": 7381012823,
+        "share_pct": 0.4,
+        "change_pct": -54.4
+      },
+      {
+        "class": "Alternative Investments",
+        "key": "alternative",
+        "value_mar_2026": 2905219412,
+        "value_dec_2025": 6859841414,
+        "share_pct": 0.3,
+        "change_pct": -57.6
+      }
+    ]
+  },
+  "foreign_flows": {
+    "unit": "KShs million",
+    "quarter": "Q2.2026",
+    "net_flow": -1203,
+    "prior_quarter_net_flow": -8783,
+    "monthly_2026": [
+      {
+        "month": "2026-01",
+        "net": -1085
+      },
+      {
+        "month": "2026-02",
+        "net": -3422
+      },
+      {
+        "month": "2026-03",
+        "net": -4276
+      },
+      {
+        "month": "2026-04",
+        "net": -1976
+      },
+      {
+        "month": "2026-05",
+        "net": 287
+      },
+      {
+        "month": "2026-06",
+        "net": 486
+      }
+    ],
+    "ytd_2026": {
+      "net_portfolio_flows": -9986,
+      "total_inflow": 773,
+      "total_outflow": -10759
+    }
+  },
+  "corporate_actions": [
+    {
+      "company": "Jubilee Holdings",
+      "announced": "2026-04-10",
+      "action": "Final Dividend",
+      "amount_kes": 13.0,
+      "book_closure": "2026-06-11",
+      "payment": "2026-07-24"
+    },
+    {
+      "company": "BOC Kenya",
+      "announced": "2026-04-16",
+      "action": "Final Dividend",
+      "amount_kes": 10.35,
+      "book_closure": "2026-04-16",
+      "payment": "2026-05-31"
+    },
+    {
+      "company": "TotalEnergies Marketing",
+      "announced": "2026-04-30",
+      "action": "Final Dividend",
+      "amount_kes": 3.45,
+      "book_closure": "2026-06-24",
+      "payment": "2026-07-31"
+    },
+    {
+      "company": "TPS Eastern Africa",
+      "announced": "2026-04-30",
+      "action": "Final Dividend",
+      "amount_kes": 0.35,
+      "book_closure": "2026-06-26",
+      "payment": "2026-07-30"
+    },
+    {
+      "company": "Car & General",
+      "announced": "2026-04-30",
+      "action": "Final Dividend",
+      "amount_kes": 3.12,
+      "book_closure": "2026-06-24",
+      "payment": "2026-06-30"
+    },
+    {
+      "company": "Safaricom",
+      "announced": "2026-05-07",
+      "action": "Final Dividend",
+      "amount_kes": 1.15,
+      "book_closure": "2026-08-04",
+      "payment": "2026-09-04"
+    },
+    {
+      "company": "Crown Paints Kenya",
+      "announced": "2026-05-25",
+      "action": "First & Final Dividend",
+      "amount_kes": 3.0,
+      "book_closure": "2026-06-26",
+      "payment": "2026-08-31"
+    },
+    {
+      "company": "E.A. Portland Cement",
+      "announced": "2026-06-22",
+      "action": "Final Dividend",
+      "amount_kes": 1.25,
+      "book_closure": null,
+      "payment": null
+    },
+    {
+      "company": "Williamson Tea Kenya",
+      "announced": "2026-06-26",
+      "action": "First & Final Dividend",
+      "amount_kes": 15.0,
+      "book_closure": "2026-07-31",
+      "payment": null
+    },
+    {
+      "company": "Kapchorua Tea Kenya",
+      "announced": "2026-06-26",
+      "action": "First & Final Dividend",
+      "amount_kes": 30.0,
+      "book_closure": "2026-07-31",
+      "payment": null
+    }
+  ],
+  "developments": [
+    {
+      "market": "Kenya",
+      "summary": "Family Bank admitted to the Main Investment Market Segment by introduction. Kenya Mortgage Refinance Company listed the second tranche of its KShs 3 billion Sustainability Bond. TRIFIC Green USD I-REIT listed as Kenya's first US dollar denominated green income REIT."
+    },
+    {
+      "market": "United Kingdom",
+      "summary": "Launched its first real-time bond consolidated tape operated by ETS Connect UK, with 98 per cent market coverage, becoming the first country outside North America to implement one."
+    },
+    {
+      "market": "Singapore",
+      "summary": "MAS introduced a framework for dual listings on SGX supporting the Global Listing Board, a joint SGX and Nasdaq initiative, streamlining cross-border IPOs with a single set of offering documents."
+    }
+  ],
+  "appendices": {
+    "listed_companies": {
+      "as_of": "2026-06-30",
+      "count": 69,
+      "companies": [
+        {
+          "company": "Eaagads Ltd",
+          "code": "EGAD",
+          "sector": "AGRICULTURAL",
+          "suspended": false
+        },
+        {
+          "company": "Kakuzi Plc",
+          "code": "KUKZ",
+          "sector": "AGRICULTURAL",
+          "suspended": false
+        },
+        {
+          "company": "Kapchorua Tea Kenya Plc",
+          "code": "KAPC",
+          "sector": "AGRICULTURAL",
+          "suspended": false
+        },
+        {
+          "company": "The Limuru Tea Co. Plc",
+          "code": "LIMT",
+          "sector": "AGRICULTURAL",
+          "suspended": false
+        },
+        {
+          "company": "Sasini Plc",
+          "code": "SASN",
+          "sector": "AGRICULTURAL",
+          "suspended": false
+        },
+        {
+          "company": "Williamson Tea Kenya Plc",
+          "code": "WTK",
+          "sector": "AGRICULTURAL",
+          "suspended": false
+        },
+        {
+          "company": "Car & General (K) Ltd",
+          "code": "CGEN",
+          "sector": "AUTOMOBILES & ACCESSORIES",
+          "suspended": false
+        },
+        {
+          "company": "ABSA Bank Kenya Plc",
+          "code": "ABSA",
+          "sector": "BANKING",
+          "suspended": false
+        },
+        {
+          "company": "BK Group Plc",
+          "code": "BKG",
+          "sector": "BANKING",
+          "suspended": false
+        },
+        {
+          "company": "Diamond Trust Bank Kenya Ltd",
+          "code": "DTK",
+          "sector": "BANKING",
+          "suspended": false
+        },
+        {
+          "company": "Equity Group Holdings Plc",
+          "code": "EQTY",
+          "sector": "BANKING",
+          "suspended": false
+        },
+        {
+          "company": "Family Bank Limited",
+          "code": "FMLY",
+          "sector": "BANKING",
+          "suspended": false
+        },
+        {
+          "company": "HF Group Plc",
+          "code": "HFCK",
+          "sector": "BANKING",
+          "suspended": false
+        },
+        {
+          "company": "I&M Group Plc",
+          "code": "IMH",
+          "sector": "BANKING",
+          "suspended": false
+        },
+        {
+          "company": "KCB Group Plc",
+          "code": "KCB",
+          "sector": "BANKING",
+          "suspended": false
+        },
+        {
+          "company": "NCBA Group Plc",
+          "code": "NCBA",
+          "sector": "BANKING",
+          "suspended": false
+        },
+        {
+          "company": "Stanbic Holdings Plc",
+          "code": "SBIC",
+          "sector": "BANKING",
+          "suspended": false
+        },
+        {
+          "company": "Standard Chartered Bank Kenya Ltd",
+          "code": "SCBK",
+          "sector": "BANKING",
+          "suspended": false
+        },
+        {
+          "company": "The Co-operative Bank of Kenya Ltd",
+          "code": "COOP",
+          "sector": "BANKING",
+          "suspended": false
+        },
+        {
+          "company": "Deacons (East Africa) Plc",
+          "code": "DCON",
+          "sector": "COMMERCIAL AND SERVICES",
+          "suspended": true
+        },
+        {
+          "company": "Eveready East Africa Ltd",
+          "code": "EVRD",
+          "sector": "COMMERCIAL AND SERVICES",
+          "suspended": false
+        },
+        {
+          "company": "Express Kenya Plc",
+          "code": "XPRS",
+          "sector": "COMMERCIAL AND SERVICES",
+          "suspended": false
+        },
+        {
+          "company": "Homeboyz Entertainment Plc",
+          "code": "HBE",
+          "sector": "COMMERCIAL AND SERVICES",
+          "suspended": false
+        },
+        {
+          "company": "Kenya Airways Ltd",
+          "code": "KQ",
+          "sector": "COMMERCIAL AND SERVICES",
+          "suspended": false
+        },
+        {
+          "company": "Longhorn Publishers Plc",
+          "code": "LKL",
+          "sector": "COMMERCIAL AND SERVICES",
+          "suspended": false
+        },
+        {
+          "company": "Nairobi Business Ventures Plc",
+          "code": "NBV",
+          "sector": "COMMERCIAL AND SERVICES",
+          "suspended": false
+        },
+        {
+          "company": "Nation Media Group Plc",
+          "code": "NMG",
+          "sector": "COMMERCIAL AND SERVICES",
+          "suspended": false
+        },
+        {
+          "company": "Sameer Africa Plc",
+          "code": "SMER",
+          "sector": "COMMERCIAL AND SERVICES",
+          "suspended": false
+        },
+        {
+          "company": "Standard Group Plc",
+          "code": "SGL",
+          "sector": "COMMERCIAL AND SERVICES",
+          "suspended": false
+        },
+        {
+          "company": "TPS Eastern Africa Ltd",
+          "code": "TPSE",
+          "sector": "COMMERCIAL AND SERVICES",
+          "suspended": false
+        },
+        {
+          "company": "Uchumi Supermarket Plc",
+          "code": "UCHM",
+          "sector": "COMMERCIAL AND SERVICES",
+          "suspended": false
+        },
+        {
+          "company": "WPP Scangroup Plc",
+          "code": "SCAN",
+          "sector": "COMMERCIAL AND SERVICES",
+          "suspended": false
+        },
+        {
+          "company": "ARM Cement Plc",
+          "code": "ARM",
+          "sector": "CONSTRUCTION & ALLIED",
+          "suspended": true
+        },
+        {
+          "company": "Bamburi Cement Plc",
+          "code": "BAMB",
+          "sector": "CONSTRUCTION & ALLIED",
+          "suspended": true
+        },
+        {
+          "company": "Crown Paints Kenya Plc",
+          "code": "CRWN",
+          "sector": "CONSTRUCTION & ALLIED",
+          "suspended": false
+        },
+        {
+          "company": "E.A.Cables Ltd",
+          "code": "CABL",
+          "sector": "CONSTRUCTION & ALLIED",
+          "suspended": true
+        },
+        {
+          "company": "E.A.Portland Cement Co. Ltd",
+          "code": "PORT",
+          "sector": "CONSTRUCTION & ALLIED",
+          "suspended": false
+        },
+        {
+          "company": "KenGen Co. Plc",
+          "code": "KEGN",
+          "sector": "ENERGY & PETROLEUM",
+          "suspended": false
+        },
+        {
+          "company": "Kenya Pipeline Company Plc",
+          "code": "KPC",
+          "sector": "ENERGY & PETROLEUM",
+          "suspended": false
+        },
+        {
+          "company": "Kenya Power & Lighting Co Plc",
+          "code": "KPLC",
+          "sector": "ENERGY & PETROLEUM",
+          "suspended": false
+        },
+        {
+          "company": "TotalEnergies Marketing Kenya Plc",
+          "code": "TOTL",
+          "sector": "ENERGY & PETROLEUM",
+          "suspended": false
+        },
+        {
+          "company": "Umeme Ltd",
+          "code": "UMME",
+          "sector": "ENERGY & PETROLEUM",
+          "suspended": false
+        },
+        {
+          "company": "Britam Holdings Plc",
+          "code": "BRIT",
+          "sector": "INSURANCE",
+          "suspended": false
+        },
+        {
+          "company": "CIC Insurance Group Plc",
+          "code": "CIC",
+          "sector": "INSURANCE",
+          "suspended": false
+        },
+        {
+          "company": "Jubilee Holdings Ltd",
+          "code": "JUB",
+          "sector": "INSURANCE",
+          "suspended": false
+        },
+        {
+          "company": "Kenya Re Insurance Corporation Ltd",
+          "code": "KNRE",
+          "sector": "INSURANCE",
+          "suspended": false
+        },
+        {
+          "company": "Liberty Kenya Holdings Ltd",
+          "code": "LBTY",
+          "sector": "INSURANCE",
+          "suspended": false
+        },
+        {
+          "company": "Sanlam Kenya Plc",
+          "code": "SLAM",
+          "sector": "INSURANCE",
+          "suspended": false
+        },
+        {
+          "company": "Centum Investment Co Plc",
+          "code": "CTUM",
+          "sector": "INVESTMENT",
+          "suspended": false
+        },
+        {
+          "company": "Home Afrika Ltd",
+          "code": "HAFR",
+          "sector": "INVESTMENT",
+          "suspended": false
+        },
+        {
+          "company": "Kurwitu Ventures Ltd",
+          "code": "KURV",
+          "sector": "INVESTMENT",
+          "suspended": false
+        },
+        {
+          "company": "Olympia Capital Holdings Ltd",
+          "code": "OCH",
+          "sector": "INVESTMENT",
+          "suspended": false
+        },
+        {
+          "company": "Trans-Century Plc",
+          "code": "TCL",
+          "sector": "INVESTMENT",
+          "suspended": true
+        },
+        {
+          "company": "Nairobi Securities Exchange Plc",
+          "code": "NSE",
+          "sector": "INVESTMENT SERVICES",
+          "suspended": false
+        },
+        {
+          "company": "B.O.C Kenya Plc",
+          "code": "BOC",
+          "sector": "MANUFACTURING & ALLIED",
+          "suspended": false
+        },
+        {
+          "company": "British American Tobacco Kenya Plc",
+          "code": "BAT",
+          "sector": "MANUFACTURING & ALLIED",
+          "suspended": false
+        },
+        {
+          "company": "Carbacid Investments Plc",
+          "code": "CARB",
+          "sector": "MANUFACTURING & ALLIED",
+          "suspended": false
+        },
+        {
+          "company": "East African Breweries Plc",
+          "code": "EABL",
+          "sector": "MANUFACTURING & ALLIED",
+          "suspended": false
+        },
+        {
+          "company": "Flame Tree Group Holdings Ltd",
+          "code": "FTGH",
+          "sector": "MANUFACTURING & ALLIED",
+          "suspended": false
+        },
+        {
+          "company": "Africa Mega Agricorp Plc",
+          "code": "AMAC",
+          "sector": "MANUFACTURING & ALLIED",
+          "suspended": false
+        },
+        {
+          "company": "Mumias Sugar Co. Ltd",
+          "code": "MSC",
+          "sector": "MANUFACTURING & ALLIED",
+          "suspended": true
+        },
+        {
+          "company": "Unga Group Ltd",
+          "code": "UNGA",
+          "sector": "MANUFACTURING & ALLIED",
+          "suspended": false
+        },
+        {
+          "company": "Shri Krishana Overseas Plc",
+          "code": "SKL",
+          "sector": "MANUFACTURING & ALLIED",
+          "suspended": false
+        },
+        {
+          "company": "Safaricom Plc",
+          "code": "SCOM",
+          "sector": "TELECOMMUNICATION",
+          "suspended": false
+        },
+        {
+          "company": "LAPTRUST IMARA I-REIT",
+          "code": "LAPR",
+          "sector": "REAL ESTATE INVESTMENT TRUST",
+          "suspended": false
+        },
+        {
+          "company": "ALP Industrial REIT",
+          "code": "ALP",
+          "sector": "REAL ESTATE INVESTMENT TRUST",
+          "suspended": false
+        },
+        {
+          "company": "TRIFIC Green USD I-REIT",
+          "code": "TRFC",
+          "sector": "REAL ESTATE INVESTMENT TRUST",
+          "suspended": false
+        },
+        {
+          "company": "ABSA New Gold ETF",
+          "code": "GLD",
+          "sector": "EXCHANGE TRADED FUNDS",
+          "suspended": false
+        },
+        {
+          "company": "Satrix MSCI World Feeder ETF",
+          "code": "SMWF",
+          "sector": "EXCHANGE TRADED FUNDS",
+          "suspended": false
+        }
+      ]
+    },
+    "traded_bonds": {
+      "note": "Per-security secondary market statistics. June 2026 is reproduced in full. April and May 2026 totals only.",
+      "2026-06": {
+        "government": [
+          {
+            "security": "FXD1/2024/010",
+            "face_value": 65300000,
+            "consideration": 78323710.2,
+            "high_yield": 15.1663,
+            "low_yield": 12.7,
+            "deals": 13
+          },
+          {
+            "security": "IFB1/2020/009",
+            "face_value": 102700000,
+            "consideration": 106128161.95,
+            "high_yield": 12.43,
+            "low_yield": 9.25,
+            "deals": 20
+          },
+          {
+            "security": "FXD1/2012/015",
+            "face_value": 20459650000,
+            "consideration": 21379184552.9,
+            "high_yield": 13.3,
+            "low_yield": 9.5,
+            "deals": 44
+          },
+          {
+            "security": "IFB1/2019/025",
+            "face_value": 34300000,
+            "consideration": 34765204.0,
+            "high_yield": 13.6,
+            "low_yield": 11.1277,
+            "deals": 18
+          },
+          {
+            "security": "FXD1/2018/015",
+            "face_value": 1450500000,
+            "consideration": 1464838853.25,
+            "high_yield": 14.9591,
+            "low_yield": 12.6401,
+            "deals": 5
+          },
+          {
+            "security": "FXD1/2018/020",
+            "face_value": 6709850000,
+            "consideration": 6780596815.15,
+            "high_yield": 15.1,
+            "low_yield": 12.2,
+            "deals": 67
+          },
+          {
+            "security": "FXD1/2023/010",
+            "face_value": 330000000,
+            "consideration": 379360220.0,
+            "high_yield": 12.0,
+            "low_yield": 11.95,
+            "deals": 2
+          },
+          {
+            "security": "IFB1/2019/016",
+            "face_value": 1742600000,
+            "consideration": 1758398885.0,
+            "high_yield": 12.99,
+            "low_yield": 10.9,
+            "deals": 158
+          },
+          {
+            "security": "FXD1/2021/025",
+            "face_value": 15921500000,
+            "consideration": 15897645240.5,
+            "high_yield": 15.0,
+            "low_yield": 12.0744,
+            "deals": 229
+          },
+          {
+            "security": "FXD1/2008/020",
+            "face_value": 220000000,
+            "consideration": 230872540.0,
+            "high_yield": 11.65,
+            "low_yield": 9.4,
+            "deals": 4
+          },
+          {
+            "security": "FXD1/2019/020",
+            "face_value": 6940950000,
+            "consideration": 6852992571.6,
+            "high_yield": 14.5,
+            "low_yield": 12.44,
+            "deals": 30
+          },
+          {
+            "security": "FXD2/2018/010",
+            "face_value": 3500050000,
+            "consideration": 3648992466.65,
+            "high_yield": 14.0,
+            "low_yield": 8.8,
+            "deals": 30
+          },
+          {
+            "security": "IFB1/2022/006",
+            "face_value": 34550000,
+            "consideration": 36627463.55,
+            "high_yield": 14.4131,
+            "low_yield": 8.5,
+            "deals": 22
+          },
+          {
+            "security": "FXD1/2022/025",
+            "face_value": 5036050000,
+            "consideration": 5309029615.9,
+            "high_yield": 14.9,
+            "low_yield": 12.475,
+            "deals": 65
+          },
+          {
+            "security": "FXD1/2023/005",
+            "face_value": 19994400000,
+            "consideration": 23701584982.0,
+            "high_yield": 14.3923,
+            "low_yield": 8.9542,
+            "deals": 65
+          },
+          {
+            "security": "IFB1/2020/011",
+            "face_value": 982350000,
+            "consideration": 1001136666.1,
+            "high_yield": 13.2372,
+            "low_yield": 10.2,
+            "deals": 30
+          },
+          {
+            "security": "FXD1/2022/015",
+            "face_value": 2757100000,
+            "consideration": 2928595347.2,
+            "high_yield": 14.95,
+            "low_yield": 11.578,
+            "deals": 36
+          },
+          {
+            "security": "IFB1/2017/012",
+            "face_value": 3850000,
+            "consideration": 4274064.8,
+            "high_yield": 12.2,
+            "low_yield": 9.0,
+            "deals": 3
+          },
+          {
+            "security": "FXD1/2022/010",
+            "face_value": 6400000,
+            "consideration": 6514636.6,
+            "high_yield": 14.6,
+            "low_yield": 12.5,
+            "deals": 3
+          },
+          {
+            "security": "IFB1/2021/018",
+            "face_value": 560850000,
+            "consideration": 594496074.55,
+            "high_yield": 13.6,
+            "low_yield": 10.8,
+            "deals": 122
+          },
+          {
+            "security": "FXD1/2024/003",
+            "face_value": 4931950000,
+            "consideration": 5579109323.4,
+            "high_yield": 14.12,
+            "low_yield": 8.5,
+            "deals": 26
+          },
+          {
+            "security": "FXD2/2019/015",
+            "face_value": 408200000,
+            "consideration": 445617732.65,
+            "high_yield": 14.0079,
+            "low_yield": 11.15,
+            "deals": 6
+          },
+          {
+            "security": "IFB1/2023/007",
+            "face_value": 2323200000,
+            "consideration": 2633734728.95,
+            "high_yield": 15.45,
+            "low_yield": 10.45,
+            "deals": 205
+          },
+          {
+            "security": "FXD3/2019/015",
+            "face_value": 1876000000,
+            "consideration": 2007765594.0,
+            "high_yield": 14.9587,
+            "low_yield": 11.6,
+            "deals": 15
+          },
+          {
+            "security": "IFB1/2015/012",
+            "face_value": 4450000,
+            "consideration": 4499899.55,
+            "high_yield": 13.5,
+            "low_yield": 13.4,
+            "deals": 5
+          },
+          {
+            "security": "IFB1/2021/021",
+            "face_value": 1362550000,
+            "consideration": 1403096796.7,
+            "high_yield": 14.0,
+            "low_yield": 11.3,
+            "deals": 174
+          },
+          {
+            "security": "IFB1/2022/018",
+            "face_value": 2975100000,
+            "consideration": 3133465132.0,
+            "high_yield": 14.742,
+            "low_yield": 11.0,
+            "deals": 343
+          },
+          {
+            "security": "FXD1/2011/020",
+            "face_value": 1500000000,
+            "consideration": 1397792500.0,
+            "high_yield": 12.5,
+            "low_yield": 11.85,
+            "deals": 6
+          },
+          {
+            "security": "FXD2/2018/015",
+            "face_value": 3700000,
+            "consideration": 3826190.9,
+            "high_yield": 12.7531,
+            "low_yield": 12.3671,
+            "deals": 2
+          },
+          {
+            "security": "IFB1/2023/017",
+            "face_value": 6143300000,
+            "consideration": 6925537511.5,
+            "high_yield": 17.5273,
+            "low_yield": 10.6652,
+            "deals": 466
+          },
+          {
+            "security": "FXD1/2016/010",
+            "face_value": 212750000,
+            "consideration": 224729660.5,
+            "high_yield": 10.0,
+            "low_yield": 9.0,
+            "deals": 6
+          },
+          {
+            "security": "FXD1/2018/010",
+            "face_value": 4474000000,
+            "consideration": 4799602401.35,
+            "high_yield": 12.42,
+            "low_yield": 9.7643,
+            "deals": 48
+          },
+          {
+            "security": "IFB1/2022/019",
+            "face_value": 16069150000,
+            "consideration": 16927182009.65,
+            "high_yield": 14.1,
+            "low_yield": 11.0,
+            "deals": 632
+          },
+          {
+            "security": "FXD1/2017/010",
+            "face_value": 159400000,
+            "consideration": 172310004.8,
+            "high_yield": 13.19,
+            "low_yield": 9.5,
+            "deals": 4
+          },
+          {
+            "security": "FXD1/2019/010",
+            "face_value": 257500000,
+            "consideration": 273319391.5,
+            "high_yield": 12.856,
+            "low_yield": 10.4128,
+            "deals": 25
+          },
+          {
+            "security": "FXD2/2019/010",
+            "face_value": 96000000,
+            "consideration": 101032929.5,
+            "high_yield": 12.93,
+            "low_yield": 8.9,
+            "deals": 9
+          },
+          {
+            "security": "IFB1/2021/016",
+            "face_value": 2096650000,
+            "consideration": 2223407159.75,
+            "high_yield": 13.3312,
+            "low_yield": 10.8,
+            "deals": 236
+          },
+          {
+            "security": "FXD1/2012/020",
+            "face_value": 1453200000,
+            "consideration": 1449725259.3,
+            "high_yield": 13.84,
+            "low_yield": 10.8964,
+            "deals": 18
+          },
+          {
+            "security": "FXD1/2018/025",
+            "face_value": 14240100000,
+            "consideration": 14084099713.9,
+            "high_yield": 15.9576,
+            "low_yield": 11.0,
+            "deals": 159
+          },
+          {
+            "security": "FXD3/2019/010",
+            "face_value": 1543100000,
+            "consideration": 1607047818.7,
+            "high_yield": 12.88,
+            "low_yield": 11.3,
+            "deals": 7
+          },
+          {
+            "security": "FXD4/2019/010",
+            "face_value": 11569150000,
+            "consideration": 12044865308.55,
+            "high_yield": 14.0139,
+            "low_yield": 10.9,
+            "deals": 51
+          },
+          {
+            "security": "IFB1/2016/015",
+            "face_value": 500000,
+            "consideration": 498899.5,
+            "high_yield": 12.8932,
+            "low_yield": 12.88,
+            "deals": 2
+          },
+          {
+            "security": "FXD1/2020/015",
+            "face_value": 7589200000,
+            "consideration": 7765303908.85,
+            "high_yield": 14.9584,
+            "low_yield": 12.126,
+            "deals": 39
+          },
+          {
+            "security": "FXD1/2026/030",
+            "face_value": 8870500000,
+            "consideration": 8767504009.5,
+            "high_yield": 13.85,
+            "low_yield": 11.5,
+            "deals": 129
+          },
+          {
+            "security": "IFB1/2014/012",
+            "face_value": 48391000,
+            "consideration": 49310110.55,
+            "high_yield": 14.6204,
+            "low_yield": 8.9,
+            "deals": 9
+          },
+          {
+            "security": "IFB1/2018/020",
+            "face_value": 2330000000,
+            "consideration": 2339686684.55,
+            "high_yield": 13.28,
+            "low_yield": 10.8,
+            "deals": 282
+          },
+          {
+            "security": "FXD1/2013/015",
+            "face_value": 16000200000,
+            "consideration": 16465773353.6,
+            "high_yield": 12.5,
+            "low_yield": 11.8,
+            "deals": 13
+          },
+          {
+            "security": "FXD1/2019/015",
+            "face_value": 2061500000,
+            "consideration": 2206187348.0,
+            "high_yield": 13.92,
+            "low_yield": 11.65,
+            "deals": 52
+          },
+          {
+            "security": "FXD1/2021/020",
+            "face_value": 12464950000,
+            "consideration": 12990281696.3,
+            "high_yield": 15.9576,
+            "low_yield": 12.23,
+            "deals": 98
+          },
+          {
+            "security": "FXD2/2018/020",
+            "face_value": 187400000,
+            "consideration": 184865208.6,
+            "high_yield": 15.0,
+            "low_yield": 14.0067,
+            "deals": 8
+          },
+          {
+            "security": "IFB1/2018/015",
+            "face_value": 15258000000,
+            "consideration": 16135444984.85,
+            "high_yield": 13.9,
+            "low_yield": 10.0253,
+            "deals": 371
+          },
+          {
+            "security": "IFB1/2023/6.5",
+            "face_value": 1875550000,
+            "consideration": 2124901607.85,
+            "high_yield": 17.0,
+            "low_yield": 8.718,
+            "deals": 119
+          },
+          {
+            "security": "FXD2/2013/015",
+            "face_value": 506700000,
+            "consideration": 524081992.2,
+            "high_yield": 13.04,
+            "low_yield": 9.616,
+            "deals": 13
+          },
+          {
+            "security": "IFB1/2022/014",
+            "face_value": 2591450000,
+            "consideration": 2823250431.0,
+            "high_yield": 15.4,
+            "low_yield": 10.7063,
+            "deals": 219
+          },
+          {
+            "security": "IFB1/2024/8.5",
+            "face_value": 2864750000,
+            "consideration": 3591779457.85,
+            "high_yield": 21.0577,
+            "low_yield": 10.0,
+            "deals": 184
+          }
+        ],
+        "government_total": {
+          "face_value": 233201491000,
+          "consideration": 245604994832.25,
+          "deals": 4947
+        },
+        "corporate": [
+          {
+            "security": "EABL DMTFXD",
+            "face_value": 200000,
+            "consideration": 200927.0,
+            "high_yield": 11.9,
+            "low_yield": 11.9,
+            "deals": 1
+          },
+          {
+            "security": "KMRC FXD",
+            "face_value": 861121,
+            "consideration": 889432.1,
+            "high_yield": 27.4527,
+            "low_yield": 27.4527,
+            "deals": 1
+          },
+          {
+            "security": "SCOM DMT FXD",
+            "face_value": 120400000,
+            "consideration": 114956945.9,
+            "high_yield": 11.855,
+            "low_yield": 9.5,
+            "deals": 5
+          },
+          {
+            "security": "IM DMT FXD",
+            "face_value": 5600000,
+            "consideration": 2817155.6,
+            "high_yield": 12.3,
+            "low_yield": 12.3,
+            "deals": 2
+          }
+        ],
+        "grand_total": {
+          "face_value": 233328552121,
+          "consideration": 245723859292.85,
+          "deals": 4956
+        }
+      },
+      "2026-05": {
+        "grand_total": {
+          "face_value": 129959046870,
+          "consideration": 139130117507.05,
+          "deals": 3376
+        },
+        "corporate": []
+      },
+      "2026-04": {
+        "grand_total": {
+          "face_value": 217903650000,
+          "consideration": 236979160295.85,
+          "deals": 3735
+        },
+        "corporate": []
+      }
+    },
+    "eac_comparison": {
+      "quarter": "Q2.2026",
+      "markets": [
+        {
+          "country": "Kenya",
+          "shares_traded_mn": 7697.64,
+          "turnover_usd_bn": 2.04,
+          "deals": 640433,
+          "avg_market_cap_usd_bn": 27.23,
+          "all_share_index": 3755.44,
+          "fx_to_usd": 129.5
+        },
+        {
+          "country": "Uganda",
+          "shares_traded_mn": 147.9,
+          "turnover_usd_bn": 0.007,
+          "deals": 2791,
+          "avg_market_cap_usd_bn": 11.78,
+          "all_share_index": 2063.98,
+          "fx_to_usd": 3665.0
+        },
+        {
+          "country": "Tanzania",
+          "shares_traded_mn": null,
+          "turnover_usd_bn": null,
+          "deals": null,
+          "avg_market_cap_usd_bn": null,
+          "all_share_index": null,
+          "fx_to_usd": null,
+          "note": "Q2 2026 data not available at time of publication."
+        }
+      ]
+    },
+    "world_market_cap_usd_mn": {
+      "note": "World Federation of Exchanges. Regional totals only; several exchanges had not reported June at time of publication.",
+      "totals": [
+        {
+          "region": "Americas",
+          "april": 79402855.18,
+          "may": 83446397.2
+        },
+        {
+          "region": "Asia-Pacific",
+          "april": 55036086.81,
+          "may": 57092959.48
+        },
+        {
+          "region": "Europe-Africa-Middle East",
+          "april": 25204350.01,
+          "may": 24106349.27
+        },
+        {
+          "region": "World",
+          "april": 159643292.0,
+          "may": 164645705.95
+        }
+      ],
+      "africa": [
+        {
+          "exchange": "Johannesburg Stock Exchange",
+          "april": 1417224.93,
+          "may": 1443222.79
+        },
+        {
+          "exchange": "Nigerian Exchange",
+          "april": 134897.35,
+          "may": 139694.97,
+          "june": 129435.3
+        },
+        {
+          "exchange": "Bourse de Casablanca",
+          "april": 113679.0,
+          "may": 117688.91
+        },
+        {
+          "exchange": "The Egyptian Exchange",
+          "april": 67136.64,
+          "may": 68876.22
+        },
+        {
+          "exchange": "BRVM",
+          "april": 27406.41,
+          "may": 28872.38,
+          "june": 30750.11
+        },
+        {
+          "exchange": "Ghana Stock Exchange",
+          "april": 26025.95,
+          "may": 23947.75
+        },
+        {
+          "exchange": "Lusaka Securities Exchange",
+          "april": 17615.22,
+          "may": 17322.78
+        },
+        {
+          "exchange": "Stock Exchange of Mauritius",
+          "april": 8394.9,
+          "may": 8327.83,
+          "june": 8333.8
+        },
+        {
+          "exchange": "Rwanda Stock Exchange",
+          "april": 3373.65,
+          "may": 4461.58,
+          "june": 4461.58
+        }
+      ]
+    }
+  }
+}

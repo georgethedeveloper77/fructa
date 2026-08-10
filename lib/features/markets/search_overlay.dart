@@ -228,11 +228,75 @@ class _SearchOverlayState extends ConsumerState<SearchOverlay> {
         ..sort((a, b) => b.rate!.compareTo(a.rate!));
       return top.take(5).toList();
     }
-    return hits
-        .where(
-          (h) => '${h.title} ${h.sub} ${h.tag}'.toLowerCase().contains(needle),
-        )
-        .toList();
+
+    // SCORED AND RANKED, not filtered.
+    //
+    // This was one `contains()` over the title, subtitle and tag joined
+    // together, which fails in two ways a person notices immediately.
+    //
+    // It is ORDER-SENSITIVE. "cytonn usd" matches nothing, because that exact
+    // string appears in no fund, while "usd cytonn" and "cytonn dollar" also
+    // match nothing. Anybody narrowing a search by adding a second word gets
+    // fewer results than they had with one, which teaches them to stop typing.
+    //
+    // And it is UNRANKED. "cic" returns the CIC funds and everything whose
+    // manager or tag happens to contain those letters, in fund-table order, so
+    // the thing you searched for can sit below things you did not.
+    //
+    // Tokens fix both. Every word must match something, in any order, and the
+    // result is scored by WHERE it matched: a hit in the name outranks a hit in
+    // the category tag, and a word that starts a name outranks one buried in
+    // the middle.
+    final terms = needle.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+    final scored = <({_Hit hit, double score})>[];
+
+    for (final h in hits) {
+      final title = h.title.toLowerCase();
+      final sub = h.sub.toLowerCase();
+      final tag = h.tag.toLowerCase();
+      final titleWords = title.split(RegExp(r'[^a-z0-9]+'));
+
+      var score = 0.0;
+      var allMatched = true;
+
+      for (final term in terms) {
+        double best = 0;
+        if (title == term) {
+          best = 6;
+        } else if (titleWords.any((w) => w == term)) {
+          best = 5;
+        } else if (title.startsWith(term)) {
+          best = 4.5;
+        } else if (titleWords.any((w) => w.startsWith(term))) {
+          best = 4;
+        } else if (title.contains(term)) {
+          best = 2.5;
+        } else if (sub.contains(term)) {
+          best = 1.5;
+        } else if (tag.contains(term)) {
+          best = 1;
+        }
+        // AND, not OR. Adding a word must narrow the list, which is the whole
+        // reason a person types a second one.
+        if (best == 0) { allMatched = false; break; }
+        score += best;
+      }
+      if (!allMatched) continue;
+
+      // The rate breaks ties, but only as a fraction of a point, so it orders
+      // equally-good name matches without ever lifting a weak match above a
+      // strong one.
+      final r = h.rate;
+      if (r != null) score += (r / 100).clamp(0.0, 0.4);
+
+      scored.add((hit: h, score: score));
+    }
+
+    scored.sort((a, b) {
+      final d = b.score.compareTo(a.score);
+      return d != 0 ? d : a.hit.title.length.compareTo(b.hit.title.length);
+    });
+    return [for (final s in scored) s.hit];
   }
 
   Widget _row(BuildContext context, _Hit h) {

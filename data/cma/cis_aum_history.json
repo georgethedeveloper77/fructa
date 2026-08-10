@@ -1,0 +1,15 @@
+{
+  "_note": "CIS total assets under management, one point per quarter, taken from the CMA Quarterly Statistical Bulletins. Each bulletin reports CIS one quarter BEHIND its own cover period, so the QSB for the quarter ended June 2026 carries CIS as at 31 March 2026. Verified across eight consecutive bulletins.",
+  "_unit": "KShs billion",
+  "_source": "CMA QSB issues covering Q3 2024 through Q2 2026",
+  "history": [
+    {"as_of": "2024-06-30", "total_bn": 254.1, "reported_in": "QSB Q3 2024"},
+    {"as_of": "2024-09-30", "total_bn": 316.4, "reported_in": "QSB Q4 2024"},
+    {"as_of": "2024-12-31", "total_bn": 389.2, "reported_in": "QSB Q1 2025"},
+    {"as_of": "2025-03-31", "total_bn": 496.2, "reported_in": "QSB Q2 2025"},
+    {"as_of": "2025-06-30", "total_bn": 596.3, "reported_in": "QSB Q3 2025"},
+    {"as_of": "2025-09-30", "total_bn": 679.6, "reported_in": "QSB Q4 2025"},
+    {"as_of": "2025-12-31", "total_bn": 756.2, "reported_in": "QSB Q1 2026", "total_kes": 756266044500},
+    {"as_of": "2026-03-31", "total_bn": 851.7, "reported_in": "QSB Q2 2026", "total_kes": 851708510285}
+  ]
+}

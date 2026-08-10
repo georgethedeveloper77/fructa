@@ -1,0 +1,9 @@
+{
+  "stocks.nse.title": "Nairobi Securities Exchange",
+  "stocks.nse.nasi": "NASI",
+  "stocks.nse.nse20": "NSE 20",
+  "stocks.nse.marketCap": "Market cap",
+  "stocks.nse.bondIndex": "Bond index",
+  "stocks.nse.foreign": "Foreign",
+  "stocks.nse.asOf": "{source}, quarter ended {date}"
+}

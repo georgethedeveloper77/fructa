@@ -6,16 +6,41 @@ import '../core/theme.dart';
 
 /// The launch splash: a market line draws itself across the screen, dipping and
 /// recovering the way a yield line does, then settling on an upward rise. The
-/// wordmark lifts in once the line lands. It plays while the snapshot loads in
-/// the background, so it covers that time rather than blocking on it, then hands
-/// off to the router. A tap skips it.
+/// wordmark lifts in once the line lands.
 ///
-/// Pure animation, no data dependency, so it renders the instant the app's first
-/// frame is ready.
+/// It races the snapshot rather than out-waiting it. Three rules:
+///
+///   1. A minimum hold, so the brand moment always completes. Cutting the line
+///      draw in half to save 300ms buys nothing and looks broken.
+///   2. Past the minimum, hand off the instant [dataReady] turns true.
+///   3. A hard cap, so a dead connection cannot strand the user here. Past the
+///      cap we hand off anyway and the destination screen shows its own
+///      loading state, which is a screen with content on it rather than a
+///      spinning logo.
+///
+/// The previous version had none of these: it was a flat 2800ms timer with no
+/// data dependency, which meant a warm launch with a populated cache still sat
+/// here for 2.8 seconds. Worse, nothing had touched `ratesProvider` yet, so the
+/// load did not start until this screen finished.
+///
+/// A tap still skips.
 class RealSplash extends StatefulWidget {
-  const RealSplash({super.key, required this.onDone});
+  const RealSplash({
+    super.key,
+    required this.onDone,
+    this.dataReady = false,
+  });
 
   final VoidCallback onDone;
+
+  /// Whether the app has funds to render. Drives the early hand-off.
+  final bool dataReady;
+
+  /// Long enough for the line to draw and the wordmark to land.
+  static const minHold = Duration(milliseconds: 1500);
+
+  /// Past this we stop waiting for the network whatever it is doing.
+  static const maxHold = Duration(milliseconds: 3000);
 
   @override
   State<RealSplash> createState() => _RealSplashState();
@@ -24,30 +49,51 @@ class RealSplash extends StatefulWidget {
 class _RealSplashState extends State<RealSplash>
     with SingleTickerProviderStateMixin {
   late final AnimationController _c;
-  Timer? _hold;
+  Timer? _min;
+  Timer? _max;
+  bool _minElapsed = false;
   bool _done = false;
 
   @override
   void initState() {
     super.initState();
+    // Matched to minHold so the animation completes exactly as the earliest
+    // possible hand-off becomes available. Nothing is ever cut short.
     _c = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2200),
+      duration: RealSplash.minHold,
     )..forward();
-    // Hold a beat after the draw and wordmark, then hand off.
-    _hold = Timer(const Duration(milliseconds: 2800), _finish);
+
+    _min = Timer(RealSplash.minHold, () {
+      _minElapsed = true;
+      _maybeFinish();
+    });
+    _max = Timer(RealSplash.maxHold, _finish);
+  }
+
+  @override
+  void didUpdateWidget(RealSplash old) {
+    super.didUpdateWidget(old);
+    // Data may land at any point; check on every rebuild from the parent.
+    if (widget.dataReady && !old.dataReady) _maybeFinish();
+  }
+
+  void _maybeFinish() {
+    if (_minElapsed && widget.dataReady) _finish();
   }
 
   void _finish() {
     if (_done) return;
     _done = true;
-    _hold?.cancel();
+    _min?.cancel();
+    _max?.cancel();
     widget.onDone();
   }
 
   @override
   void dispose() {
-    _hold?.cancel();
+    _min?.cancel();
+    _max?.cancel();
     _c.dispose();
     super.dispose();
   }
@@ -82,7 +128,7 @@ class _RealSplashState extends State<RealSplash>
               AnimatedBuilder(
                 animation: _c,
                 builder: (_, _) {
-                  final o = ((_c.value - 0.78) / 0.22).clamp(0.0, 1.0);
+                  final o = ((_c.value - 0.72) / 0.28).clamp(0.0, 1.0);
                   return Opacity(
                     opacity: o,
                     child: Transform.translate(

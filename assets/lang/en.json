@@ -749,5 +749,12 @@
   "insure.review.gapWorse": "lower than the people who never did.",
   "insure.review.gapBetter": "higher than the people who never did.",
   "insure.review.helpsTitle": "What helps a stranger most",
-  "insure.review.helpsBody": "Whether you claimed, how long it took, and what they argued about. The price is already on the page."
+  "insure.review.helpsBody": "Whether you claimed, how long it took, and what they argued about. The price is already on the page.",
+  "stocks.nse.title": "Nairobi Securities Exchange",
+  "stocks.nse.nasi": "NASI",
+  "stocks.nse.nse20": "NSE 20",
+  "stocks.nse.marketCap": "Market cap",
+  "stocks.nse.bondIndex": "Bond index",
+  "stocks.nse.foreign": "Foreign",
+  "stocks.nse.asOf": "{source}, quarter ended {date}"
 }
