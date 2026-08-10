@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import SiteShell from "../site/SiteShell";
+import FundLogo from "./FundLogo";
 import { INFLATION } from "../landing/content";
 import {
   FUND_TYPE_LABEL,
@@ -120,8 +121,13 @@ export default async function FundsIndex() {
                 return (
                   <tr key={f.id}>
                     <td>
-                      <Link href={`/funds/${f.slug}`}>{f.name}</Link>
-                      <span className="fu-cur">{f.currency}</span>
+                      <Link className="fu-row-link" href={`/funds/${f.slug}`}>
+                        <FundLogo fund={f} size={30} />
+                        <span className="fu-row-name">
+                          {f.name}
+                          <span className="fu-cur">{f.currency}</span>
+                        </span>
+                      </Link>
                     </td>
                     <td className="fu-num fu-gold">
                       {f.grossRate!.toFixed(2)}%

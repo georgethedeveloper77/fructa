@@ -187,3 +187,64 @@
   .fu-table { font-size: 14px; }
   .fu-cta { padding: 22px; }
 }
+
+/* ── Manager marks ─────────────────────────────────────────────────────────
+   The tile is always painted, always square, and always the size the markup
+   declares, whether it ends up holding an image or a letter. That is the whole
+   trick: nothing here can resize after paint, so no logo can cost the page a
+   layout shift. */
+
+.fu-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border-radius: 9px;
+  overflow: hidden;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  /* Brand colours run from near-white golds to near-black navies, and the page
+     itself flips with the system theme. A hairline inset keeps a pale mark from
+     dissolving into a light background and a dark one from vanishing on black,
+     without touching the brand colour itself. */
+  box-shadow: inset 0 0 0 1px rgb(127 127 127 / 0.22);
+}
+
+.fu-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  /* Most manager logos are lockups with generous internal whitespace. Insetting
+     the image keeps the mark from touching the tile edge and reads as deliberate
+     rather than cropped. */
+  padding: 14%;
+  display: block;
+}
+
+.fu-row-link {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  text-decoration: none;
+}
+.fu-row-name {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  color: var(--fl-ink);
+  font-weight: 600;
+}
+.fu-row-link:hover .fu-row-name { color: var(--fl-gold); }
+
+.fu-ident { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+.fu-ident .fu-eyebrow { margin: 0; }
+
+.fu-peers a { align-items: center; }
+.fu-peer-name { flex: 1; }
+
+@media (max-width: 640px) {
+  .fu-row-link { gap: 9px; }
+  .fu-row-name { font-size: 14px; }
+}

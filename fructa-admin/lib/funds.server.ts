@@ -39,6 +39,10 @@ export type PublicFund = {
   mgmtFee: number | null;
   siteUrl: string | null;
   updatedAt: string | null;
+  /** Manager logo, from companies.logo_url. Null renders a monogram instead. */
+  logoUrl: string | null;
+  /** companies.brand_color, '#RRGGBB'. Null falls back to the brand gold. */
+  brandColor: string | null;
 };
 
 export type RatePoint = { asOf: string; rate: number };
@@ -64,6 +68,14 @@ type FundRow = {
   site_url: string | null;
   status: string | null;
   updated_at: string | null;
+  company_id: string | null;
+};
+
+type CompanyRow = {
+  id: string;
+  name: string;
+  brand_color: string | null;
+  logo_url: string | null;
 };
 
 /**
@@ -101,12 +113,19 @@ function assignSlugs(rows: FundRow[]): Map<string, string> {
   return out;
 }
 
-function toPublic(r: FundRow, slug: string): PublicFund {
+function toPublic(
+  r: FundRow,
+  slug: string,
+  company: CompanyRow | undefined,
+): PublicFund {
   return {
     id: r.id,
     slug,
     name: r.name,
-    manager: r.manager,
+    // companies.name is the canonical manager label. funds.manager is a free
+    // text field and drifts ("Cytonn" vs "Cytonn Asset Managers"), so the
+    // joined row wins where it exists.
+    manager: company?.name ?? r.manager,
     fundType: r.fund_type,
     currency: r.currency ?? "KES",
     basis: r.basis,
@@ -116,18 +135,36 @@ function toPublic(r: FundRow, slug: string): PublicFund {
     mgmtFee: r.mgmt_fee,
     siteUrl: r.site_url,
     updatedAt: r.updated_at,
+    logoUrl: company?.logo_url ?? null,
+    brandColor: normaliseHex(company?.brand_color ?? null),
   };
+}
+
+/**
+ * '#RRGGBB' or null. Anything that is not a clean six or three digit hex is
+ * discarded rather than passed through: this value is interpolated straight
+ * into a style attribute, so a malformed string is both a rendering bug and an
+ * injection surface.
+ */
+function normaliseHex(v: string | null): string | null {
+  if (!v) return null;
+  const h = v.trim().replace(/^#/, "");
+  if (/^[0-9a-fA-F]{6}$/.test(h)) return `#${h.toLowerCase()}`;
+  if (/^[0-9a-fA-F]{3}$/.test(h)) {
+    return `#${h[0]}${h[0]}${h[1]}${h[1]}${h[2]}${h[2]}`.toLowerCase();
+  }
+  return null;
 }
 
 /** Every publishable fund, ranked by gross yield, leader first. */
 export async function getFunds(): Promise<FundsBundle> {
   try {
     const db = supabaseAdmin();
-    const [fundsRes, cfgRes, lastRes] = await Promise.all([
+    const [fundsRes, cfgRes, lastRes, coRes] = await Promise.all([
       db
         .from("funds")
         .select(
-          "id,name,manager,fund_type,currency,basis,current_rate,tax_free,min_invest,mgmt_fee,site_url,status,updated_at",
+          "id,name,manager,fund_type,currency,basis,current_rate,tax_free,min_invest,mgmt_fee,site_url,status,updated_at,company_id",
         ),
       db.from("app_config").select("key,value"),
       db
@@ -135,7 +172,12 @@ export async function getFunds(): Promise<FundsBundle> {
         .select("as_of")
         .order("as_of", { ascending: false })
         .limit(1),
+      db.from("companies").select("id,name,brand_color,logo_url"),
     ]);
+
+    const companies = new Map(
+      ((coRes.data ?? []) as CompanyRow[]).map((c) => [c.id, c]),
+    );
 
     const rows = ((fundsRes.data ?? []) as FundRow[]).filter(
       // Hidden funds are hidden everywhere. A page Google indexes and a page the
@@ -160,7 +202,9 @@ export async function getFunds(): Promise<FundsBundle> {
 
     const slugs = assignSlugs(rows);
     const funds = rows
-      .map((r) => toPublic(r, slugs.get(r.id)!))
+      .map((r) =>
+        toPublic(r, slugs.get(r.id)!, companies.get(r.company_id ?? "")),
+      )
       .sort((a, b) => (b.grossRate ?? -1) - (a.grossRate ?? -1));
 
     const asOf =
@@ -271,3 +315,30 @@ export const fmtDay = (iso: string | null) =>
         month: "short",
         year: "numeric",
       });
+
+/**
+ * Legible ink for text sitting on a filled [brand] surface.
+ *
+ * Mirrors `fructaColors.inkOn` in the Flutter app, including the 0.45 split, so
+ * a manager's monogram is not near-black on the web and white in the app.
+ *
+ * At that threshold a mid-tone brand (emerald, sky) lands around 3.4:1 against
+ * white, which clears WCAG AA for large text but not for body copy. The
+ * monogram is therefore rendered bold at 18px and nothing smaller ever sits on
+ * a brand fill.
+ */
+export function inkOn(hex: string): string {
+  const h = hex.replace(/^#/, "");
+  const ch = [0, 2, 4].map((i) => {
+    const v = parseInt(h.slice(i, i + 2), 16) / 255;
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  });
+  const l = 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2];
+  return l > 0.45 ? "#15130c" : "#ffffff";
+}
+
+/** First letter of the manager, falling back to the fund. */
+export function monogram(f: PublicFund): string {
+  const src = (f.manager || f.name || "?").trim();
+  return (src[0] ?? "?").toUpperCase();
+}

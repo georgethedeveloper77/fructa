@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import SiteShell from "../../site/SiteShell";
+import FundLogo from "../FundLogo";
 import { INFLATION } from "../../landing/content";
 import {
   FUND_TYPE_LABEL,
@@ -179,10 +180,13 @@ export default async function FundPage({
       </nav>
 
       <header className="fu-head">
-        <p className="fu-eyebrow">
-          {typeLabel} &middot; {fund.currency}
-          {fund.manager ? ` · ${fund.manager}` : ""}
-        </p>
+        <div className="fu-ident">
+          <FundLogo fund={fund} size={52} />
+          <p className="fu-eyebrow">
+            {typeLabel} &middot; {fund.currency}
+            {fund.manager ? ` · ${fund.manager}` : ""}
+          </p>
+        </div>
         <h1 className="fu-h1">{fund.name} rate today</h1>
 
         {gross != null ? (
@@ -304,6 +308,7 @@ export default async function FundPage({
             {peers.map((p) => (
               <li key={p.id}>
                 <Link href={`/funds/${p.slug}`}>
+                  <FundLogo fund={p} size={30} />
                   <span className="fu-peer-name">{p.name}</span>
                   <span className="fu-peer-rate">
                     {p.grossRate?.toFixed(2)}%
