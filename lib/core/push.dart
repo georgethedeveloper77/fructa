@@ -173,6 +173,20 @@ class Push {
     OneSignal.User.removeTag(stockTagKey(stockId));
   }
 
+  /// Write Firebase's app instance id onto this device's OneSignal record.
+  ///
+  /// The two SDKs each mint their own device identity and neither knows about
+  /// the other, so without this tag a question like "did the cohort we pushed
+  /// on Tuesday come back and add a holding" cannot be answered from either
+  /// side. One tag makes that join possible.
+  ///
+  /// Called from Analytics.init once Firebase is up. Best effort by design:
+  /// this is a reporting convenience, never a delivery dependency.
+  static void setFirebaseInstanceId(String id) {
+    if (id.isEmpty) return;
+    OneSignal.User.addTags({'fb_instance_id': id});
+  }
+
   /// Weekly-digest opt-in: mirrors the Settings toggle to the server segment.
   /// This one is an opt-IN because the digest is a broadcast: the server has no
   /// per-user hook to hang it on, so a device has to raise its hand.

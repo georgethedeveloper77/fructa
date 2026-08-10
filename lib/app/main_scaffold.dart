@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:hive/hive.dart';
 
+import '../core/analytics.dart';
 import '../core/theme.dart';
 import '../data/backup_service.dart';
 import '../data/providers.dart';
@@ -112,7 +113,13 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
         body: IndexedStack(index: index, children: _pages),
         bottomNavigationBar: _NavBar(
           index: index,
-          onTap: (i) => ref.read(selectedTabProvider.notifier).state = i,
+          onTap: (i) {
+            // IndexedStack means no route is pushed, so the navigator observer
+            // never sees a tab change. Without this line Portfolio and Settings
+            // are invisible in analytics no matter how often they are opened.
+            if (i != index) Analytics.selectTab(_items[i].label);
+            ref.read(selectedTabProvider.notifier).state = i;
+          },
         ),
       ),
     );

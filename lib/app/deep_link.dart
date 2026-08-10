@@ -14,9 +14,9 @@ import 'main_scaffold.dart';
 /// [drainPendingTarget] replays it once the scaffold is mounted.
 ///
 /// Targets:
-///   markets | portfolio | settings   -> switch bottom tab
-///   alerts                           -> push the Alerts feed
-///   fund/<id>                        -> push the fund's detail page
+///   `markets` | `portfolio` | `settings`   switch bottom tab
+///   `alerts`                              push the Alerts feed
+///   `fund/<id>`                           push the fund's detail page
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 
 String? _pending;

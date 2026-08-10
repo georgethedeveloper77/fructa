@@ -67,7 +67,7 @@ class _BlogWebPageState extends State<BlogWebPage> {
 
     return PopScope(
       canPop: false,
-      onPopInvoked: (didPop) {
+      onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
         _handleBack();
       },

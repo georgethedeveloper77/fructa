@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -142,13 +143,21 @@ class _CloudBackupSectionState extends ConsumerState<CloudBackupSection> {
   }
 
   Future<void> _importFile() async {
-    final picked = await FilePicker.pickFiles(
-      type: FileType.any,
-      withData: true,
-    );
+    final picked = await FilePicker.pickFiles(type: FileType.any);
     if (picked == null || picked.files.isEmpty) return;
-    final bytes = picked.files.single.bytes;
-    if (bytes == null) {
+
+    // readAsBytes() rather than withData + .bytes. Both of those are deprecated
+    // precisely because withData eagerly loads the whole file into memory at
+    // pick time, which is an out-of-memory risk on a large or malicious file,
+    // and this is the one path in the app that accepts a file from outside it.
+    // Reading here also means a pick the user cancels costs nothing.
+    Uint8List? bytes;
+    try {
+      bytes = await picked.files.single.readAsBytes();
+    } catch (_) {
+      bytes = null;
+    }
+    if (bytes == null || bytes.isEmpty) {
       if (mounted) _toast(t('backup.importBadFile'));
       return;
     }
@@ -187,33 +196,40 @@ class _CloudBackupSectionState extends ConsumerState<CloudBackupSection> {
         final c = dctx.c;
         return AlertDialog(
           backgroundColor: c.s2,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           title: Text(
             t('backup.importCodeTitle'),
             style: TextStyle(
-                color: c.text, fontSize: 16, fontWeight: FontWeight.w700),
+              color: c.text,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           content: TextField(
             controller: ctrl,
             autocorrect: false,
             textCapitalization: TextCapitalization.characters,
             style: TextStyle(
-                color: c.text,
-                fontFamily: fructaFonts.mono,
-                fontSize: 16,
-                letterSpacing: 1.2),
+              color: c.text,
+              fontFamily: fructaFonts.mono,
+              fontSize: 16,
+              letterSpacing: 1.2,
+            ),
             decoration: InputDecoration(
               hintText: t('backup.codeHint'),
               hintStyle: TextStyle(color: c.faint),
               filled: true,
               fillColor: c.s3,
               enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: c.line2)),
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: c.line2),
+              ),
               focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: c.accent, width: 1.5)),
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: c.accent, width: 1.5),
+              ),
             ),
           ),
           actions: [
@@ -262,15 +278,20 @@ class _CloudBackupSectionState extends ConsumerState<CloudBackupSection> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(children: [
-                Icon(Icons.cloud_outlined, color: c.accent, size: 20),
-                const SizedBox(width: 10),
-                Text(
-                  t('backup.driveTitle'),
-                  style: TextStyle(
-                      color: c.text, fontSize: 14.5, fontWeight: FontWeight.w700),
-                ),
-              ]),
+              Row(
+                children: [
+                  Icon(Icons.cloud_outlined, color: c.accent, size: 20),
+                  const SizedBox(width: 10),
+                  Text(
+                    t('backup.driveTitle'),
+                    style: TextStyle(
+                      color: c.text,
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
               if (connected) ...[
                 const SizedBox(height: 8),
                 Text(
@@ -308,8 +329,10 @@ class _CloudBackupSectionState extends ConsumerState<CloudBackupSection> {
                       padding: const EdgeInsets.symmetric(horizontal: 4),
                       minimumSize: const Size(0, 32),
                     ),
-                    child: Text(t('backup.driveDisconnect'),
-                        style: const TextStyle(fontSize: 12.5)),
+                    child: Text(
+                      t('backup.driveDisconnect'),
+                      style: const TextStyle(fontSize: 12.5),
+                    ),
                   ),
                 ),
               ] else ...[
@@ -338,9 +361,7 @@ class _CloudBackupSectionState extends ConsumerState<CloudBackupSection> {
         // Encrypted file
         _outlinedBtn(
           context,
-          icon: _isBackup
-              ? Icons.ios_share
-              : Icons.folder_open_outlined,
+          icon: _isBackup ? Icons.ios_share : Icons.folder_open_outlined,
           label: _isBackup ? t('backup.exportFile') : t('backup.importFile'),
           busy: _file,
           onTap: _busy ? null : (_isBackup ? _exportFile : _importFile),
@@ -367,8 +388,18 @@ String _two(int n) => n.toString().padLeft(2, '0');
 
 String _fmtWhen(DateTime d) {
   const m = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
   final l = d.toLocal();
   return '${m[l.month - 1]} ${l.day}, ${_two(l.hour)}:${_two(l.minute)}';
@@ -377,18 +408,23 @@ String _fmtWhen(DateTime d) {
 Widget _divider(BuildContext context, String label) {
   final c = context.c;
   final line = Expanded(child: Divider(color: c.line2, height: 1));
-  return Row(children: [
-    line,
-    Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: Text(
-        label,
-        style: TextStyle(
-            color: c.faint, fontSize: 11.5, fontWeight: FontWeight.w600),
+  return Row(
+    children: [
+      line,
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: c.faint,
+            fontSize: 11.5,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
-    ),
-    line,
-  ]);
+      line,
+    ],
+  );
 }
 
 Widget _outlinedBtn(

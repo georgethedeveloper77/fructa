@@ -34,8 +34,7 @@ class LiveDot extends StatefulWidget {
   State<LiveDot> createState() => _LiveDotState();
 }
 
-class _LiveDotState extends State<LiveDot>
-    with SingleTickerProviderStateMixin {
+class _LiveDotState extends State<LiveDot> with SingleTickerProviderStateMixin {
   late final AnimationController _ctrl = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 2200),
@@ -76,8 +75,9 @@ class _LiveDotState extends State<LiveDot>
       child: widget.pulse
           ? AnimatedBuilder(
               animation: _ctrl,
-              builder: (_, _) =>
-                  CustomPaint(painter: _PulsePainter(t: _ctrl.value, color: tint)),
+              builder: (_, _) => CustomPaint(
+                painter: _PulsePainter(t: _ctrl.value, color: tint),
+              ),
             )
           : CustomPaint(painter: _PulsePainter(t: 1, color: tint)),
     );
@@ -224,11 +224,7 @@ class NavButton extends StatelessWidget {
 }
 
 class _GlassNav extends StatelessWidget implements PreferredSizeWidget {
-  const _GlassNav({
-    required this.title,
-    required this.showTitle,
-    this.actions,
-  });
+  const _GlassNav({required this.title, required this.showTitle, this.actions});
 
   final String title;
   final bool showTitle;
@@ -409,7 +405,9 @@ class FilterPills<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = context.c;
+    // No theme read here on purpose: this widget paints nothing itself, and
+    // _Pill below registers its own dependency on the colour extension, so it
+    // still rebuilds when the accent changes.
     if (pills.isEmpty) return const SizedBox.shrink();
 
     return SingleChildScrollView(
@@ -432,11 +430,7 @@ class FilterPills<T> extends StatelessWidget {
 }
 
 class _Pill<T> extends StatelessWidget {
-  const _Pill({
-    required this.datum,
-    required this.active,
-    required this.onTap,
-  });
+  const _Pill({required this.datum, required this.active, required this.onTap});
 
   final PillDatum<T> datum;
   final bool active;
@@ -449,13 +443,13 @@ class _Pill<T> extends StatelessWidget {
     final fill = !active
         ? c.s1
         : datum.danger
-            ? c.down
-            : c.text;
+        ? c.down
+        : c.text;
     final edge = !active
         ? c.line
         : datum.danger
-            ? c.down
-            : c.text;
+        ? c.down
+        : c.text;
     // inkOn picks near-black or white off the fill's own luminance, so the
     // label stays legible on gold, on white and on red without any of the
     // three being written down here as a hex.

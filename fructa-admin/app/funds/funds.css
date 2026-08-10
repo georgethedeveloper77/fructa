@@ -1,0 +1,189 @@
+/*
+ * Public fund pages. Layered on top of landing.css and site.css, which
+ * SiteShell already imports, so the .fl custom properties (brand gold, ink,
+ * muted, surfaces, borders) are in scope here and no colour is restated.
+ *
+ * Everything is prefixed .fu- so it cannot collide with the landing (.fl-) or
+ * the admin panel.
+ */
+
+.fu-crumb {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 13px;
+  color: var(--fl-muted);
+  margin-bottom: 20px;
+}
+.fu-crumb a { color: var(--fl-muted); text-decoration: none; }
+.fu-crumb a:hover { color: var(--fl-gold); }
+
+.fu-head { margin-bottom: 34px; }
+
+.fu-eyebrow {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fl-gold);
+  margin: 0 0 12px;
+  font-weight: 600;
+}
+
+.fu-h1 {
+  font-size: clamp(30px, 5vw, 46px);
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  font-weight: 800;
+  margin: 0 0 18px;
+  color: var(--fl-ink);
+}
+
+/* The headline figure. Tabular numerals so a column of rates aligns, and
+   clamped rather than fixed so it does not blow out a 320px phone. */
+.fu-big {
+  font-family: var(--fl-mono, "Space Grotesk", ui-monospace, monospace);
+  font-size: clamp(56px, 13vw, 104px);
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-weight: 700;
+  color: var(--fl-gold);
+  margin: 0 0 14px;
+  font-variant-numeric: tabular-nums;
+}
+.fu-pct { font-size: 0.4em; margin-left: 4px; opacity: 0.75; }
+
+.fu-sub { font-size: 17px; line-height: 1.55; color: var(--fl-muted); margin: 0 0 10px; max-width: 62ch; }
+.fu-sub strong { color: var(--fl-ink); font-weight: 700; }
+.fu-lede { font-size: 17px; line-height: 1.6; color: var(--fl-muted); margin: 0 0 12px; max-width: 68ch; }
+.fu-asof { font-size: 13px; color: var(--fl-faint, var(--fl-muted)); margin: 0; }
+
+/* Key facts. auto-fit rather than a fixed column count so it collapses to one
+   column on a phone without a breakpoint. */
+.fu-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1px;
+  background: var(--fl-line);
+  border: 1px solid var(--fl-line);
+  border-radius: 14px;
+  overflow: hidden;
+  margin: 0 0 26px;
+}
+.fu-fact { background: var(--fl-surface, transparent); padding: 18px 20px; }
+.fu-fact dt { font-size: 12.5px; color: var(--fl-muted); margin: 0 0 6px; }
+.fu-fact dd {
+  margin: 0;
+  font-family: var(--fl-mono, "Space Grotesk", ui-monospace, monospace);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--fl-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.fu-cost {
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--fl-muted);
+  border-left: 3px solid var(--fl-gold);
+  padding: 4px 0 4px 16px;
+  margin: 0 0 34px;
+  max-width: 62ch;
+}
+.fu-cost strong { color: var(--fl-ink); }
+
+.fu-block { margin: 0 0 40px; }
+.fu-block h2 {
+  font-size: 22px;
+  letter-spacing: -0.015em;
+  font-weight: 700;
+  margin: 0 0 14px;
+  color: var(--fl-ink);
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.fu-count {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--fl-muted);
+  font-family: var(--fl-mono, ui-monospace, monospace);
+}
+.fu-note { font-size: 14px; color: var(--fl-muted); margin: 0 0 14px; }
+
+.fu-table { width: 100%; border-collapse: collapse; font-size: 15px; }
+.fu-table th {
+  text-align: left;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fl-muted);
+  font-weight: 600;
+  padding: 0 0 10px;
+  border-bottom: 1px solid var(--fl-line);
+}
+.fu-table td { padding: 13px 0; border-bottom: 1px solid var(--fl-line); color: var(--fl-ink); }
+.fu-table th + th, .fu-table td + td { text-align: right; padding-left: 14px; }
+.fu-table a { color: var(--fl-ink); text-decoration: none; font-weight: 600; }
+.fu-table a:hover { color: var(--fl-gold); }
+.fu-num {
+  font-family: var(--fl-mono, "Space Grotesk", ui-monospace, monospace);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.fu-gold { color: var(--fl-gold); font-weight: 600; }
+.fu-mute { color: var(--fl-muted); }
+.fu-neg { color: var(--fl-down, #c0392b); }
+.fu-cur { font-size: 11.5px; color: var(--fl-muted); margin-left: 8px; letter-spacing: 0.04em; }
+
+/* Definition list rather than <details>: the answers must be in the rendered
+   HTML and visible without interaction. Collapsed-by-default content is
+   discounted, and hiding the answer is the opposite of the point. */
+.fu-faq div { padding: 16px 0; border-bottom: 1px solid var(--fl-line); }
+.fu-faq dt { font-size: 16.5px; font-weight: 700; color: var(--fl-ink); margin: 0 0 8px; }
+.fu-faq dd { margin: 0; font-size: 15.5px; line-height: 1.65; color: var(--fl-muted); max-width: 68ch; }
+
+.fu-peers { list-style: none; padding: 0; margin: 0; }
+.fu-peers li { border-bottom: 1px solid var(--fl-line); }
+.fu-peers a {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+  text-decoration: none;
+}
+.fu-peer-name { color: var(--fl-ink); font-weight: 600; font-size: 15.5px; }
+.fu-peers a:hover .fu-peer-name { color: var(--fl-gold); }
+.fu-peer-rate {
+  font-family: var(--fl-mono, "Space Grotesk", ui-monospace, monospace);
+  color: var(--fl-gold);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.fu-cta {
+  border: 1px solid var(--fl-line);
+  border-radius: 18px;
+  padding: 28px;
+  margin: 0 0 30px;
+}
+.fu-cta h2 { font-size: 21px; font-weight: 700; margin: 0 0 10px; color: var(--fl-ink); }
+.fu-cta p { font-size: 15.5px; line-height: 1.6; color: var(--fl-muted); margin: 0 0 20px; max-width: 62ch; }
+
+.fu-disclaimer {
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--fl-faint, var(--fl-muted));
+  border-top: 1px solid var(--fl-line);
+  padding-top: 20px;
+  margin: 0;
+  max-width: 74ch;
+}
+
+@media (max-width: 640px) {
+  .fu-facts { grid-template-columns: 1fr 1fr; }
+  .fu-table { font-size: 14px; }
+  .fu-cta { padding: 22px; }
+}

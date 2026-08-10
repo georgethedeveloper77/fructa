@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:hive/hive.dart';
 
+import '../../core/analytics.dart';
 import '../../core/push.dart';
 import '../../data/models/alert.dart';
 import '../../data/models/fund.dart';
@@ -71,6 +72,13 @@ class SavedComparisonsNotifier extends Notifier<List<SavedComparison>> {
     }
     state = [item, ...state];
     await _repo.write(state);
+
+    // Higher intent than a fund view: the user is choosing between named
+    // options rather than browsing.
+    Analytics.saveComparison(
+      fundCount: fundIds.length,
+      leaderId: item.leaderId,
+    );
   }
 
   Future<void> remove(String id) async {

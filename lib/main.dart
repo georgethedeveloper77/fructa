@@ -7,6 +7,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'app/app_root.dart';
 import 'app/deep_link.dart';
 import 'app/lock_gate.dart';
+import 'core/analytics.dart';
 import 'core/i18n.dart';
 import 'core/local_notify.dart';
 import 'core/push.dart';
@@ -77,6 +78,15 @@ Future<void> main() async {
       // degrades that one feature instead of the whole app, and each catch
       // names the culprit in logcat if either was the thing hanging boot.
       unawaited(() async {
+        // Firebase first: Analytics.init brings the core app up, and Push
+        // diagnostics read better once an app instance id exists. Time-boxed
+        // like its neighbours, because this is a platform channel and the one
+        // rule on this path is that no SDK gets to wedge the launch.
+        try {
+          await Analytics.init().timeout(const Duration(seconds: 10));
+        } catch (e, st) {
+          debugPrint('[fructa] Analytics.init failed: $e\n$st');
+        }
         try {
           await Push.init().timeout(const Duration(seconds: 10));
         } catch (e, st) {
@@ -176,6 +186,10 @@ class _FructaAppState extends ConsumerState<FructaApp>
       title: 'Fructa',
       debugShowCheckedModeBanner: false,
       navigatorKey: rootNavigatorKey, // notification taps push onto this
+      // Emits screen_view for any route pushed with a RouteSettings name.
+      // Unnamed MaterialPageRoute pushes produce nothing, which is why the
+      // screens that matter also log explicitly (see Analytics.viewFund).
+      navigatorObservers: [Analytics.observer],
       themeMode: t.mode, // System / Light / Dark from Settings
       theme: buildfructaTheme(brightness: Brightness.light, accent: t.accent),
       darkTheme: buildfructaTheme(

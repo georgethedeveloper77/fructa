@@ -2,6 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/analytics.dart';
 import '../../core/category_colors.dart';
 import '../../core/format.dart';
 import '../../core/i18n.dart';
@@ -77,6 +78,17 @@ class _AddHoldingPageState extends ConsumerState<AddHoldingPage> {
     await ref
         .read(holdingsProvider.notifier)
         .setBalance(f.id, f.currency, amount);
+
+    // The conversion event. Deliberately carries no amount: a balance is the
+    // most sensitive number this app holds and the on-device promise is the
+    // product's differentiator, so it does not leave the phone.
+    Analytics.addHolding(
+      fundId: f.id,
+      currency: f.currency,
+      kind: 'fund',
+    );
+    Analytics.setHoldingsBucket(ref.read(holdingsProvider).length);
+
     if (mounted) Navigator.of(context).pop();
   }
 

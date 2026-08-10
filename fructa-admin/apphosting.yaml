@@ -51,3 +51,8 @@ env:
     value: georgethedeveloper77/fructa
     availability:
       - RUNTIME
+
+  - variable: NEXT_PUBLIC_GA_ID
+    value: G-1RZHBFT1MR
+    availability:
+      - BUILD

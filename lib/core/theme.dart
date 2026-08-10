@@ -122,7 +122,7 @@ class fructaColors extends ThemeExtension<fructaColors> {
   Color deltaSoft(num v) => v > 0 ? upSoft : (v < 0 ? downSoft : line);
 
   /// Legible ink (near-black or white) for text/icons placed on top of a filled
-  /// [brand] surface — chosen by the brand's own luminance, using the same
+  /// [brand] surface, chosen by the brand's own luminance, using the same
   /// ~0.45 split the accent palette uses (gold/amber take dark ink, mid-tones
   /// take white). So brand-coloured buttons keep readable labels whatever the
   /// manager's colour.
@@ -134,7 +134,7 @@ class fructaColors extends ThemeExtension<fructaColors> {
   /// the dark canvas; this raises HSL lightness (dark) or deepens it (light),
   /// keeping hue + saturation, until the stroke clears a minimum contrast ratio
   /// against the background. A colour that already reads is returned unchanged,
-  /// so gold/sky/emerald etc. are untouched. Use for data strokes only — the
+  /// so gold/sky/emerald etc. are untouched. Use for data strokes only: the
   /// logo avatar and ambient glow should keep the true brand colour.
   Color brandOnBg(Color brand, {double minContrast = 3.0}) {
     if (_contrastRatio(brand, bg) >= minContrast) return brand;
@@ -432,9 +432,9 @@ extension fructaColorsContext on BuildContext {
 // ─────────────────────────────────────────────────────────────────────────
 // Backward-compat shim (A1-fix).
 //
-// Phase 0–5 screens reference the old `AppColors.*`. That class was removed in
-// the A1 rewrite; these const values re-expose exactly the members the code
-// uses, mapped to the v5 **dark** tokens above  so old screens compile and
+// Phase 0 to 5 screens reference the old `AppColors.*`. That class was removed
+// in the A1 rewrite; these const values re-expose exactly the members the code
+// uses, mapped to the v5 **dark** tokens above, so old screens compile and
 // look identical. They're static const, which also restores const widgets that
 // used them.
 //

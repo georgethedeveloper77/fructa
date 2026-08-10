@@ -65,7 +65,7 @@ class _InAppWebPageState extends State<InAppWebPage> {
 
     return PopScope(
       canPop: false,
-      onPopInvoked: (didPop) {
+      onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
         _handleBack();
       },

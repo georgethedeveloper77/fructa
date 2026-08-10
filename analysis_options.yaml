@@ -21,8 +21,19 @@ linter:
   # `// ignore_for_file: name_of_lint` syntax on the line or in the file
   # producing the lint.
   rules:
-    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
-    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+    # Brand naming is deliberately lowercase: fructaAccent, fructaColors,
+    # fructaFonts, fructaToggle, _fructaSliderThumb, fructaAccentX,
+    # fructaColorsContext. The wordmark is "fructa ." in lower case and the type
+    # names follow it, consistently, across the whole app.
+    #
+    # These two rules are off rather than fixed because renaming those types
+    # would touch nearly every file in lib/ for no behavioural gain, and leaving
+    # them on means seven permanent violations sit in `flutter analyze` output
+    # forever. That is the real cost: a warning list nobody reads is a warning
+    # list that hides the next genuine bug. Everything else in flutter_lints
+    # stays on.
+    camel_case_types: false
+    camel_case_extensions: false
 
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options

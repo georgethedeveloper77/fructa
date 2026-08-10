@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive/hive.dart';
 
 import '../../app/app_root.dart';
+import '../../core/analytics.dart';
 import '../../core/i18n.dart';
 import '../../core/theme.dart';
 import '../../core/widgets/kit.dart';
@@ -180,9 +181,20 @@ class _LearnPrimer extends ConsumerWidget {
 /// Top level, not a method, because _TopBar is a sibling widget rather than a
 /// child of the page state and needs the same destination. It already took its
 /// context as an argument, so promoting it changes no call site.
-void _openFund(BuildContext context, Fund f) => Navigator.of(
-  context,
-).push(MaterialPageRoute(builder: (_) => CompanyPage(f)));
+void _openFund(BuildContext context, Fund f) {
+  // The moment a browser becomes a reader. Logged here rather than inside
+  // CompanyPage because this is the single funnel every fund tile, the hero and
+  // the search results all pass through.
+  Analytics.viewFund(
+    fundId: f.id,
+    fundType: f.fundType,
+    currency: f.currency,
+    grossRate: f.currentRate,
+  );
+  Navigator.of(
+    context,
+  ).push(MaterialPageRoute(builder: (_) => CompanyPage(f)));
+}
 
 class MarketsPage extends ConsumerWidget {
   const MarketsPage({super.key});
