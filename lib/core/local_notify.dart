@@ -1,6 +1,8 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:hive/hive.dart';
+import 'package:timezone/data/latest_all.dart' as tzdata;
+import 'package:timezone/timezone.dart' as tz;
 
 /// Drawer notifications the app raises itself, with no server and no OneSignal
 /// in the path.
@@ -23,12 +25,26 @@ import 'package:hive/hive.dart';
 ///
 /// Both paths land on the same Android channel, so the user gets one "Rate
 /// alerts" switch in system settings rather than two.
+///
+/// THIS CLASS IS THE ONLY CALLER OF `initialize()` IN THE APP.
+/// `FlutterLocalNotificationsPlugin()` is a factory returning a process-wide
+/// singleton, so a second `initialize()` anywhere replaces the tap handler
+/// registered here and silently breaks routing for every local notification.
+/// Anything that needs to schedule goes through [schedule], never through its
+/// own plugin instance.
 class LocalNotify {
   /// Must match ANDROID_CHANNEL_ID in supabase/functions/_shared/onesignal.ts.
   static const channelId = 'fructa_rates';
   static const channelName = 'Rate alerts';
   static const channelDescription =
       'Rate moves on the funds, SACCOs and stocks you follow.';
+
+  /// Learning nudges sit on their own channel so a user can silence the streak
+  /// reminders without silencing a rate move on a fund they hold.
+  static const learnChannelId = 'learn_reminders';
+  static const learnChannelName = 'Learn reminders';
+  static const learnChannelDescription =
+      'Nudges to keep your learning streak going.';
 
   /// Fructa gold. This is an OS-level notification tint applied outside the
   /// widget tree, where there is no BuildContext and therefore no `context.c`
@@ -71,35 +87,80 @@ class LocalNotify {
       },
     );
 
-    // Creating the channel here, rather than letting the first notification
-    // create it implicitly, is what lets the server push reuse it by name via
-    // `existing_android_channel_id`.
-    await _plugin
+    // Scheduling needs a tz database and a local zone. Set once, here, rather
+    // than at the first scheduling call site: a second setLocalLocation is
+    // harmless but the ordering question is not worth having twice.
+    tzdata.initializeTimeZones();
+    tz.setLocalLocation(tz.getLocation('Africa/Nairobi'));
+
+    // Creating the channels here, rather than letting the first notification
+    // create them implicitly, is what lets the server push reuse the rates one
+    // by name via `existing_android_channel_id`.
+    final androidImpl = _plugin
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(
-          const AndroidNotificationChannel(
-            channelId,
-            channelName,
-            description: channelDescription,
-            importance: Importance.high,
-          ),
-        );
+            AndroidFlutterLocalNotificationsPlugin>();
+
+    await androidImpl?.createNotificationChannel(
+      const AndroidNotificationChannel(
+        channelId,
+        channelName,
+        description: channelDescription,
+        importance: Importance.high,
+      ),
+    );
+
+    await androidImpl?.createNotificationChannel(
+      const AndroidNotificationChannel(
+        learnChannelId,
+        learnChannelName,
+        description: learnChannelDescription,
+        importance: Importance.defaultImportance,
+      ),
+    );
 
     _ready = true;
   }
 
-  static NotificationDetails get _details => const NotificationDetails(
+  /// Safe for any caller that cannot prove main() ran first.
+  static Future<void> ensureInit() async {
+    if (_ready) return;
+    await init();
+  }
+
+  static NotificationDetails _details({
+    required String id,
+    required String name,
+    required String description,
+    required Importance importance,
+    required Priority priority,
+  }) =>
+      NotificationDetails(
         android: AndroidNotificationDetails(
-          channelId,
-          channelName,
-          channelDescription: channelDescription,
-          importance: Importance.high,
-          priority: Priority.high,
+          id,
+          name,
+          channelDescription: description,
+          importance: importance,
+          priority: priority,
           icon: _androidIcon,
           color: _accent,
         ),
-        iOS: DarwinNotificationDetails(),
+        iOS: const DarwinNotificationDetails(),
+      );
+
+  static NotificationDetails get _rateDetails => _details(
+        id: channelId,
+        name: channelName,
+        description: channelDescription,
+        importance: Importance.high,
+        priority: Priority.high,
+      );
+
+  static NotificationDetails get _learnDetails => _details(
+        id: learnChannelId,
+        name: learnChannelName,
+        description: learnChannelDescription,
+        importance: Importance.defaultImportance,
+        priority: Priority.defaultPriority,
       );
 
   static Future<void> show({
@@ -113,7 +174,7 @@ class LocalNotify {
       id: id,
       title: title,
       body: body,
-      notificationDetails: _details,
+      notificationDetails: _rateDetails,
       payload: target,
     );
   }
@@ -128,6 +189,57 @@ class LocalNotify {
         body: 'This is what a rate alert will look like on this phone.',
         target: 'alerts',
       );
+
+  // ---------------------------------------------------------------------------
+  // Scheduling
+  // ---------------------------------------------------------------------------
+
+  /// Schedule one notification at a wall-clock instant in Africa/Nairobi.
+  ///
+  /// [repeatDaily] is deliberately rare. A repeating notification carries the
+  /// body it was created with forever, so it may only be used for copy that
+  /// contains no number, no name and no date. Everything else is scheduled as a
+  /// dated one-shot and rebuilt on the next resync.
+  static Future<void> schedule({
+    required int id,
+    required String title,
+    required String body,
+    required DateTime when,
+    String? target,
+    bool learn = false,
+    bool repeatDaily = false,
+  }) async {
+    await ensureInit();
+    try {
+      await _plugin.zonedSchedule(
+        id: id,
+        title: title,
+        body: body,
+        scheduledDate: tz.TZDateTime.from(when, tz.local),
+        notificationDetails: learn ? _learnDetails : _rateDetails,
+        payload: target,
+        // Inexact avoids the exact-alarm permission on Android 12+; none of
+        // these need to fire to the second.
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        matchDateTimeComponents:
+            repeatDaily ? DateTimeComponents.time : null,
+      );
+    } catch (_) {
+      // A scheduling hiccup must never reach the widget that triggered it.
+    }
+  }
+
+  static Future<void> cancelIds(Iterable<int> ids) async {
+    await ensureInit();
+    for (final id in ids) {
+      try {
+        await _plugin.cancel(id: id);
+      } catch (_) {
+        // Cancelling an id that was never scheduled is not an error worth
+        // propagating.
+      }
+    }
+  }
 
   // ---------------------------------------------------------------------------
   // Rate changes

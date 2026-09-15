@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -11,8 +12,11 @@ import '../../core/theme.dart';
 import '../../data/models/fund.dart';
 import '../../data/models/learn.dart';
 import '../../data/providers.dart';
+import '../../data/snapshot_providers.dart';
 import '../company/company_page.dart';
+import 'learn_path.dart';
 import 'learn_progress.dart';
+import 'learn_reminder.dart';
 
 /// Plays one lesson: its steps in order, then an XP win screen. Explainer,
 /// interactive (earn slider) and quiz are the step kinds; a lesson's fund (if
@@ -32,16 +36,71 @@ class _LessonPlayerState extends ConsumerState<LessonPlayer> {
   List<LearnStep> get _steps => widget.lesson.steps;
   bool get _isWin => _i >= _steps.length;
 
-  void _next() {
-    if (_i < _steps.length) setState(() => _i++);
+  @override
+  void initState() {
+    super.initState();
+    // Resume to the start of the step they were on, not to some point inside
+    // it. Quiz answers are not restored, so a resumed quiz step is answered
+    // again, which is the right outcome: the Continue button stays disabled
+    // until the learner engages with it.
+    _i = LearnResume.stepFor(widget.lesson.id, _steps.length) ?? 0;
   }
 
-  Future<void> _finish({required bool seeLive, Fund? fund}) async {
+  void _next() {
+    if (_i >= _steps.length) return;
+    setState(() => _i++);
+    // Not saved past the last step: the win screen is not a position anyone
+    // wants restored, and _finish clears the key a moment later anyway.
+    if (_i < _steps.length) {
+      unawaited(LearnResume.save(widget.lesson.id, _i));
+    }
+  }
+
+  /// Write the completion, then leave. [advance] continues straight into the
+  /// next lesson rather than returning to the path: finishing something should
+  /// put the learner at the start of the next thing, not at a dead end they
+  /// have to navigate out of.
+  Future<void> _finish({
+    required bool seeLive,
+    Fund? fund,
+    bool advance = false,
+  }) async {
     await ref
         .read(learnProgressProvider.notifier)
         .completeLesson(widget.lesson.id, widget.lesson.xp);
+
+    // The lesson is done, so the resume point is not just stale, it would send
+    // the learner back into something they have already finished if the next
+    // lesson happened to reuse the id after a content edit.
+    unawaited(LearnResume.clear());
+
+    final content = ref.read(learnProvider);
+    final progress = ref.read(learnProgressProvider);
+
+    // Fire and forget. The ladder is now a day out of date until this lands,
+    // but a scheduling round trip must never sit between a finished lesson and
+    // the next screen.
+    unawaited(
+      syncLearnReminders(
+        content: content,
+        progress: progress,
+        prefs: ref.read(learnReminderProvider),
+      ),
+    );
+
     if (!mounted) return;
     final nav = Navigator.of(context);
+
+    if (advance) {
+      final next = LearnPath(content, progress).nextLesson;
+      if (next != null) {
+        nav.pushReplacement(
+          MaterialPageRoute(builder: (_) => LessonPlayer(lesson: next)),
+        );
+        return;
+      }
+    }
+
     nav.pop();
     if (seeLive && fund != null) {
       nav.push(MaterialPageRoute(builder: (_) => CompanyPage(fund)));
@@ -103,9 +162,17 @@ class _LessonPlayerState extends ConsumerState<LessonPlayer> {
               child: _isWin
                   ? _WinView(
                       lesson: widget.lesson,
-                      streak: ref.watch(learnProgressProvider).streak + 1,
+                      streak: ref
+                          .watch(learnProgressProvider)
+                          .streakIfCompletedNow,
                       fund: fund,
+                      nextTitle: LearnPath(
+                        ref.watch(learnProvider),
+                        ref.watch(learnProgressProvider),
+                      ).assumingDone(widget.lesson.id).nextLesson?.title,
                       onComplete: () => _finish(seeLive: false, fund: fund),
+                      onNext: () =>
+                          _finish(seeLive: false, fund: fund, advance: true),
                       onSeeLive: fund == null
                           ? null
                           : () => _finish(seeLive: true, fund: fund),
@@ -503,12 +570,19 @@ class _WinView extends StatelessWidget {
     required this.streak,
     required this.fund,
     required this.onComplete,
+    required this.onNext,
+    this.nextTitle,
     this.onSeeLive,
   });
   final LearnLesson lesson;
   final int streak;
   final Fund? fund;
+
+  /// Title of the lesson that opens next, or null at the end of the path.
+  final String? nextTitle;
+
   final VoidCallback onComplete;
+  final VoidCallback onNext;
   final VoidCallback? onSeeLive;
 
   @override
@@ -517,6 +591,7 @@ class _WinView extends StatelessWidget {
     // Hoisted: `fund` is a public instance field, so Dart will not promote it
     // to non-nullable inside the button's conditional.
     final f = fund;
+    final next = nextTitle;
     final seeLiveLabel = f != null
         ? t('lesson.seeLive', {'name': f.name})
         : t('lesson.seeLiveGeneric');
@@ -575,7 +650,65 @@ class _WinView extends StatelessWidget {
             ]),
           ),
           const Spacer(),
-          if (onSeeLive != null) ...[
+
+          // The next lesson is the primary action whenever there is one. The
+          // fund hand-off keeps its place directly under it, because seeing the
+          // thing you just learned about priced live is the whole argument for
+          // learning inside a markets app rather than beside one.
+          if (next != null) ...[
+            Text(
+              t('lesson.upNextIs', {'title': next}),
+              textAlign: TextAlign.center,
+              style: TextStyle(color: c.faint, fontSize: 12.5, height: 1.4),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: onNext,
+                style: FilledButton.styleFrom(
+                  backgroundColor: c.accent,
+                  foregroundColor: c.onAccent,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15)),
+                  textStyle:
+                      const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+                child: Text(t('lesson.nextLesson')),
+              ),
+            ),
+            const SizedBox(height: 10),
+            if (onSeeLive != null) ...[
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: onSeeLive,
+                  icon: const Icon(Icons.north_east_rounded, size: 18),
+                  label: Text(seeLiveLabel),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: c.text,
+                    side: BorderSide(color: c.line2),
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 4),
+            ],
+            SizedBox(
+              width: double.infinity,
+              child: TextButton(
+                onPressed: onComplete,
+                style: TextButton.styleFrom(
+                  foregroundColor: c.muted,
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                ),
+                child: Text(t('lesson.backToPath')),
+              ),
+            ),
+          ] else if (onSeeLive != null) ...[
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(

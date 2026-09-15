@@ -55,6 +55,17 @@ class SettingsPage extends ConsumerWidget {
       );
   }
 
+  /// The learn reminder is now a ladder of dated notifications rebuilt from
+  /// live progress, not one repeating string. Settings passes the content and
+  /// progress it can already reach: relying on the persisted ladder here would
+  /// arm almost nothing for a user who switches the reminder on before ever
+  /// opening Learn.
+  Future<void> _syncLearn(WidgetRef ref) => syncLearnReminders(
+    content: ref.read(learnProvider),
+    progress: ref.read(learnProgressProvider),
+    prefs: ref.read(learnReminderProvider),
+  );
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.c;
@@ -65,7 +76,6 @@ class SettingsPage extends ConsumerWidget {
     final lockOn = ref.watch(appLockProvider);
     final followCount = ref.watch(subscriptionsProvider).length;
     final reminder = ref.watch(learnReminderProvider);
-    final learnStreak = ref.watch(learnProgressProvider).streak;
     final cfg = ref.watch(remoteConfigProvider); // V6 admin-controlled copy
 
     return Scaffold(
@@ -201,9 +211,12 @@ class SettingsPage extends ConsumerWidget {
                   showDivider: reminder.enabled,
                   trailing: fructaToggle(
                     value: reminder.enabled,
-                    onChanged: (v) => ref
-                        .read(learnReminderProvider.notifier)
-                        .setEnabled(v, streak: learnStreak),
+                    onChanged: (v) async {
+                      await ref
+                          .read(learnReminderProvider.notifier)
+                          .setEnabled(v);
+                      await _syncLearn(ref);
+                    },
                   ),
                 ),
                 if (reminder.enabled)
@@ -217,15 +230,11 @@ class SettingsPage extends ConsumerWidget {
                         context: context,
                         initialTime: reminder.time,
                       );
-                      if (picked != null) {
-                        ref
-                            .read(learnReminderProvider.notifier)
-                            .setTime(
-                              picked.hour,
-                              picked.minute,
-                              streak: learnStreak,
-                            );
-                      }
+                      if (picked == null) return;
+                      await ref
+                          .read(learnReminderProvider.notifier)
+                          .setTime(picked.hour, picked.minute);
+                      await _syncLearn(ref);
                     },
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,

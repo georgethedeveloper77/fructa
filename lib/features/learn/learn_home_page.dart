@@ -64,8 +64,7 @@ class LearnHomePage extends ConsumerWidget {
     return Scaffold(
       backgroundColor: c.bg,
       appBar: _bar(context),
-      body: ListView(
-        padding: const EdgeInsets.only(bottom: 40),
+      body: _RestoringList(
         children: [
           _Header(streak: progress.streak, xp: progress.xp),
           const LearnReminderCard(),
@@ -91,7 +90,59 @@ class LearnHomePage extends ConsumerWidget {
       );
 }
 
-// ── accent name → palette (central fructaAccent colours) ──────────────────────
+/// The path list, restoring where the learner last was.
+///
+/// A PageStorageKey does not solve this. Storage buckets belong to the route,
+/// and leaving Learn destroys the route, so the next visit starts with an empty
+/// bucket. The offset therefore lives above the widget, for the life of the
+/// process only: which unit someone was reading is worth remembering between
+/// visits in a session, and not worth persisting across installs.
+///
+/// Pushing a lesson was never the problem, since this page stays mounted
+/// underneath it. Leaving Learn and coming back was.
+class _RestoringList extends StatefulWidget {
+  const _RestoringList({required this.children});
+  final List<Widget> children;
+
+  @override
+  State<_RestoringList> createState() => _RestoringListState();
+}
+
+class _RestoringListState extends State<_RestoringList> {
+  static double _offset = 0;
+
+  late final ScrollController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    // Built here rather than lazily. An offset past the end of a shortened path
+    // is clamped by the scroll position itself, so a unit disappearing between
+    // visits cannot strand the view.
+    _ctrl = ScrollController(initialScrollOffset: _offset)
+      ..addListener(_remember);
+  }
+
+  void _remember() {
+    if (_ctrl.hasClients) _offset = _ctrl.offset;
+  }
+
+  @override
+  void dispose() {
+    _ctrl.removeListener(_remember);
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => ListView(
+        controller: _ctrl,
+        padding: const EdgeInsets.only(bottom: 40),
+        children: widget.children,
+      );
+}
+
+// accent name to palette (central fructaAccent colours)
 fructaAccent _accent(String? name) => switch (name) {
       'sky' => fructaAccent.sky,
       'emerald' => fructaAccent.emerald,

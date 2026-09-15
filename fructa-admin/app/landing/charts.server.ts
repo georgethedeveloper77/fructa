@@ -92,6 +92,52 @@ function pickTab(
   return { key, label, unit: '%', series: out, benchmarks };
 }
 
+const BILLION = 1_000_000_000;
+
+/*
+ * The industry split, in KES billions, from market.aum_by_fund_type.
+ *
+ * This is the same row the app's donut reads, and it is the authoritative one:
+ * exact shillings straight off CMA Table 10, with as_of and source attached.
+ * Shape (see lib/data/models/remote_config.dart):
+ *   {"as_of":…,"source":…,"total_kes":…,
+ *    "types":[{"type":"mmf","aum_kes":459874570485,"share":48.5}, …]}
+ *
+ * Shillings are divided down to billions here because that is the unit the
+ * donut prints, in its centre total and in its tooltip alike.
+ */
+function slicesFromFundType(v: unknown): MarketSlice[] | null {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return null;
+  const types = (v as { types?: unknown }).types;
+  if (!Array.isArray(types)) return null;
+
+  const out: MarketSlice[] = [];
+  for (const e of types) {
+    if (!e || typeof e !== 'object') continue;
+    const name = (e as { type?: unknown }).type;
+    const aum = Number((e as { aum_kes?: unknown }).aum_kes);
+    if (typeof name !== 'string' || !Number.isFinite(aum) || aum <= 0) continue;
+    out.push({ name, value: aum / BILLION });
+  }
+  if (!out.length) return null;
+  return out.sort((a, b) => b.value - a.value);
+}
+
+/*
+ * Legacy fallback: market.aum_by_class, a flat map already expressed in KES
+ * billions. Retained only so a failed read of the authoritative row does not
+ * blank the chart. This row duplicates the fund-type split and has drifted from
+ * it before, so it should be retired once this file is deployed.
+ */
+function slicesFromLegacy(v: unknown): MarketSlice[] | null {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return null;
+  const out = Object.entries(v as Record<string, unknown>)
+    .map(([name, x]) => ({ name, value: Number(x) }))
+    .filter((s) => Number.isFinite(s.value) && s.value > 0)
+    .sort((a, b) => b.value - a.value);
+  return out.length ? out : null;
+}
+
 export async function getLandingCharts(): Promise<LandingCharts> {
   try {
     const db = supabaseAdmin();
@@ -162,14 +208,22 @@ export async function getLandingCharts(): Promise<LandingCharts> {
       crossedAt: crossedIdx >= 0 ? months[crossedIdx] : null,
     };
 
-    // industry split. AUM if config carries it, otherwise an honest fund count.
-    const aum = cfg.get('market.aum_by_class');
+    /*
+     * Industry split, in preference order:
+     *   1. market.aum_by_fund_type  authoritative, exact shillings from CMA
+     *   2. market.aum_by_class      legacy flat map, already in billions
+     *   3. fund count               honest fallback, never presented as money
+     *
+     * The count branch is not a degraded version of the AUM branch. It answers a
+     * different question, so it carries its own label and its own tooltip unit
+     * and the donut says which one it is showing.
+     */
+    const slices =
+      slicesFromFundType(cfg.get('market.aum_by_fund_type')) ??
+      slicesFromLegacy(cfg.get('market.aum_by_class'));
+
     let market: LandingCharts['market'];
-    if (aum && typeof aum === 'object' && !Array.isArray(aum)) {
-      const slices: MarketSlice[] = Object.entries(aum as Record<string, unknown>)
-        .map(([name, v]) => ({ name, value: Number(v) }))
-        .filter((s) => Number.isFinite(s.value) && s.value > 0)
-        .sort((a, b) => b.value - a.value);
+    if (slices) {
       const total = slices.reduce((s, x) => s + x.value, 0);
       market = { mode: 'aum', label: 'industry AUM', total: `${total.toFixed(1)}B`, slices };
     } else {
@@ -178,14 +232,14 @@ export async function getLandingCharts(): Promise<LandingCharts> {
         const k = f.fund_type ?? 'other';
         counts.set(k, (counts.get(k) ?? 0) + 1);
       }
-      const slices = [...counts.entries()]
+      const countSlices = [...counts.entries()]
         .map(([name, value]) => ({ name, value }))
         .sort((a, b) => b.value - a.value);
       market = {
         mode: 'count',
         label: 'funds tracked',
         total: String(funds.length),
-        slices,
+        slices: countSlices,
       };
     }
 
