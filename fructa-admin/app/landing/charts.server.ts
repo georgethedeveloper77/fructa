@@ -25,7 +25,13 @@ import {
  * the page without the terminal rather than crashing it.
  */
 
-const HISTORY_DAYS = 260;   // enough for 8 monthly marks plus slack
+/*
+ * Fetch window. Wider than the 8 months actually plotted, on purpose: the
+ * extra months are what monthlySeries seeds `carry` from, so a fund whose last
+ * reading predates the plotted window still opens with a value instead of a
+ * null. 540 days covers roughly ten months of lead-in.
+ */
+const HISTORY_DAYS = 540;
 const MONTH_MARKS = 8;
 
 type FundRow = {
@@ -42,23 +48,49 @@ const MONTH = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'O
 const monthKey = (iso: string) => iso.slice(0, 7);
 const monthLabel = (key: string) => MONTH[Number(key.slice(5, 7)) - 1] ?? key;
 
-/** Last observed rate per fund per month, oldest first. */
+/*
+ * Last observed rate per fund per month, oldest first.
+ *
+ * `carry` is SEEDED from the most recent observation that falls before the
+ * window, not started at null. Without the seed, a fund is only picked up from
+ * the first month inside `keys` in which it happens to have been scraped, and
+ * every earlier slot stays null. pickTab discards any series containing a null,
+ * so a fund with years of history gets dropped for the sole reason that nothing
+ * wrote a row for it in the window's opening month. With rate collection as
+ * uneven as it currently is (some months carry four rows across four funds),
+ * that dropped every series and took the whole terminal off the page.
+ *
+ * A fund with no observation at all before the window still yields leading
+ * nulls and is still discarded, which is correct: the landing does not draw a
+ * line through a period it has no reading for.
+ */
 function monthlySeries(hist: HistRow[], keys: string[]): Map<string, (number | null)[]> {
+  const windowStart = keys[0];
+
   const byFund = new Map<string, Map<string, number>>();
+  const seed = new Map<string, number>();
+
   for (const h of hist) {
     if (h.rate == null) continue;
     const k = monthKey(h.as_of);
+    if (k < windowStart) {
+      // rows arrive ascending, so the last pre-window write is the latest one
+      seed.set(h.fund_id, h.rate);
+      continue;
+    }
     let m = byFund.get(h.fund_id);
     if (!m) byFund.set(h.fund_id, (m = new Map()));
-    m.set(k, h.rate); // rows arrive ascending, so the last write is the month's close
+    m.set(k, h.rate); // ascending, so the last write is the month's close
   }
+
   const out = new Map<string, (number | null)[]>();
-  for (const [fund, m] of byFund) {
-    let carry: number | null = null;
+  for (const fund of new Set([...byFund.keys(), ...seed.keys()])) {
+    const m = byFund.get(fund);
+    let carry: number | null = seed.get(fund) ?? null;
     out.set(
       fund,
       keys.map((k) => {
-        const v = m.get(k);
+        const v = m?.get(k);
         if (v != null) carry = v;
         return carry; // carry forward, a fund that did not move still has a rate
       }),
