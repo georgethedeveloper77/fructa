@@ -845,5 +845,10 @@
   "markets.filter.hint.taxFree": "Only instruments with nothing withheld",
   "markets.row.gross": "Gross {rate}",
   "markets.row.min": "Min {amount}",
-  "markets.row.taxFree": "TAX-FREE"
+  "markets.row.taxFree": "TAX-FREE",
+  "portfolio.summaryLine": "{holdings} · {providers} · shown in KES",
+  "portfolio.holdingOne": "1 holding",
+  "portfolio.holdingMany": "{n} holdings",
+  "portfolio.managerOne": "1 manager",
+  "portfolio.managerMany": "{n} managers"
 }

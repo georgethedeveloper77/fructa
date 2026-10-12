@@ -139,7 +139,7 @@ class _AddHoldingPageState extends ConsumerState<AddHoldingPage> {
       backgroundColor: c.bg,
       appBar: AppBar(
         backgroundColor: c.bg,
-        surfaceTintColor: Colors.transparent,
+        surfaceTintColor: c.bg.withValues(alpha: 0),
         foregroundColor: c.text,
         elevation: 0,
       ),
@@ -358,8 +358,6 @@ class _AddHoldingPageState extends ConsumerState<AddHoldingPage> {
                 children: [
                   Text(
                     f.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: c.text,
                       fontSize: 14,
@@ -369,8 +367,6 @@ class _AddHoldingPageState extends ConsumerState<AddHoldingPage> {
                   const SizedBox(height: 2),
                   Text(
                     f.manager,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(color: c.muted, fontSize: 11),
                   ),
                 ],
@@ -568,8 +564,6 @@ class _TypeCard extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: c.text,
                 fontSize: 14.5,
@@ -577,12 +571,7 @@ class _TypeCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 3),
-            Text(
-              sub,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: c.muted, fontSize: 11.5),
-            ),
+            Text(sub, style: TextStyle(color: c.muted, fontSize: 11.5)),
           ],
         ),
       ),

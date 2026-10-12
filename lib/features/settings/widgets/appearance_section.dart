@@ -96,7 +96,7 @@ class _TextSizeSegmented extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: (scale - mult).abs() < 0.001
                         ? c.s1
-                        : Colors.transparent,
+                        : c.bg.withValues(alpha: 0),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
@@ -149,7 +149,7 @@ class _ModeSegmented extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 9),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: e.key == mode ? c.s1 : Colors.transparent,
+                    color: e.key == mode ? c.s1 : c.bg.withValues(alpha: 0),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
@@ -193,7 +193,7 @@ class _Swatch extends StatelessWidget {
           color: accent.color,
           shape: BoxShape.circle,
           border: Border.all(
-            color: selected ? c.text : Colors.transparent,
+            color: selected ? c.text : c.bg.withValues(alpha: 0),
             width: 2.5,
           ),
         ),

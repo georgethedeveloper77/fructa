@@ -109,7 +109,7 @@ class _SaccoPageState extends ConsumerState<SaccoPage> {
       backgroundColor: c.bg,
       appBar: AppBar(
         backgroundColor: c.bg,
-        surfaceTintColor: Colors.transparent,
+        surfaceTintColor: c.bg.withValues(alpha: 0),
         elevation: 0,
         // Long society names ("Kenya National Police DT Sacco Society") blow the
         // bar, and the house rule forbids truncation, so scale down instead.
@@ -389,7 +389,7 @@ class _SaccoPageState extends ConsumerState<SaccoPage> {
           const SizedBox(height: 9),
           Text(
             // A missing rate is a dash, never a zero. We do not know it.
-            value == null ? '\u2014' : '${value.toStringAsFixed(2)}%',
+            value == null ? t('common.dash') : '${value.toStringAsFixed(2)}%',
             style: TextStyle(
               color: value == null ? c.faint : fg,
               fontFamily: fructaFonts.mono,
@@ -704,7 +704,7 @@ class _SaccoPageState extends ConsumerState<SaccoPage> {
                 ),
               ),
               Text(
-                rate == null ? '\u2014' : '${rate.toStringAsFixed(2)}%',
+                rate == null ? t('common.dash') : '${rate.toStringAsFixed(2)}%',
                 style: TextStyle(
                   color: rate == null ? c.faint : fg,
                   fontFamily: fructaFonts.mono,

@@ -231,9 +231,15 @@ class _Full extends ConsumerWidget {
       children: [
         DisplayHeader(
           title: t('portfolio.title'),
-          sub: t('portfolio.summary', {
-            'holdings': '${holdings.length}',
-            'providers': '$providers',
+          // Singular and plural worded separately: "1 holdings · 1 providers"
+          // read as a typo on the most common book of all, a single fund.
+          sub: t('portfolio.summaryLine', {
+            'holdings': holdings.length == 1
+                ? t('portfolio.holdingOne')
+                : t('portfolio.holdingMany', {'n': '${holdings.length}'}),
+            'providers': providers == 1
+                ? t('portfolio.managerOne')
+                : t('portfolio.managerMany', {'n': '$providers'}),
           }),
         ),
         const SizedBox(height: 6),

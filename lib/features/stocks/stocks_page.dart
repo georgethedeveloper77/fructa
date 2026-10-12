@@ -86,7 +86,7 @@ class _StocksPageState extends ConsumerState<StocksPage> {
       backgroundColor: c.bg,
       appBar: AppBar(
         backgroundColor: c.bg,
-        surfaceTintColor: Colors.transparent,
+        surfaceTintColor: c.bg.withValues(alpha: 0),
         elevation: 0,
         title: Text(
           t('stocks.title'),
@@ -546,7 +546,7 @@ class _StockTileState extends ConsumerState<StockTile> {
     }
 
     return Text(
-      '\u2014',
+      t('common.dash'),
       style: TextStyle(
         color: c.faint,
         fontFamily: fructaFonts.mono,

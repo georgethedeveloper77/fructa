@@ -85,7 +85,10 @@ class StockPage extends ConsumerWidget {
                   gradient: RadialGradient(
                     center: const Alignment(0.2, -0.3),
                     radius: 0.85,
-                    colors: [tint.withValues(alpha: 0.20), Colors.transparent],
+                    colors: [
+                      tint.withValues(alpha: 0.20),
+                      c.bg.withValues(alpha: 0),
+                    ],
                   ),
                 ),
               ),
@@ -894,7 +897,7 @@ class StockPage extends ConsumerWidget {
                       border: Border(
                         bottom: BorderSide(
                           color: i == rows.length - 1
-                              ? Colors.transparent
+                              ? c.bg.withValues(alpha: 0)
                               : c.line,
                         ),
                       ),

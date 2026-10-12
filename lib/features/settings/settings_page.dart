@@ -86,7 +86,7 @@ class SettingsPage extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.only(top: 4, bottom: 120),
           children: [
-            DisplayHeader(title: t('settings.title'), sub: t('settings.sub')),
+            DisplayHeader(title: t('nav.you'), sub: t('settings.sub')),
             const SizedBox(height: 18),
 
             // Fructa Pro: status, restore, manage. Renders nothing while the
