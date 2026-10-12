@@ -17,11 +17,18 @@ import '../../../data/providers.dart';
 /// that contains at least 2 points  with sparse history (e.g. monthly marks)
 /// a fixed 1W default would open on "Not enough data" even though a perfectly
 /// good 3M line exists. A user tap always wins from then on.
+///
+/// [currentRate] is the headline the page prints above the chart
+/// (`funds.current_rate`). rate_history can lag it, which left a chart ending
+/// at 11.70 under an 11.50 headline. When the two disagree the series gets a
+/// closing point at today's date carrying the headline, so the line always
+/// ends where the number above it says.
 class RateChart extends ConsumerStatefulWidget {
-  const RateChart(this.fundId, {super.key, this.color});
+  const RateChart(this.fundId, {super.key, this.color, this.currentRate});
 
   final String fundId;
   final Color? color;
+  final double? currentRate;
 
   @override
   ConsumerState<RateChart> createState() => _RateChartState();
@@ -82,7 +89,10 @@ class _RateChartState extends ConsumerState<RateChart> {
         ),
       ),
       data: (all) {
-        final sorted = [...all]..sort((a, b) => a.asOf.compareTo(b.asOf));
+        final sorted = _anchored(
+          [...all]..sort((a, b) => a.asOf.compareTo(b.asOf)),
+          widget.currentRate,
+        );
         final effective = _userPicked ? _range : _autoRange(sorted);
         final points = _inRange(sorted, effective);
 
@@ -181,6 +191,7 @@ class _ChartState extends State<_Chart> with SingleTickerProviderStateMixin {
     // so a dense series doesn't crowd the axis.
     final n = points.length;
     final xStep = ((n - 1) / 3).clamp(1.0, (n - 1).toDouble());
+    final spanDays = _span(points);
 
     // Gridded v5 aesthetic: faint horizontal rules, a right-edge rate axis
     // (promoted from the old pinned min/max), and a bottom date axis  the
@@ -248,7 +259,7 @@ class _ChartState extends State<_Chart> with SingleTickerProviderStateMixin {
                 if (d == null) return const SizedBox.shrink();
                 return Padding(
                   padding: const EdgeInsets.only(top: 6),
-                  child: Text('${_mon(d.month)} \u2019${d.year % 100}', style: labelStyle),
+                  child: Text(_tick(d, spanDays), style: labelStyle),
                 );
               },
             ),
@@ -314,6 +325,38 @@ List<FlSpot> _reveal(List<FlSpot> spots, double t) {
     out.add(FlSpot(a.x + (b.x - a.x) * f, a.y + (b.y - a.y) * f));
   }
   return out;
+}
+
+/// [sorted] with a closing point carrying [current] when the last stored
+/// rate disagrees with the headline. Dated today, or the day after the last
+/// point when history is already dated today, so x stays strictly increasing.
+List<RateHistory> _anchored(List<RateHistory> sorted, double? current) {
+  if (current == null || sorted.isEmpty) return sorted;
+  if ((sorted.last.rate - current).abs() < 0.005) return sorted;
+  final last = DateTime.parse(sorted.last.asOf);
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final at = today.isAfter(last) ? today : last.add(const Duration(days: 1));
+  final iso =
+      '${at.year.toString().padLeft(4, '0')}-${at.month.toString().padLeft(2, '0')}-${at.day.toString().padLeft(2, '0')}';
+  return [...sorted, RateHistory(asOf: iso, rate: current)];
+}
+
+/// Days covered by [points], first to last.
+int _span(List<RateHistory> points) {
+  final a = DateTime.tryParse(points.first.asOf);
+  final b = DateTime.tryParse(points.last.asOf);
+  if (a == null || b == null) return 0;
+  return b.difference(a).inDays;
+}
+
+/// Axis tick for [d] scaled to the window: day and month inside ~2 months
+/// (so a 1W axis stops repeating one month four times), month alone inside a
+/// year, month and year beyond that.
+String _tick(DateTime d, int spanDays) {
+  if (spanDays <= 62) return '${d.day} ${_mon(d.month)}';
+  if (spanDays <= 366) return _mon(d.month);
+  return '${_mon(d.month)} \u2019${d.year % 100}';
 }
 
 const _monthAbbr = [

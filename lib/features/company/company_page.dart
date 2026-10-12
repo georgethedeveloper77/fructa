@@ -370,8 +370,11 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
 
     // Benchmark-relative: gross fund yield vs its stated benchmark (same basis
     // as the fact sheet's fund-vs-T-bill line). Null unless seeded + yielding.
+    // KES benchmarks (T-bills, CBR) only describe KES funds. A USD fund seeded
+    // with tbill_91 was told it "trails the 91-day T-bill" (audit D3).
     final Benchmark? bench = (fund.showsYield &&
             rate != null &&
+            fund.currency == 'KES' &&
             fund.benchmarkConfigKey != null)
         ? cfg.benchmark(fund.benchmarkConfigKey!)
         : null;
@@ -735,7 +738,10 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
                 const SizedBox(height: 18),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: _card(context, child: RateChart(fund.id, color: tint)),
+                  child: _card(
+                    context,
+                    child: RateChart(fund.id, color: tint, currentRate: rate),
+                  ),
                 ),
               ],
 

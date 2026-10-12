@@ -49,15 +49,20 @@ Color fundTypeColor(String? t) =>
 /// money actually sits). Keyed by the CIS class keys published under
 /// `market.asset_classes`. Data colours, centralised like [fundTypeColors] so
 /// no widget carries raw hex.
+///
+/// This is the ONLY asset-class palette. AssetClass.color (fund composition)
+/// reads it too, so the market view and a fund's own holdings agree. Hues are
+/// semantic: government paper takes the T-bill teal, listed equity the equity
+/// iris, cash the green used for cash elsewhere.
 const assetClassColors = <String, Color>{
-  'gok': Color(0xFFE0B34C), // gold, government securities
+  'gok': Color(0xFF4FD0B5), // teal, government securities (as T-bills)
   'fixed_deposits': Color(0xFF4E8FE8), // sky
   'cash': Color(0xFF34D399), // green
-  'unlisted': Color(0xFF9A8BF3), // iris
-  'listed': Color(0xFF2FB5A0), // emerald
+  'listed': Color(0xFF9A8BF3), // iris (as equity)
+  'unlisted': Color(0xFFEC8FB0), // pink
   'offshore': Color(0xFFE7784C), // ember
-  'other_cis': Color(0xFF31B7C2), // cyan
-  'alternative': Color(0xFFEC8FB0), // pink
+  'other_cis': Color(0xFF8A92A3), // neutral, funds held inside funds
+  'alternative': Color(0xFF31B7C2), // cyan
 };
 
 Color assetClassColor(String? k) =>

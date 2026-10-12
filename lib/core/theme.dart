@@ -12,12 +12,13 @@ import 'package:flutter/material.dart';
 /// raw hex outside this file except brand colours (which come from data).
 
 // ─────────────────────────────────────────────────────────────────────────
-// Accents  the 5 selectable accents. Each carries the accent colour, the
+// Accents: the 4 selectable accents. Each carries the accent colour, the
 // ink that sits legibly on top of it, and a soft-fill alpha per brightness.
-// All five already exist in the v5 palette, so nothing looks foreign.
+// Amber was retired: at #F0B542 it was indistinguishable from Gold. A stored
+// Amber index (4) is out of range now, so ThemeController falls back to Gold.
 // ─────────────────────────────────────────────────────────────────────────
 
-enum fructaAccent { gold, sky, emerald, iris, amber }
+enum fructaAccent { gold, sky, emerald, iris }
 
 extension fructaAccentX on fructaAccent {
   String get label => switch (this) {
@@ -25,7 +26,6 @@ extension fructaAccentX on fructaAccent {
     fructaAccent.sky => 'Sky',
     fructaAccent.emerald => 'Emerald',
     fructaAccent.iris => 'Iris',
-    fructaAccent.amber => 'Amber',
   };
 
   /// The accent colour itself.
@@ -34,14 +34,12 @@ extension fructaAccentX on fructaAccent {
     fructaAccent.sky => const Color(0xFF4E8FE8),
     fructaAccent.emerald => const Color(0xFF2FB5A0),
     fructaAccent.iris => const Color(0xFF9A8BF3),
-    fructaAccent.amber => const Color(0xFFF0B542),
   };
 
   /// Ink that sits on top of a filled accent surface (buttons, pills).
   Color get onColor => switch (this) {
-    // Gold/Amber are light enough to need dark ink (matches --gold-ink).
+    // Gold is light enough to need dark ink (matches --gold-ink).
     fructaAccent.gold => const Color(0xFF191204),
-    fructaAccent.amber => const Color(0xFF1A1304),
     // Mid-tone accents take near-white ink.
     fructaAccent.sky ||
     fructaAccent.emerald ||
@@ -112,7 +110,7 @@ class fructaColors extends ThemeExtension<fructaColors> {
   final Color accentSoft;
 
   /// Accent as legible TEXT on a light/soft surface. On dark the accent reads
-  /// fine as-is; on light it's darkened so gold/amber stop washing out.
+  /// fine as-is; on light it's darkened so gold stops washing out.
   final Color accentInk;
 
   bool get isDark => brightness == Brightness.dark;
@@ -123,7 +121,7 @@ class fructaColors extends ThemeExtension<fructaColors> {
 
   /// Legible ink (near-black or white) for text/icons placed on top of a filled
   /// [brand] surface, chosen by the brand's own luminance, using the same
-  /// ~0.45 split the accent palette uses (gold/amber take dark ink, mid-tones
+  /// ~0.45 split the accent palette uses (gold takes dark ink, mid-tones
   /// take white). So brand-coloured buttons keep readable labels whatever the
   /// manager's colour.
   Color inkOn(Color brand) =>
@@ -151,6 +149,12 @@ class fructaColors extends ThemeExtension<fructaColors> {
     }
     return out;
   }
+
+  /// A data colour (category, asset class, series) made legible as TEXT or a
+  /// thin stroke on this surface. Data palettes are tuned for dark; on light
+  /// several (gold, teal, green) fall under 2:1, so this deepens them to 4.5:1
+  /// for text. Fills and donut slices keep the raw colour (audit F3).
+  Color dataInk(Color data) => brandOnBg(data, minContrast: isDark ? 3.0 : 4.5);
 
   // ── Dark  ported verbatim from v5 :root ────────────────────────────────
   factory fructaColors.dark(fructaAccent a) => fructaColors(
@@ -285,14 +289,32 @@ double _contrastRatio(Color a, Color b) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// Typography families. v5 uses Inter for text and Space Grotesk for numerics
-// (the `.num` class). Add both to pubspec assets (or wire google_fonts) and
-// keep these names in sync.
+// Typography families. Inter for text, Space Grotesk for numerics. Both are
+// declared under `flutter: fonts:` in pubspec.yaml with these exact family
+// names; change one and you must change the other.
 // ─────────────────────────────────────────────────────────────────────────
 
 abstract final class fructaFonts {
   static const sans = 'Inter';
   static const mono = 'SpaceGrotesk'; // tabular-figure face for rates/money
+
+  /// Numeric style for rates and money: Space Grotesk with tabular figures so
+  /// columns of numbers align and a ticking value does not jitter sideways.
+  static TextStyle numeric({
+    required Color color,
+    double size = 16,
+    FontWeight weight = FontWeight.w500,
+    double letterSpacing = 0,
+    double? height,
+  }) => TextStyle(
+    color: color,
+    fontFamily: mono,
+    fontSize: size,
+    fontWeight: weight,
+    letterSpacing: letterSpacing,
+    height: height,
+    fontFeatures: const [FontFeature.tabularFigures()],
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────

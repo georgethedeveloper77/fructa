@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../core/category_colors.dart';
+
 /// The 8 CMA CIS asset classes (Q report section 2.7 / Table 18), in the
 /// report's column order. Values are absolute KES.
 enum AssetClass {
@@ -37,18 +39,9 @@ extension AssetClassX on AssetClass {
     AssetClass.alternative => 'Alternative',
   };
 
-  /// Data colours (not theme tokens  asset classes are data, like brand
-  /// colours). Drawn from the v5 family so nothing looks foreign.
-  Color get color => switch (this) {
-    AssetClass.gok => const Color(0xFF4E8FE8), // sky  sovereign paper
-    AssetClass.fixedDeposits => const Color(0xFF2FB5A0), // emerald
-    AssetClass.cash => const Color(0xFF3DDC97), // up-green
-    AssetClass.listed => const Color(0xFF9A8BF3), // iris
-    AssetClass.unlisted => const Color(0xFFF0B542), // amber
-    AssetClass.offshore => const Color(0xFFE7784C), // ember
-    AssetClass.otherCis => const Color(0xFF8A92A3), // muted
-    AssetClass.alternative => const Color(0xFF555D6B), // faint
-  };
+  /// Data colour, read from the single asset-class palette in
+  /// core/category_colors.dart so a fund's holdings and the market view agree.
+  Color get color => assetClassColor(key);
 }
 
 /// One fund's holdings breakdown, absolute KES per class, with provenance.

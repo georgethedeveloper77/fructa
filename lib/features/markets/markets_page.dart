@@ -276,7 +276,7 @@ class MarketsPage extends ConsumerWidget {
                 if (!ref.watch(marketSearchOpenProvider))
                   DisplayHeader(
                     title: t('nav.markets'),
-                    sub: '${all.length} retail funds',
+                    sub: '${all.where((f) => f.retail).length} retail funds',
                     live: true,
                     time: _eatNow(),
                     updated: _updatedLabel(ref.watch(snapshotUpdatedProvider)),

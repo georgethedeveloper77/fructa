@@ -147,7 +147,7 @@ fructaAccent _accent(String? name) => switch (name) {
       'sky' => fructaAccent.sky,
       'emerald' => fructaAccent.emerald,
       'iris' => fructaAccent.iris,
-      'amber' => fructaAccent.amber,
+      'amber' => fructaAccent.gold,
       _ => fructaAccent.gold,
     };
 
@@ -535,8 +535,6 @@ class _LessonNodeState extends State<_LessonNode>
               child: Text(
                 widget.lesson.title,
                 textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                     color: (widget.done || widget.unlocked) ? c.text : c.faint,
                     fontSize: 12.5,
@@ -638,8 +636,6 @@ class _UpNext extends StatelessWidget {
                       if (u.subtitle != null) ...[
                         const SizedBox(height: 2),
                         Text(u.subtitle!,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(color: c.muted, fontSize: 12)),
                       ],
                     ],
