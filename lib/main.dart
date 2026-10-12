@@ -14,6 +14,7 @@ import 'core/push.dart';
 import 'core/settings_prefs.dart';
 import 'core/theme.dart';
 import 'core/theme_controller.dart';
+import 'data/pro/pro_service.dart';
 
 Future<void> main() async {
   // The whole boot runs inside a guarded zone. Anything uncaught during
@@ -86,6 +87,14 @@ Future<void> main() async {
           await Analytics.init().timeout(const Duration(seconds: 10));
         } catch (e, st) {
           debugPrint('[fructa] Analytics.init failed: $e\n$st');
+        }
+        // Store billing. Time-boxed like its neighbours; if it hangs, the Pro
+        // providers keep the cached entitlement and the paywall shows its
+        // retry state instead of waiting forever.
+        try {
+          await ProService.init().timeout(const Duration(seconds: 10));
+        } catch (e, st) {
+          debugPrint('[fructa] ProService.init failed: $e\n$st');
         }
         try {
           await Push.init().timeout(const Duration(seconds: 10));

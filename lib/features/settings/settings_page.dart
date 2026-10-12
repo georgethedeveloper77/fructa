@@ -12,6 +12,7 @@ import '../blog/blog_page.dart';
 import '../learn/learn_home_page.dart';
 import '../learn/learn_progress.dart';
 import '../learn/learn_reminder.dart';
+import '../pro/pro_settings_group.dart';
 import 'following_page.dart';
 import 'widgets/app_version_footer.dart';
 import 'widgets/appearance_section.dart';
@@ -87,6 +88,10 @@ class SettingsPage extends ConsumerWidget {
           children: [
             DisplayHeader(title: t('settings.title'), sub: t('settings.sub')),
             const SizedBox(height: 18),
+
+            // Fructa Pro: status, restore, manage. Renders nothing while the
+            // `pro.enabled` remote flag is off.
+            const ProSettingsGroup(),
 
             // Learn (D2 stub - honest copy, no fake streaks)
             SettingsGroup(

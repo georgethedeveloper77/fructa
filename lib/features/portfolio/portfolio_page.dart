@@ -17,6 +17,7 @@ import '../../data/providers.dart';
 import '../../data/snapshot_providers.dart';
 import '../../engine/accrual_engine.dart';
 import '../../engine/portfolio_math.dart';
+import '../pro/pro_widgets.dart';
 import 'add_holding_page.dart';
 import 'manage_holding_sheet.dart';
 import 'projection_card.dart';
@@ -402,6 +403,10 @@ class _Full extends ConsumerWidget {
             ],
           ),
         ),
+
+        // Pro upsell for free users. Renders nothing for subscribers or while
+        // the `pro.enabled` remote flag is off.
+        const ProUpsellCard(source: 'portfolio_upsell'),
 
         if (totalKes > 0 && blendedGross > 0) ...[
           SectionHeader(title: t('portfolio.projection')),

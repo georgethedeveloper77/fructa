@@ -70,6 +70,10 @@ dependencies:
   cross_file: ^0.3.4+2
   firebase_analytics: ^12.4.6
 
+  # Fructa Pro subscriptions: App Store and Google Play billing through
+  # RevenueCat (entitlement `pro`). Keys live in core/config.dart.
+  purchases_flutter: ^10.13.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

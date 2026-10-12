@@ -166,6 +166,25 @@ class Analytics {
   /// Bottom tab changed. Cheap, and it answers whether anyone reaches Portfolio.
   static void selectTab(String tab) => _log('select_tab', {'tab': tab});
 
+  /// The paywall opened. [source] names the surface that opened it
+  /// ('portfolio_upsell', 'settings', ...) so conversion can be read per entry
+  /// point.
+  static void paywallView(String source) =>
+      _log('paywall_view', {'source': source});
+
+  /// A plan was tapped through to the store sheet. [plan] is the RevenueCat
+  /// package type ('monthly', 'annual'), never a price.
+  static void purchaseStart({required String plan, required String source}) =>
+      _log('pro_purchase_start', {'plan': plan, 'source': source});
+
+  /// How the store sheet ended: success, cancelled, pending, failed, and so on.
+  static void purchaseResult({required String plan, required String outcome}) =>
+      _log('pro_purchase_result', {'plan': plan, 'outcome': outcome});
+
+  /// A restore was attempted, and whether it found an active subscription.
+  static void restorePurchases({required String outcome}) =>
+      _log('pro_restore', {'outcome': outcome});
+
   /// An onboarding scene was reached. [step] is the stage name from
   /// OnboardingFlow, so the funnel reads topRate, gap, persona, appearance,
   /// alerts, complete.
@@ -203,6 +222,11 @@ class Analytics {
 
   /// The persona chosen during onboarding, 'rates' or 'learn'.
   static void setPersona(String persona) => _prop('persona', persona);
+
+  /// Subscription tier: 'free', 'trial' or 'pro'. Lets every other event be
+  /// split by tier without logging anything about the purchase itself.
+  static void setProStatus(bool active, {bool trial = false}) =>
+      _prop('pro_status', !active ? 'free' : (trial ? 'trial' : 'pro'));
 
   // ── Plumbing ───────────────────────────────────────────────────────────────
 
