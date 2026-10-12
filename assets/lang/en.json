@@ -820,5 +820,20 @@
   "company.tab.returns": "Returns",
   "company.tab.holdings": "Holdings",
   "company.tab.about": "About",
-  "company.tab.noReturns": "This fund is priced daily, so there is no yield to project forward. Its track record is under Overview."
+  "company.tab.noReturns": "This fund is priced daily, so there is no yield to project forward. Its track record is under Overview.",
+  "chart.all": "All",
+  "today.report.kicker": "WEEKLY REPORT",
+  "today.report.body": "What your holdings earned, how the funds you follow moved, and what changed in the market.",
+  "today.report.cta": "Read report",
+  "report.kicker": "FRUCTA PRO · WEEKLY",
+  "report.title": "Your week in yields",
+  "report.range": "{from} to {to}",
+  "report.money": "Your money",
+  "report.earned": "Earned this week",
+  "report.ofBook": "{pct} on your portfolio",
+  "report.following": "Funds you follow",
+  "report.noMove": "No change",
+  "report.market": "The market",
+  "report.events": "{leaders} category leader changes and {auctions} T-bill auctions this week.",
+  "report.foot": "Worked out on your phone from the rates Fructa tracks and the holdings you entered. Earnings are accrued interest at today's rates, after withholding tax, not money you added."
 }

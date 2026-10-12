@@ -25,18 +25,79 @@ extension ChartRangeX on ChartRange {
   };
 }
 
-/// v5 `.rangebar`  1W·1M·3M·6M·1Y. Selected segment gets an `s2` fill.
+/// v5 `.rangebar`: 1W 1M 3M 6M 1Y. Selected segment gets an `s2` fill.
+
+/// A segment styled like the fixed windows, for a range outside [ChartRange].
+/// [locked] shows a padlock beside the label (a Pro window for a free user).
+class RangeBarPill extends StatelessWidget {
+  const RangeBarPill({
+    super.key,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    this.locked = false,
+  });
+
+  final String label;
+  final bool selected;
+  final bool locked;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    final fg = selected ? c.text : c.faint;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? c.s2 : c.s2.withValues(alpha: 0),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                color: fg,
+                fontFamily: fructaFonts.mono,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            if (locked) ...[
+              const SizedBox(width: 3),
+              Icon(Icons.lock_outline_rounded, size: 11, color: fg),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+///
+/// [value] may be null when the [extra] segment is the active one. [extra]
+/// sits after the fixed windows (the rate chart puts its Pro "All" pill there),
+/// so a window outside [ChartRange] needs no new enum value and every other
+/// chart that uses this bar is unaffected.
 class RangeBar extends StatelessWidget {
   const RangeBar({
     super.key,
     required this.value,
     required this.onChanged,
     this.ranges = ChartRange.values,
+    this.extra,
   });
 
-  final ChartRange value;
+  final ChartRange? value;
   final ValueChanged<ChartRange> onChanged;
   final List<ChartRange> ranges;
+  final Widget? extra;
 
   @override
   Widget build(BuildContext context) {
@@ -54,7 +115,7 @@ class RangeBar extends StatelessWidget {
                   alignment: Alignment.center,
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   decoration: BoxDecoration(
-                    color: r == value ? c.s2 : Colors.transparent,
+                    color: r == value ? c.s2 : c.s2.withValues(alpha: 0),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
@@ -69,8 +130,9 @@ class RangeBar extends StatelessWidget {
                 ),
               ),
             ),
-            if (r != ranges.last) const SizedBox(width: 4),
+            if (r != ranges.last || extra != null) const SizedBox(width: 4),
           ],
+          if (extra != null) Expanded(child: extra!),
         ],
       ),
     );

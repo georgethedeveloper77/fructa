@@ -112,7 +112,7 @@ class ProUpsellCard extends ConsumerWidget {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'See what you really earned',
+                        'Your week in yields',
                         style: TextStyle(
                           color: c.text,
                           fontSize: 15,
@@ -127,9 +127,8 @@ class ProUpsellCard extends ConsumerWidget {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'Import your fund statements to track returns after tax, '
-                  'the yield you were actually credited, and withholding tax '
-                  'per year.',
+                  'A weekly report on what your holdings earned and how the '
+                  'funds you follow moved, plus every rate since tracking began.',
                   style: TextStyle(color: c.muted, fontSize: 13, height: 1.5),
                 ),
                 const SizedBox(height: 12),

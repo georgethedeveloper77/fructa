@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/legacy.dart';
 import 'package:hive/hive.dart';
 
 import '../core/analytics.dart';
+import '../core/i18n.dart';
 import '../core/theme.dart';
 import '../data/backup_service.dart';
 import '../data/providers.dart';
@@ -15,14 +16,29 @@ import '../features/learn/learn_home_page.dart';
 import '../features/markets/markets_page.dart';
 import '../features/portfolio/portfolio_page.dart';
 import '../features/settings/settings_page.dart';
+import '../features/today/today_page.dart';
 import 'deep_link.dart';
 
-/// Selected bottom-tab index. Restored from the pre-A1 scaffold so cross-tab
-/// jumps keep working, e.g. Portfolio's empty-state CTA:
-///   ref.read(selectedTabProvider.notifier).state = 0;  // to Markets
-final selectedTabProvider = StateProvider<int>((ref) => 0);
+/// Page indices for [selectedTabProvider].
+///
+/// These are positions in the IndexedStack, NOT positions in the nav bar.
+/// Markets, Portfolio and Settings keep the indices they always had (0, 1, 2),
+/// so every existing jump (deep links, Portfolio's empty-state CTA) still lands
+/// where it did. Today was appended as 3 and is drawn FIRST in the bar.
+abstract final class AppTab {
+  static const markets = 0;
+  static const portfolio = 1;
+  static const you = 2;
+  static const today = 3;
 
-/// Locked v5 navigation: three tabs, no center add. Add-holding lives in the
+  /// Left-to-right order in the nav bar.
+  static const navOrder = [today, markets, portfolio, you];
+}
+
+/// Selected page index (see [AppTab]). Opens on Today.
+final selectedTabProvider = StateProvider<int>((ref) => AppTab.today);
+
+/// Four tabs: Today, Markets, Portfolio, You. Add-holding lives in the
 /// Portfolio topbar; Compare is a mode inside Markets.
 ///
 /// Stateful so it can, once mounted: (1) offer to restore a cloud backup when
@@ -37,7 +53,13 @@ class MainScaffold extends ConsumerStatefulWidget {
 }
 
 class _MainScaffoldState extends ConsumerState<MainScaffold> {
-  static const _pages = [MarketsPage(), PortfolioPage(), SettingsPage()];
+  // Indexed by AppTab, not by nav position.
+  static const _pages = [
+    MarketsPage(),
+    PortfolioPage(),
+    SettingsPage(),
+    TodayPage(),
+  ];
 
   Timer? _backupDebounce;
 
@@ -96,16 +118,16 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
       if (next.isNotEmpty) _scheduleBackup();
     });
 
-    // Android back: step home before leaving. From any tab other than Markets,
-    // back returns to Markets; only from Markets does the OS close the app.
+    // Android back: step home before leaving. From any tab other than Today,
+    // back returns to Today; only from Today does the OS close the app.
     // Without this the scaffold puts nothing on the route stack, so back would
     // exit the app from every tab. Pushed routes (fund pages, alerts, add
     // holding) sit above this scaffold and pop on their own first.
     return PopScope(
-      canPop: index == 0,
+      canPop: index == AppTab.today,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
-        ref.read(selectedTabProvider.notifier).state = 0;
+        ref.read(selectedTabProvider.notifier).state = AppTab.today;
       },
       child: Scaffold(
         backgroundColor: c.bg,
@@ -117,7 +139,7 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
             // IndexedStack means no route is pushed, so the navigator observer
             // never sees a tab change. Without this line Portfolio and Settings
             // are invisible in analytics no matter how often they are opened.
-            if (i != index) Analytics.selectTab(_items[i].label);
+            if (i != index) Analytics.selectTab(_items[i].analytics);
             ref.read(selectedTabProvider.notifier).state = i;
           },
         ),
@@ -126,21 +148,44 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
   }
 }
 
+/// One nav destination. Active and inactive share one glyph family so a tab
+/// never changes shape when selected, only weight and colour.
 class _NavItem {
-  const _NavItem(this.icon, this.activeIcon, this.label);
+  const _NavItem(this.icon, this.activeIcon, this.labelKey, this.analytics);
   final IconData icon;
   final IconData activeIcon;
-  final String label;
+  final String labelKey;
+
+  /// Stable analytics name, independent of the display language.
+  final String analytics;
 }
 
+/// Indexed by AppTab.
 const _items = <_NavItem>[
   _NavItem(
-    Icons.stacked_line_chart_outlined,
-    Icons.candlestick_chart,
+    Icons.show_chart_rounded,
+    Icons.show_chart_rounded,
+    'nav.markets',
     'Markets',
   ),
-  _NavItem(Icons.pie_chart_outline, Icons.pie_chart, 'Portfolio'),
-  _NavItem(Icons.settings_outlined, Icons.settings, 'Settings'),
+  _NavItem(
+    Icons.pie_chart_outline,
+    Icons.pie_chart,
+    'nav.portfolio',
+    'Portfolio',
+  ),
+  _NavItem(
+    Icons.person_outline_rounded,
+    Icons.person_rounded,
+    'nav.you',
+    'You',
+  ),
+  _NavItem(
+    Icons.wb_sunny_outlined,
+    Icons.wb_sunny_rounded,
+    'nav.today',
+    'Today',
+  ),
 ];
 
 class _NavBar extends StatelessWidget {
@@ -166,7 +211,7 @@ class _NavBar extends StatelessWidget {
           ),
           child: Row(
             children: [
-              for (var i = 0; i < _items.length; i++)
+              for (final i in AppTab.navOrder)
                 Expanded(
                   child: _NavCell(
                     item: _items[i],
@@ -196,18 +241,18 @@ class _NavCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.c;
-    final color = selected ? c.accent : c.muted;
+    final color = selected ? c.accentInk : c.muted;
     return InkWell(
       onTap: onTap,
-      splashColor: Colors.transparent,
-      highlightColor: Colors.transparent,
+      splashFactory: NoSplash.splashFactory,
+      highlightColor: c.bg.withValues(alpha: 0),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(selected ? item.activeIcon : item.icon, size: 24, color: color),
           const SizedBox(height: 4),
           Text(
-            item.label,
+            t(item.labelKey),
             style: TextStyle(
               fontSize: 11,
               height: 1,

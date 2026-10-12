@@ -44,9 +44,10 @@ class _ProSettingsGroupState extends ConsumerState<ProSettingsGroup> {
   /// One line describing where the subscription stands. Billing trouble wins
   /// over everything else because it is the only state that needs action.
   String _statusLine(ProState s) {
-    if (!s.active) return 'Statement import, credited yield, tax reports';
-    if (s.billingIssue)
+    if (!s.active) return 'Weekly report, full rate history';
+    if (s.billingIssue) {
       return 'Payment problem. Update it in your store account';
+    }
     final end = s.expiresAt;
     if (end == null) return 'Active';
     if (s.inTrial) {

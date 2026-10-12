@@ -20,26 +20,26 @@ typedef _Benefit = ({IconData icon, String title, String sub});
 /// Both stores reject paywalls that sell features the app does not have, and a
 /// subscriber who pays for a missing feature asks for a refund. Append smart
 /// alerts and the switch analyzer when they land.
+///
+/// Statement import, credited vs published yield and the tax report were
+/// listed here before any of them existed. They come back the release they
+/// ship, not before.
 const List<_Benefit> _benefits = [
   (
-    icon: Icons.lock_open_outlined,
-    title: 'Statement import',
-    sub: 'Unlocks and reads your password-protected fund statements',
+    icon: Icons.summarize_outlined,
+    title: 'Weekly report',
+    sub:
+        'What your money earned, how your funds moved, and what changed in the market',
   ),
   (
-    icon: Icons.insights_outlined,
-    title: 'Credited vs published yield',
-    sub: 'Check the rate you were paid against the rate advertised',
-  ),
-  (
-    icon: Icons.receipt_long_outlined,
-    title: 'Tax and annual reports',
-    sub: 'Withholding tax per year, and a PDF of your year',
+    icon: Icons.show_chart_rounded,
+    title: 'Full rate history',
+    sub: 'Every rate since tracking began, not just the last year',
   ),
   (
     icon: Icons.shield_outlined,
     title: 'Private by design',
-    sub: 'Statements are read on your phone and never uploaded',
+    sub: 'Reports are worked out on your phone. Your holdings never leave it',
   ),
 ];
 

@@ -4,7 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme.dart';
 import '../../../core/widgets/app_loader.dart';
+import '../../../core/i18n.dart';
 import '../../../core/widgets/range_bar.dart';
+import '../../../data/pro/pro_providers.dart';
+import '../../pro/pro_widgets.dart';
 import '../../../data/models/rate_history.dart';
 import '../../../data/providers.dart';
 
@@ -37,6 +40,25 @@ class RateChart extends ConsumerStatefulWidget {
 class _RateChartState extends ConsumerState<RateChart> {
   ChartRange _range = ChartRange.w1;
   bool _userPicked = false;
+
+  /// Whole stored history. A Pro window: free users get up to a year.
+  bool _all = false;
+
+  Future<void> _pickAll() async {
+    if (!await ensurePro(context, ref, source: 'rate_history_all')) return;
+    if (mounted) setState(() => _all = true);
+  }
+
+  /// The "All" pill, shown only once Pro is switched on remotely.
+  Widget? _allPill() {
+    if (!ref.watch(proEnabledProvider)) return null;
+    return RangeBarPill(
+      label: t('chart.all'),
+      selected: _all,
+      locked: !ref.watch(isProProvider),
+      onTap: _pickAll,
+    );
+  }
 
   List<RateHistory> _inRange(List<RateHistory> all, ChartRange r) {
     if (all.isEmpty) return all;
@@ -71,11 +93,13 @@ class _RateChartState extends ConsumerState<RateChart> {
             child: Center(child: AppLoader(color: line)),
           ),
           RangeBar(
-            value: _range,
+            value: _all ? null : _range,
             onChanged: (r) => setState(() {
               _range = r;
               _userPicked = true;
+              _all = false;
             }),
+            extra: _allPill(),
           ),
         ],
       ),
@@ -94,7 +118,7 @@ class _RateChartState extends ConsumerState<RateChart> {
           widget.currentRate,
         );
         final effective = _userPicked ? _range : _autoRange(sorted);
-        final points = _inRange(sorted, effective);
+        final points = _all ? sorted : _inRange(sorted, effective);
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -106,18 +130,20 @@ class _RateChartState extends ConsumerState<RateChart> {
                       child: Text(
                         sorted.length < 2
                             ? 'No rate history yet.'
-                            : 'Not enough data for ${effective.label}.',
+                            : 'Not enough data for ${_all ? t('chart.all') : effective.label}.',
                         style: TextStyle(color: c.muted),
                       ),
                     )
                   : _Chart(points, line),
             ),
             RangeBar(
-              value: effective,
+              value: _all ? null : effective,
               onChanged: (r) => setState(() {
                 _range = r;
                 _userPicked = true;
+                _all = false;
               }),
+              extra: _allPill(),
             ),
           ],
         );
