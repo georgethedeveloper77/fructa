@@ -192,10 +192,13 @@ class _ChartState extends State<_Chart> with SingleTickerProviderStateMixin {
     final c = context.c;
     final points = widget.points;
     final color = widget.color;
-    final spots = [
-      for (var i = 0; i < points.length; i++)
-        FlSpot(i.toDouble(), points[i].rate),
-    ];
+    // X is TIME (days since the first point), not the point's index. With
+    // index spacing a sparse series put three July ticks and an October tick
+    // at equal distances, as if the months were the same length apart.
+    final t0 = DateTime.parse(points.first.asOf);
+    double dayOf(RateHistory p) =>
+        DateTime.parse(p.asOf).difference(t0).inHours / 24;
+    final spots = [for (final p in points) FlSpot(dayOf(p), p.rate)];
     final rates = points.map((p) => p.rate);
     final lo = rates.reduce((a, b) => a < b ? a : b);
     final hi = rates.reduce((a, b) => a > b ? a : b);
@@ -215,9 +218,9 @@ class _ChartState extends State<_Chart> with SingleTickerProviderStateMixin {
     final yStep = ((maxY - minY) / 4).clamp(0.01, double.infinity);
     // ~4 date ticks along the bottom  the "columns". Spread across the window
     // so a dense series doesn't crowd the axis.
-    final n = points.length;
-    final xStep = ((n - 1) / 3).clamp(1.0, (n - 1).toDouble());
     final spanDays = _span(points);
+    final maxX = spanDays < 1 ? 1.0 : spanDays.toDouble();
+    final xStep = (maxX / 3).clamp(1.0, maxX);
 
     // Gridded v5 aesthetic: faint horizontal rules, a right-edge rate axis
     // (promoted from the old pinned min/max), and a bottom date axis  the
@@ -232,7 +235,7 @@ class _ChartState extends State<_Chart> with SingleTickerProviderStateMixin {
         return LineChart(
           LineChartData(
             minX: 0,
-            maxX: (n - 1).toDouble(),
+            maxX: maxX,
             minY: minY,
             maxY: maxY,
             gridData: FlGridData(
@@ -277,10 +280,10 @@ class _ChartState extends State<_Chart> with SingleTickerProviderStateMixin {
                   interval: xStep,
                   reservedSize: 22,
                   getTitlesWidget: (value, meta) {
-                    final i = value.round();
-                    if (i < 0 || i >= n) return const SizedBox.shrink();
-                    final d = DateTime.tryParse(points[i].asOf);
-                    if (d == null) return const SizedBox.shrink();
+                    if (value < 0 || value > maxX + 0.5) {
+                      return const SizedBox.shrink();
+                    }
+                    final d = t0.add(Duration(hours: (value * 24).round()));
                     return Padding(
                       padding: const EdgeInsets.only(top: 6),
                       child: Text(_tick(d, spanDays), style: labelStyle),
@@ -293,7 +296,7 @@ class _ChartState extends State<_Chart> with SingleTickerProviderStateMixin {
               touchTooltipData: LineTouchTooltipData(
                 getTooltipColor: (_) => c.s2,
                 getTooltipItems: (touched) => touched.map((s) {
-                  final p = points[s.x.round().clamp(0, points.length - 1)];
+                  final p = points[s.spotIndex.clamp(0, points.length - 1)];
                   return LineTooltipItem(
                     '${p.asOf}\n${p.rate.toStringAsFixed(2)}%',
                     TextStyle(
@@ -308,8 +311,10 @@ class _ChartState extends State<_Chart> with SingleTickerProviderStateMixin {
             lineBarsData: [
               LineChartBarData(
                 spots: visible,
-                isCurved: true,
-                curveSmoothness: 0.28,
+                // A rate holds until the manager changes it, so the honest
+                // shape is a step: flat, then a jump on the day it moved. A
+                // curve invented a gradual drift between sparse prints.
+                isStepLineChart: true,
                 color: color,
                 barWidth: 2.4,
                 dotData: FlDotData(show: points.length <= 6),

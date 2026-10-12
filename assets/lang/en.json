@@ -413,7 +413,7 @@
   "lesson.xpPlus": "+{n}",
   "lesson.youPutIn": "you put in",
   "markets.allRates": "All Rates",
-  "markets.allRatesSub": "gross yield",
+  "markets.allRatesSub": "net of tax",
   "markets.bestMmf": "BEST MMF RATE",
   "markets.brandDot": ".",
   "markets.context.benchCbr": "CBR",

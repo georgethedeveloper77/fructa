@@ -17,6 +17,7 @@ import '../alerts/alerts_page.dart';
 import '../company/company_page.dart';
 import '../markets/market_page.dart';
 import '../markets/search_overlay.dart';
+import '../markets/widgets/market_allocation_donut.dart';
 import '../markets/widgets/market_pulse.dart';
 import '../portfolio/add_holding_page.dart';
 import '../pro/pro_widgets.dart';
@@ -77,6 +78,9 @@ class TodayPage extends ConsumerWidget {
                 const _WeeklyReportCard(),
               if (events.isNotEmpty)
                 _EventsSection(events: events.take(eventCount).toList()),
+              // Kenya's fund market: context, so it sits after the user's own
+              // modules and the news, never above them.
+              const MarketAllocationDonut(),
               const _TbillRow(),
             ],
           ),

@@ -7,8 +7,6 @@ import '../../core/analytics.dart';
 import '../../core/i18n.dart';
 import '../../core/theme.dart';
 import '../../core/widgets/kit.dart';
-import '../../core/category_colors.dart';
-import '../../core/widgets/quarter_stat.dart';
 import '../../data/models/fund.dart';
 import '../../data/models/sacco.dart';
 import '../../data/models/stock.dart';
@@ -35,7 +33,6 @@ import 'widgets/fund_tile.dart';
 import 'widgets/fx_context_card.dart';
 import 'widgets/insurance_spotlight.dart';
 import 'widgets/locked_leader_note.dart';
-import 'widgets/market_allocation_donut.dart';
 import 'widgets/market_context_card.dart';
 import 'widgets/money_currency_tabs.dart';
 import 'widgets/news_feed.dart';
@@ -291,16 +288,6 @@ class MarketsPage extends ConsumerWidget {
                         // ── Rates first: the featured fund, then the market
                         // shape by type. Context (inflation, yield curve) is
                         // parked at the foot of the page.
-                        if (hasInsurers && insuranceLaunched)
-                          SliverToBoxAdapter(
-                            child: InsuranceSpotlight(
-                              onTap: () => Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const InsureOverlay(),
-                                ),
-                              ),
-                            ),
-                          ),
                         if (!compareMode)
                           const SliverToBoxAdapter(
                             child: SavedComparisonsSection(),
@@ -468,12 +455,17 @@ class MarketsPage extends ConsumerWidget {
                         // FX and the yield curve are all macro context and none
                         // of them is a fund ranking. It shares the section
                         // kicker MarketContextCard already renders.
-                        SliverToBoxAdapter(
-                          child: KeyedSubtree(
-                            key: marketOverviewKey,
-                            child: const MarketAllocationDonut(),
+                        // Insurance sits after the rates: Markets is a rates page first.
+                        if (hasInsurers && insuranceLaunched)
+                          SliverToBoxAdapter(
+                            child: InsuranceSpotlight(
+                              onTap: () => Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const InsureOverlay(),
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
                         const SliverToBoxAdapter(child: MarketContextCard()),
                         const SliverToBoxAdapter(child: FxContextSection()),
                         const SliverToBoxAdapter(child: YieldCurve()),
@@ -505,115 +497,6 @@ class MarketsPage extends ConsumerWidget {
                 ),
               ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Anchor for the market overview at the foot of the list.
-final marketOverviewKey = GlobalKey();
-
-/// One line in the Markets header: market size, quarter move and a mini
-/// split bar. Tapping scrolls to the full overview at the foot of the page,
-/// so the headline sits at the top and the detail keeps one fixed home.
-class _MarketJump extends ConsumerWidget {
-  const _MarketJump();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final c = context.c;
-    final cfg = ref.watch(remoteConfigProvider);
-    final size = cfg.marketSize();
-    final split = cfg.marketFundTypes();
-    if (size == null && split.isEmpty) return const SizedBox.shrink();
-    final total =
-        size?.totalKes ?? split.fold<double>(0, (a, b) => a + b.aumKes);
-    final change = size?.changePct;
-
-    void jump() {
-      final ctx = marketOverviewKey.currentContext;
-      if (ctx == null) return;
-      Scrollable.ensureVisible(
-        ctx,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeOutCubic,
-      );
-    }
-
-    return Material(
-      color: c.s1,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: c.line),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: jump,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          child: Row(
-            children: [
-              if (split.isNotEmpty) ...[
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: SizedBox(
-                    width: 48,
-                    height: 8,
-                    child: Row(
-                      children: [
-                        for (final s in split)
-                          Expanded(
-                            flex: (s.share * 10).round().clamp(1, 1000),
-                            child: ColoredBox(color: fundTypeColor(s.type)),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-              ],
-              Expanded(
-                child: Text.rich(
-                  TextSpan(
-                    children: [
-                      TextSpan(
-                        text: 'KES ${compactKes(total)}',
-                        style: fructaFonts.numeric(
-                          color: c.text,
-                          size: 13,
-                          weight: FontWeight.w600,
-                        ),
-                      ),
-                      TextSpan(
-                        text: ' ${t('markets.marketWord')}',
-                        style: TextStyle(color: c.muted, fontSize: 13),
-                      ),
-                      if (change != null)
-                        TextSpan(
-                          text:
-                              '  ${change >= 0 ? '+' : ''}${change.toStringAsFixed(1)}%',
-                          style: TextStyle(
-                            color: c.delta(change),
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-              Text(
-                t('markets.overview'),
-                style: TextStyle(
-                  color: c.accentInk,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              Icon(Icons.arrow_downward_rounded, size: 14, color: c.accentInk),
-            ],
-          ),
         ),
       ),
     );
@@ -664,7 +547,7 @@ class _TopBar extends ConsumerWidget {
                 padding: const EdgeInsets.only(right: 6),
                 // Nothing on the strip names a fund, so the tap answers the
                 // question it actually provokes: what is the market doing.
-                child: const _MarketJump(),
+                child: const SizedBox.shrink(),
               ),
             ),
           IconButton(

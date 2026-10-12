@@ -73,13 +73,19 @@ class _FundTileState extends ConsumerState<FundTile> {
     final f = widget.fund;
     final wht = ref.watch(remoteConfigProvider).whtPct;
     final logoUrl = ref.watch(logoUrlProvider(f.id));
-    final d = widget.delta;
+    // The 7-day move arrives in GROSS points. When the figure above it is net,
+    // the move is shown net too, or -0.19 sits under 9.78% as if it applied
+    // to that number.
+    final rawDelta = widget.delta;
 
     final rate = f.currentRate;
     final hasRate = f.showsYield && rate != null;
     // Net only where a deduction is actually still to come. A fund published
     // net of tax has no second, smaller figure to show.
     final net = hasRate && f.whtStillDue && !f.taxFree ? f.netRate(wht) : null;
+    final d = rawDelta == null
+        ? null
+        : (net != null ? rawDelta * (1 - wht / 100) : rawDelta);
 
     final headline = f.headlineWith(
       ref.watch(latestPeriodReturnProvider(f.id)),
