@@ -388,7 +388,9 @@ class _SearchOverlayState extends ConsumerState<SearchOverlay> {
               const SizedBox(width: 3),
             ],
             Text(
-              h.rate != null ? '${h.rate!.toStringAsFixed(2)}%' : '\u2014',
+              h.rate != null
+                  ? '${h.rate!.toStringAsFixed(2)}%'
+                  : t('common.dash'),
               style: TextStyle(
                 color: h.rate != null ? c.text : c.faint,
                 fontFamily: fructaFonts.mono,

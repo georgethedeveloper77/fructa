@@ -37,8 +37,9 @@ class RatesApi {
         'Authorization': 'Bearer ${Config.anonKey}',
       },
     );
-    if (res.statusCode != 200)
+    if (res.statusCode != 200) {
       throw Exception('history HTTP ${res.statusCode}');
+    }
     final list = jsonDecode(res.body) as List;
     return list
         .map((e) => RateHistory.fromJson(e as Map<String, dynamic>))

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/format.dart';
+import '../../../core/series_colors.dart';
 import '../../../core/theme.dart';
 import '../markets_controller.dart';
 
@@ -18,14 +19,6 @@ class NewsFeed extends StatefulWidget {
 
 class _NewsFeedState extends State<NewsFeed> {
   bool _expanded = false;
-
-  // per-item accent, cycled by index (mock assigns colours per event)
-  static const _dots = [
-    Color(0xFF3DDC97), // up
-    Color(0xFFE7B24C), // gold
-    Color(0xFF9A8BF3), // violet
-    Color(0xFF4E8FE8), // blue
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -82,7 +75,8 @@ class _NewsFeedState extends State<NewsFeed> {
               for (var i = 0; i < visible.length; i++)
                 _Row(
                   item: visible[i],
-                  dot: _dots[i % _dots.length],
+                  // Cycled from the central series palette (no raw hex here).
+                  dot: seriesColor(i),
                   last: i == visible.length - 1,
                 ),
             ],

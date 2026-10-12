@@ -30,6 +30,7 @@ import 'markets_controller.dart';
 import 'search_overlay.dart';
 import '../../core/widgets/app_loader.dart';
 import 'widgets/category_tabs.dart';
+import 'widgets/filter_sheet.dart';
 import 'widgets/fund_tile.dart';
 import 'widgets/fx_context_card.dart';
 import 'widgets/insurance_spotlight.dart';
@@ -112,7 +113,7 @@ class _LearnPrimer extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
       child: Material(
-        color: Colors.transparent,
+        type: MaterialType.transparency,
         child: InkWell(
           onTap: () => Navigator.of(
             context,
@@ -713,11 +714,16 @@ class _StreamHeader extends SliverPersistentHeaderDelegate {
 
   // CategoryTabs(46) + gap(8) + SortPills(42) + gap(8) + count(22) + pad(8)
   static const _base = 46.0 + 8 + 42 + 8 + 22 + 8;
-  // gap + MoneyCurrencyTabs, and the stock sector row is the same 38px, so the
-  // header is exactly as tall under Stocks as it is under Money Market.
+  // gap + the stock sector row (38px).
   static const _ccyRow = 8.0 + 38;
+  // Funds: top pad(4) + CategoryTabs(46) + gap(8) + FundFilterBar(36) + pad(10).
+  // Currency and sort moved into the filter sheet, so the list starts higher.
+  static const _funds = 4.0 + 46 + 8 + 36 + 10;
 
-  double get _h => _base + ((showCcy || showSector) ? _ccyRow : 0);
+  double get _h {
+    if (!isSacco && !isStock) return _funds;
+    return _base + (showSector ? _ccyRow : 0);
+  }
 
   @override
   double get minExtent => _h;
@@ -758,6 +764,26 @@ class _StreamHeader extends SliverPersistentHeaderDelegate {
           label = t('compare.selectHint', {'n': '$kMaxCompare'});
         } else {
           label = t('markets.fundCount', {'n': '$count'});
+        }
+
+        if (!isSacco && !isStock) {
+          return Container(
+            color: c.bg,
+            child: Column(
+              children: [
+                const SizedBox(height: 4),
+                const CategoryTabs(),
+                const SizedBox(height: 8),
+                FundFilterBar(
+                  label: label,
+                  onCompare: compareMode
+                      ? null
+                      : () =>
+                            ref.read(compareModeProvider.notifier).state = true,
+                ),
+              ],
+            ),
+          );
         }
 
         return Container(

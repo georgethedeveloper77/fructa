@@ -1,24 +1,21 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/categories.dart';
+import '../../../core/i18n.dart';
+import '../../../core/motion/motion.dart';
 import '../../../core/theme.dart';
 import '../../../core/widgets/fund_logo.dart';
 import '../../../data/models/fund.dart';
 import '../../../data/snapshot_providers.dart';
 
-/// Directory tile (v6 `.tile`)  a card: panel surface, hairline border, 16px
-/// radius, 14px padding, 10px inter-card gap. Name wraps (no-ellipsis); the
-/// gross rate flashes up/down on refresh. Shows gross + net-of-tax (the honest
-/// comparator); funds that quote no single yield (basis 'none') show an
-/// em-dash, never a fabricated number.
+/// One fund in the Markets list: a hairline row, not a card.
 ///
-/// [rank] is the fund's position in the current filter+sort. It shows as a
-/// small badge on the logo corner that FADES OUT after ~6s  long enough to
-/// read the ranking, then out of the way for a clean list. It
-/// flashes back briefly whenever the rank changes (re-sort). Top 3 wear gold.
+/// Rank sits at the left for the whole visit. The large figure is what the
+/// holder keeps (net of withholding where a deduction is still due), and the
+/// gross sits once in the line under the name, so no figure appears twice on
+/// the row. A new print for the fund glitches the figure for half a second.
+/// Funds that quote no single yield show the reason, never a made-up number.
 class FundTile extends ConsumerStatefulWidget {
   const FundTile(
     this.fund, {
@@ -70,52 +67,6 @@ String _commas(num v) {
 }
 
 class _FundTileState extends ConsumerState<FundTile> {
-  double? _prevRate;
-  int _flash = 0; // -1 down, 0 none, +1 up
-
-  bool _showRank = true;
-  Timer? _rankTimer;
-
-  @override
-  void initState() {
-    super.initState();
-    _prevRate = widget.fund.currentRate;
-    _armRankFade();
-  }
-
-  /// Show the rank badge, then fade it after ~6s. Re-armed when the rank
-  /// changes so a re-sort briefly re-reveals positions.
-  void _armRankFade() {
-    if (widget.rank == null) return;
-    _rankTimer?.cancel();
-    _showRank = true;
-    _rankTimer = Timer(const Duration(milliseconds: 6000), () {
-      if (mounted) setState(() => _showRank = false);
-    });
-  }
-
-  @override
-  void didUpdateWidget(covariant FundTile old) {
-    super.didUpdateWidget(old);
-    if (old.rank != widget.rank) _armRankFade();
-
-    final now = widget.fund.currentRate;
-    final was = _prevRate;
-    if (now != null && was != null && now != was) {
-      setState(() => _flash = now > was ? 1 : -1);
-      Future.delayed(const Duration(milliseconds: 900), () {
-        if (mounted) setState(() => _flash = 0);
-      });
-    }
-    _prevRate = now;
-  }
-
-  @override
-  void dispose() {
-    _rankTimer?.cancel();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     final c = context.c;
@@ -123,307 +74,222 @@ class _FundTileState extends ConsumerState<FundTile> {
     final wht = ref.watch(remoteConfigProvider).whtPct;
     final logoUrl = ref.watch(logoUrlProvider(f.id));
     final d = widget.delta;
-    final rateBg = _flash == 0
-        ? Colors.transparent
-        : (_flash > 0 ? c.upSoft : c.downSoft);
 
     final rate = f.currentRate;
     final hasRate = f.showsYield && rate != null;
-    // Net is shown only where a deduction is actually still to come. A fund
-    // published net of tax has no second, smaller figure, and printing one
-    // would invent a deduction nobody made.
-    final net = hasRate && f.whtStillDue ? f.netRate(wht) : null;
+    // Net only where a deduction is actually still to come. A fund published
+    // net of tax has no second, smaller figure to show.
+    final net = hasRate && f.whtStillDue && !f.taxFree ? f.netRate(wht) : null;
 
-    // The headline, carrying its own kind. A return-basis fund reaches this
-    // point with a realized period return, and the ONE thing that must never
-    // happen on a list is that figure printing as a bare percentage beside a
-    // column of annual yields. It gets its period stamped underneath instead.
     final headline = f.headlineWith(
       ref.watch(latestPeriodReturnProvider(f.id)),
     );
 
-    final meta = '${_typeLabel(f)} \u00b7 ${f.currency}';
+    final big = switch (headline) {
+      YieldHeadline(:final gross) => '${(net ?? gross).toStringAsFixed(2)}%',
+      ReturnHeadline(:final pct) =>
+        '${pct >= 0 ? '+' : ''}${pct.toStringAsFixed(2)}%',
+      NoHeadline() => t('common.dash'),
+    };
+    final bigColor = switch (headline) {
+      ReturnHeadline(:final pct) => c.delta(pct),
+      YieldHeadline() => c.text,
+      NoHeadline() => c.faint,
+    };
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-      child: Material(
-        color: widget.selected ? c.accentSoft : c.s1,
-        shape: RoundedRectangleBorder(
-          side: BorderSide(
-            color: widget.selected ? c.accent.withValues(alpha: 0.4) : c.line,
+    // Type and currency once (the old row printed the currency twice), then
+    // the gross and the minimum.
+    final type = _typeLabel(f);
+    final detail = [
+      if (net != null)
+        t('markets.row.gross', {'rate': '${rate!.toStringAsFixed(2)}%'}),
+      if (f.minInvest != null)
+        t('markets.row.min', {
+          'amount': '${f.currency} ${_commas(f.minInvest!)}',
+        }),
+    ].join(' \u00b7 ');
+
+    return Material(
+      color: widget.selected ? c.accentSoft : c.bg.withValues(alpha: 0),
+      child: InkWell(
+        onTap: widget.selectable ? widget.onToggleSelect : widget.onTap,
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 20),
+          padding: const EdgeInsets.symmetric(vertical: 13),
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: c.line)),
           ),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: widget.selectable ? widget.onToggleSelect : widget.onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // logo + rank badge (fades) + optional select badge
+          child: Row(
+            children: [
+              if (widget.rank != null) ...[
                 SizedBox(
-                  width: 34,
-                  height: 34,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      FundLogo(
-                        domain: f.logoDomain,
-                        logoUrl: logoUrl,
-                        seed: f.manager,
-                        size: 34,
-                        brandColor: widget.brandColor,
-                      ),
-                      if (widget.rank != null)
-                        Positioned(
-                          left: -5,
-                          top: -5,
-                          child: IgnorePointer(
-                            child: AnimatedOpacity(
-                              opacity: _showRank ? 1 : 0,
-                              duration: const Duration(milliseconds: 500),
-                              curve: Curves.easeOut,
-                              child: Container(
-                                constraints: const BoxConstraints(minWidth: 18),
-                                height: 18,
-                                alignment: Alignment.center,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: widget.rank! <= 3 ? c.accent : c.s2,
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(color: c.s1, width: 1.5),
-                                ),
-                                child: Text(
-                                  '${widget.rank}',
-                                  style: TextStyle(
-                                    color: widget.rank! <= 3
-                                        ? c.onAccent
-                                        : c.muted,
-                                    fontFamily: fructaFonts.mono,
-                                    fontSize: 10,
-                                    height: 1,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      if (widget.selectable && widget.selected)
-                        Positioned(
-                          right: -3,
-                          top: -3,
-                          child: Container(
-                            width: 18,
-                            height: 18,
-                            decoration: BoxDecoration(
-                              color: c.accent,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: c.s1, width: 2),
-                            ),
-                            child: Icon(
-                              Icons.check,
-                              size: 10,
-                              color: c.onAccent,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 11),
-                // name + meta
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        f.name,
-                        style: TextStyle(
-                          color: c.text,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          height: 1.25,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              meta,
-                              style: TextStyle(
-                                color: c.faint,
-                                fontFamily: fructaFonts.mono,
-                                fontSize: 10.5,
-                              ),
-                            ),
-                          ),
-                          if (f.taxFree) ...[
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 1,
-                              ),
-                              decoration: BoxDecoration(
-                                color: c.upSoft,
-                                borderRadius: BorderRadius.circular(5),
-                              ),
-                              child: Text(
-                                'TAX-FREE',
-                                style: TextStyle(
-                                  color: c.up,
-                                  fontSize: 9,
-                                  letterSpacing: 0.3,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                      if (f.minInvest != null) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          'Min ${f.currency} ${_commas(f.minInvest!)}',
-                          style: TextStyle(
-                            color: c.faint,
-                            fontFamily: fructaFonts.mono,
-                            fontSize: 10.5,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                // sparkline from spark[]
-                // Rate series only. `spark` is built from rate_history, so on a
-                // return-basis fund it is empty anyway, but the explicit gate
-                // means a future fund carrying both cannot draw a rate trend
-                // beside a period return and imply they are the same series.
-                if (f.showsYield && f.spark.length >= 2) ...[
-                  const SizedBox(width: 12),
-                  SizedBox(
-                    width: 52,
-                    height: 30,
-                    child: CustomPaint(
-                      painter: _TileSpark(f.spark, up: c.up, down: c.down),
+                  width: 20,
+                  child: Text(
+                    '${widget.rank}',
+                    style: fructaFonts.numeric(
+                      color: widget.rank! <= 3 ? c.accentInk : c.faint,
+                      size: 12,
+                      weight: FontWeight.w600,
                     ),
                   ),
-                ],
-                const SizedBox(width: 12),
-                // gross + net + delta
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  mainAxisSize: MainAxisSize.min,
+                ),
+                const SizedBox(width: 4),
+              ],
+              SizedBox(
+                width: 38,
+                height: 38,
+                child: Stack(
+                  clipBehavior: Clip.none,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 5,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: rateBg,
-                        borderRadius: BorderRadius.circular(7),
-                      ),
-                      child: Text(
-                        switch (headline) {
-                          YieldHeadline(:final gross) =>
-                            '${gross.toStringAsFixed(2)}%',
-                          ReturnHeadline(:final pct) =>
-                            '${pct >= 0 ? '+' : ''}${pct.toStringAsFixed(2)}%',
-                          NoHeadline() => '\u2014',
-                        },
-                        style: TextStyle(
-                          color: switch (headline) {
-                            ReturnHeadline(:final pct) => c.delta(pct),
-                            YieldHeadline() => c.text,
-                            NoHeadline() => c.faint,
-                          },
-                          fontFamily: fructaFonts.mono,
-                          fontSize: 19,
-                          fontWeight: FontWeight.w600,
-                          fontFeatures: const [FontFeature.tabularFigures()],
+                    FundLogo(
+                      domain: f.logoDomain,
+                      logoUrl: logoUrl,
+                      seed: f.manager,
+                      size: 38,
+                      brandColor: widget.brandColor,
+                    ),
+                    if (widget.selectable && widget.selected)
+                      Positioned(
+                        right: -3,
+                        top: -3,
+                        child: Container(
+                          width: 18,
+                          height: 18,
+                          decoration: BoxDecoration(
+                            color: c.accent,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: c.bg, width: 2),
+                          ),
+                          child: Icon(Icons.check, size: 10, color: c.onAccent),
                         ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      f.name,
+                      style: TextStyle(
+                        color: c.text,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        height: 1.3,
                       ),
                     ),
-                    // The period, directly under the figure. Without it a
-                    // quarterly return and an annual yield are the same two
-                    // digits and a percent sign, and a reader scanning the
-                    // column will rank one against the other.
-                    if (headline case ReturnHeadline(:final label)) ...[
-                      const SizedBox(height: 3),
-                      Text(
-                        label,
-                        style: TextStyle(
-                          color: c.faint,
-                          fontFamily: fructaFonts.mono,
-                          fontSize: 10,
-                          fontFeatures: const [FontFeature.tabularFigures()],
+                    const SizedBox(height: 3),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 3,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text(
+                          type,
+                          style: TextStyle(color: c.muted, fontSize: 12),
                         ),
-                      ),
-                    ],
-                    // The reason a fund has no figure, in place of the label a
-                    // real one would wear. 'NO PRICE YET' is a different fact
-                    // from 'NO RATE', and both are different from a zero.
-                    if (headline case NoHeadline(:final reason)) ...[
-                      const SizedBox(height: 3),
-                      Text(
-                        reason,
-                        style: TextStyle(
-                          color: c.faint,
-                          fontFamily: fructaFonts.mono,
-                          fontSize: 9,
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                    ],
-                    if (net != null && !f.taxFree) ...[
-                      const SizedBox(height: 3),
-                      Text(
-                        '${net.toStringAsFixed(2)}% net',
-                        style: TextStyle(
-                          color: c.muted,
-                          fontFamily: fructaFonts.mono,
-                          fontSize: 11,
-                          fontFeatures: const [FontFeature.tabularFigures()],
-                        ),
-                      ),
-                    ],
-                    if (d != null && d != 0) ...[
-                      const SizedBox(height: 3),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            d > 0 ? Icons.arrow_drop_up : Icons.arrow_drop_down,
-                            size: 14,
-                            color: c.delta(d),
-                          ),
-                          Text(
-                            d.abs().toStringAsFixed(2),
-                            style: TextStyle(
-                              color: c.delta(d),
-                              fontFamily: fructaFonts.mono,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              fontFeatures: const [
-                                FontFeature.tabularFigures(),
-                              ],
+                        if (f.taxFree)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 1,
+                            ),
+                            decoration: BoxDecoration(
+                              color: c.upSoft,
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                            child: Text(
+                              t('markets.row.taxFree'),
+                              style: TextStyle(
+                                color: c.up,
+                                fontSize: 9.5,
+                                letterSpacing: 0.3,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
-                        ],
+                      ],
+                    ),
+                    if (detail.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        detail,
+                        style: TextStyle(color: c.muted, fontSize: 12),
                       ),
                     ],
                   ],
                 ),
+              ),
+              // Rate series only: never a rate trend beside a period return.
+              if (f.showsYield && f.spark.length >= 2) ...[
+                const SizedBox(width: 10),
+                SizedBox(
+                  width: 44,
+                  height: 24,
+                  child: CustomPaint(
+                    painter: _TileSpark(
+                      f.spark,
+                      up: c.up,
+                      down: c.down,
+                      flat: c.faint,
+                    ),
+                  ),
+                ),
               ],
-            ),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Glitch(
+                    trigger: rate,
+                    a: c.accent,
+                    b: c.down,
+                    child: Text(
+                      big,
+                      style: fructaFonts.numeric(
+                        color: bigColor,
+                        size: 18,
+                        weight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  // The period stays under a return, so a quarter is never read
+                  // as a year beside a column of annual yields.
+                  if (headline case ReturnHeadline(:final label)) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      label,
+                      style: TextStyle(color: c.faint, fontSize: 10.5),
+                    ),
+                  ],
+                  if (headline case NoHeadline(:final reason)) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      reason,
+                      style: TextStyle(
+                        color: c.faint,
+                        fontSize: 9.5,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ],
+                  if (d != null && d != 0) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      '${d > 0 ? '+' : ''}${d.toStringAsFixed(2)}',
+                      style: fructaFonts.numeric(
+                        color: c.delta(d),
+                        size: 11.5,
+                        weight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ],
           ),
         ),
       ),
@@ -435,10 +301,16 @@ class _FundTileState extends ConsumerState<FundTile> {
 /// (first vs last point). Self-contained so the tile has no dependency on
 /// the chart stack.
 class _TileSpark extends CustomPainter {
-  _TileSpark(this.points, {required this.up, required this.down});
+  _TileSpark(
+    this.points, {
+    required this.up,
+    required this.down,
+    required this.flat,
+  });
   final List<double> points;
   final Color up;
   final Color down;
+  final Color flat;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -458,9 +330,13 @@ class _TileSpark extends CustomPainter {
     canvas.drawPath(
       path,
       Paint()
-        ..color = (points.last >= points.first ? up : down).withValues(
-          alpha: 0.9,
-        )
+        ..color =
+            (points.last == points.first
+                    ? flat
+                    : points.last > points.first
+                    ? up
+                    : down)
+                .withValues(alpha: 0.9)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.5
         ..strokeCap = StrokeCap.round

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/i18n.dart';
 import '../../../core/theme.dart';
 import '../../../data/models/fund.dart';
 
@@ -86,7 +87,7 @@ class _Cell extends StatelessWidget {
           Text(
             fund.currentRate != null
                 ? '${fund.currentRate!.toStringAsFixed(2)}%'
-                : '\u2014',
+                : t('common.dash'),
             style: TextStyle(
               color: isTop ? c.accent : c.text,
               fontFamily: fructaFonts.mono,

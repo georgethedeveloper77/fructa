@@ -835,5 +835,15 @@
   "report.noMove": "No change",
   "report.market": "The market",
   "report.events": "{leaders} category leader changes and {auctions} T-bill auctions this week.",
-  "report.foot": "Worked out on your phone from the rates Fructa tracks and the holdings you entered. Earnings are accrued interest at today's rates, after withholding tax, not money you added."
+  "report.foot": "Worked out on your phone from the rates Fructa tracks and the holdings you entered. Earnings are accrued interest at today's rates, after withholding tax, not money you added.",
+  "markets.filter.title": "Filter",
+  "markets.filter.currency": "Currency",
+  "markets.filter.sort": "Sort by",
+  "markets.filter.allCcy": "All",
+  "markets.filter.hint.highestYield": "What you keep after withholding tax, highest first",
+  "markets.filter.hint.lowestMinimum": "Easiest to start, converted to shillings",
+  "markets.filter.hint.taxFree": "Only instruments with nothing withheld",
+  "markets.row.gross": "Gross {rate}",
+  "markets.row.min": "Min {amount}",
+  "markets.row.taxFree": "TAX-FREE"
 }

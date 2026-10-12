@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/i18n.dart';
 import '../../../core/theme.dart';
 import '../../../core/widgets/fund_logo.dart';
 import '../../../data/models/sacco.dart';
@@ -217,7 +218,7 @@ class _SaccoTileState extends ConsumerState<SaccoTile> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            '\u2014',
+            t('common.dash'),
             style: TextStyle(
               color: c.faint,
               fontFamily: fructaFonts.mono,
