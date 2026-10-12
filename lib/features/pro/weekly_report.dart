@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/format.dart';
 import '../../core/i18n.dart';
+import '../../core/rate_basis.dart';
 import '../../core/settings_prefs.dart';
 import '../../core/theme.dart';
 import '../../data/models/fund.dart';
@@ -312,7 +313,8 @@ class WeeklyReportPage extends ConsumerWidget {
                     dot: l.category.color,
                     label: t(l.category.labelKey),
                     sub: l.fund.name,
-                    value: '${l.net.toStringAsFixed(2)}%',
+                    value:
+                        '${l.shown(ref.watch(showNetProvider)).toStringAsFixed(2)}%',
                     color: c.text,
                   ),
                 _Row(

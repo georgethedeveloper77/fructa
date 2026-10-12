@@ -43,33 +43,15 @@ import 'widgets/sort_pills.dart';
 import 'widgets/stock_sector_tabs.dart';
 import 'widgets/yield_curve.dart';
 
-// Current East Africa Time (UTC+3) as "HH:MM EAT" for the LIVE header tag.
-// Refreshes whenever the page rebuilds (data change / pull-to-refresh).
-String _eatNow() {
-  final t = DateTime.now().toUtc().add(const Duration(hours: 3));
-  final hh = t.hour.toString().padLeft(2, '0');
-  final mm = t.minute.toString().padLeft(2, '0');
-  return '$hh:$mm EAT';
-}
-
-// "Updated" from the snapshot's real publish time  no more hardcoded "today".
-String _updatedLabel(DateTime? at) {
-  const src = 'CBK, CMA & industry sources';
-  if (at == null) return 'Updated recently \u00b7 $src';
+/// How long ago the snapshot was published, short form for the header.
+String _ago(DateTime? at) {
+  if (at == null) return '';
   final d = DateTime.now().difference(at);
-  final String rel;
-  if (d.inMinutes < 2) {
-    rel = 'just now';
-  } else if (d.inMinutes < 60) {
-    rel = '${d.inMinutes}m ago';
-  } else if (d.inHours < 24) {
-    rel = '${d.inHours}h ago';
-  } else if (d.inDays == 1) {
-    rel = 'yesterday';
-  } else {
-    rel = '${d.inDays}d ago';
-  }
-  return 'Updated $rel \u00b7 $src';
+  if (d.inMinutes < 2) return 'just now';
+  if (d.inMinutes < 60) return '${d.inMinutes}m ago';
+  if (d.inHours < 24) return '${d.inHours}h ago';
+  if (d.inDays == 1) return 'yesterday';
+  return '${d.inDays}d ago';
 }
 
 // Learn-persona primer: a one-time nudge atop Markets for users who chose
@@ -203,7 +185,6 @@ class MarketsPage extends ConsumerWidget {
     ref.watch(comparisonWatcherProvider); // keep leader-flip watcher alive
 
     final c = context.c;
-    final all = ref.watch(ratesProvider).value ?? const [];
     final stream = ref.watch(streamFundsProvider);
     final news = ref.watch(marketNewsProvider);
     final hasInsurers = ref
@@ -266,15 +247,6 @@ class MarketsPage extends ConsumerWidget {
             Column(
               children: [
                 const _TopBar(),
-                if (!ref.watch(marketSearchOpenProvider))
-                  DisplayHeader(
-                    title: t('nav.markets'),
-                    sub: '${all.where((f) => f.retail).length} retail funds',
-                    live: true,
-                    time: _eatNow(),
-                    updated: _updatedLabel(ref.watch(snapshotUpdatedProvider)),
-                  ),
-                Divider(height: 1, color: c.line),
                 Expanded(
                   child: RefreshIndicator(
                     color: c.accent,
@@ -292,13 +264,6 @@ class MarketsPage extends ConsumerWidget {
                           const SliverToBoxAdapter(
                             child: SavedComparisonsSection(),
                           ),
-                        // "All rates" section header (scrolls; tabs pin below)
-                        SliverToBoxAdapter(
-                          child: SectionHeader(
-                            title: t('markets.allRates'),
-                            trailing: t('markets.allRatesSub'),
-                          ),
-                        ),
                         SliverPersistentHeader(
                           pinned: true,
                           delegate: _StreamHeader(
@@ -547,7 +512,37 @@ class _TopBar extends ConsumerWidget {
                 padding: const EdgeInsets.only(right: 6),
                 // Nothing on the strip names a fund, so the tap answers the
                 // question it actually provokes: what is the market doing.
-                child: const SizedBox.shrink(),
+                // Title, freshness and sources on one line: the page opens
+                // on the list, not on a heading block.
+                child: Row(
+                  children: [
+                    Text(
+                      t('nav.markets'),
+                      style: TextStyle(
+                        color: c.text,
+                        fontSize: 26,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.8,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: c.up,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    Flexible(
+                      child: Text(
+                        _ago(ref.watch(snapshotUpdatedProvider)),
+                        style: TextStyle(color: c.muted, fontSize: 11.5),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           IconButton(
@@ -599,9 +594,8 @@ class _StreamHeader extends SliverPersistentHeaderDelegate {
   static const _base = 46.0 + 8 + 42 + 8 + 22 + 8;
   // gap + the stock sector row (38px).
   static const _ccyRow = 8.0 + 38;
-  // Funds: top pad(4) + CategoryTabs(46) + gap(8) + FundFilterBar(36) + pad(10).
-  // Currency and sort moved into the filter sheet, so the list starts higher.
-  static const _funds = 4.0 + 46 + 8 + 36 + 10;
+  // Funds: CategoryTabs(42) + gap(10) + FundFilterBar(40) + pad(8).
+  static const _funds = 42.0 + 10 + 40 + 8;
 
   double get _h {
     if (!isSacco && !isStock) return _funds;
@@ -654,9 +648,8 @@ class _StreamHeader extends SliverPersistentHeaderDelegate {
             color: c.bg,
             child: Column(
               children: [
-                const SizedBox(height: 4),
                 const CategoryTabs(),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 FundFilterBar(
                   label: label,
                   onCompare: compareMode

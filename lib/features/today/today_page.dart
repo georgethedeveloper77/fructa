@@ -6,8 +6,10 @@ import '../../app/main_scaffold.dart';
 import '../../core/analytics.dart';
 import '../../core/i18n.dart';
 import '../../core/motion/motion.dart';
+import '../../core/rate_basis.dart';
 import '../../core/theme.dart';
 import '../../core/widgets/fund_logo.dart';
+import '../../core/widgets/rate_basis_toggle.dart';
 import '../../data/models/fund.dart';
 import '../../data/models/market_event.dart';
 import '../../data/pro/pro_providers.dart';
@@ -450,7 +452,7 @@ class _LeaderTickerState extends ConsumerState<_LeaderTicker>
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    '${l.net.toStringAsFixed(2)}%',
+                    '${l.shown(ref.watch(showNetProvider)).toStringAsFixed(2)}%',
                     style: fructaFonts.numeric(
                       color: c.text,
                       size: 13,
@@ -636,7 +638,7 @@ class _HeroCard extends ConsumerWidget {
     final c = context.c;
     final f = leader.fund;
     final cfg = ref.watch(remoteConfigProvider);
-    final isNet = ref.watch(todayNetBasisProvider);
+    final isNet = ref.watch(showNetProvider);
     final brand = ref.watch(brandColorProvider(f.id)) ?? leader.category.color;
     final line = c.brandOnBg(brand);
     final delta = ref.watch(fundDeltaProvider(f.id));
@@ -785,7 +787,11 @@ class _HeroCard extends ConsumerWidget {
                           ),
                         ),
                       ),
-                      if (!f.taxFree) const _BasisToggle(),
+                      if (!f.taxFree)
+                        const Padding(
+                          padding: EdgeInsets.only(bottom: 6),
+                          child: RateBasisToggle(),
+                        ),
                     ],
                   ),
                   const SizedBox(height: 6),
@@ -865,52 +871,6 @@ class _HeroCard extends ConsumerWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-/// Net / Gross switch for the hero headline.
-class _BasisToggle extends ConsumerWidget {
-  const _BasisToggle();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final c = context.c;
-    final isNet = ref.watch(todayNetBasisProvider);
-    Widget pill(String label, bool on, bool value) => GestureDetector(
-      onTap: () => ref.read(todayNetBasisProvider.notifier).state = value,
-      child: Container(
-        constraints: const BoxConstraints(minHeight: 32),
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: on ? c.text : c.s2.withValues(alpha: 0),
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: on ? c.bg : c.muted,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
-    );
-    return Container(
-      margin: const EdgeInsets.only(bottom: 6),
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: c.s2,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          pill(t('today.net'), isNet, true),
-          pill(t('today.gross'), !isNet, false),
-        ],
       ),
     );
   }

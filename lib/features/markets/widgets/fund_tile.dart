@@ -1,22 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 
 import '../../../core/categories.dart';
 import '../../../core/i18n.dart';
 import '../../../core/motion/motion.dart';
+import '../../../core/rate_basis.dart';
 import '../../../core/theme.dart';
 import '../../../core/widgets/fund_logo.dart';
 import '../../../data/models/fund.dart';
+import '../../../data/providers.dart';
 import '../../../data/snapshot_providers.dart';
 
-/// One fund in the Markets list: a hairline row, not a card.
+/// Id of the fund row currently opened in the Markets list. One at a time, so
+/// opening a row closes the last one and the list never turns into a wall.
+final openFundRowProvider = StateProvider<String?>((_) => null);
+
+/// One fund in the Markets list.
 ///
-/// Rank sits at the left for the whole visit. The large figure is what the
-/// holder keeps (net of withholding where a deduction is still due), and the
-/// gross sits once in the line under the name, so no figure appears twice on
-/// the row. A new print for the fund glitches the figure for half a second.
-/// Funds that quote no single yield show the reason, never a made-up number.
-class FundTile extends ConsumerStatefulWidget {
+/// Closed, the row carries only rank, logo, name, one rate and its 7-day move:
+/// the rate is gross or net per the app-wide [showNetProvider]. Tapping opens
+/// the row in place to show gross, net, after inflation and the 7-day move,
+/// with the manager and minimum, and buttons to open or follow the fund. The
+/// fund page stays one tap further. In compare mode a tap selects instead.
+///
+/// The 7-day move comes from one source (the fund's rate event) and is shown
+/// on the same basis as the rate above it. No sparkline is drawn beside it,
+/// because the sparkline series and the event could disagree.
+class FundTile extends ConsumerWidget {
   const FundTile(
     this.fund, {
     super.key,
@@ -30,69 +41,39 @@ class FundTile extends ConsumerStatefulWidget {
   });
 
   final Fund fund;
+
+  /// Opens the fund page.
   final VoidCallback onTap;
   final int? rank;
   final bool selectable;
   final bool selected;
   final VoidCallback? onToggleSelect;
   final Color? brandColor;
+
+  /// Seven-day move in GROSS points, from the fund's rate event.
   final double? delta;
 
   @override
-  ConsumerState<FundTile> createState() => _FundTileState();
-}
-
-const _typeNames = {
-  'mmf': 'Money Market',
-  'fixed_income': 'Fixed Income',
-  'equity': 'Equity',
-  'balanced': 'Balanced',
-  'special': 'Special',
-};
-
-String _typeLabel(Fund f) {
-  final t = _typeNames[f.fundType];
-  if (t != null) return '$t \u00b7 ${f.currency}';
-  return categoryLabel(f.category); // legacy: tbill / bond / sacco
-}
-
-String _commas(num v) {
-  final s = v.round().toString();
-  final b = StringBuffer();
-  for (var i = 0; i < s.length; i++) {
-    if (i > 0 && (s.length - i) % 3 == 0) b.write(',');
-    b.write(s[i]);
-  }
-  return b.toString();
-}
-
-class _FundTileState extends ConsumerState<FundTile> {
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final c = context.c;
-    final f = widget.fund;
-    final wht = ref.watch(remoteConfigProvider).whtPct;
-    final logoUrl = ref.watch(logoUrlProvider(f.id));
-    // The 7-day move arrives in GROSS points. When the figure above it is net,
-    // the move is shown net too, or -0.19 sits under 9.78% as if it applied
-    // to that number.
-    final rawDelta = widget.delta;
+    final f = fund;
+    final cfg = ref.watch(remoteConfigProvider);
+    final wht = cfg.whtPct;
+    final showNet = ref.watch(showNetProvider);
+    final open = !selectable && ref.watch(openFundRowProvider) == f.id;
 
     final rate = f.currentRate;
     final hasRate = f.showsYield && rate != null;
-    // Net only where a deduction is actually still to come. A fund published
-    // net of tax has no second, smaller figure to show.
+    // Net only exists where a deduction is still to come.
     final net = hasRate && f.whtStillDue && !f.taxFree ? f.netRate(wht) : null;
-    final d = rawDelta == null
-        ? null
-        : (net != null ? rawDelta * (1 - wht / 100) : rawDelta);
+    final useNet = showNet && net != null;
 
     final headline = f.headlineWith(
       ref.watch(latestPeriodReturnProvider(f.id)),
     );
-
     final big = switch (headline) {
-      YieldHeadline(:final gross) => '${(net ?? gross).toStringAsFixed(2)}%',
+      YieldHeadline(:final gross) =>
+        '${(useNet ? net : gross).toStringAsFixed(2)}%',
       ReturnHeadline(:final pct) =>
         '${pct >= 0 ? '+' : ''}${pct.toStringAsFixed(2)}%',
       NoHeadline() => t('common.dash'),
@@ -103,253 +84,362 @@ class _FundTileState extends ConsumerState<FundTile> {
       NoHeadline() => c.faint,
     };
 
-    // Type and currency once (the old row printed the currency twice), then
-    // the gross and the minimum.
-    final type = _typeLabel(f);
-    final detail = [
-      if (net != null)
-        t('markets.row.gross', {'rate': '${rate!.toStringAsFixed(2)}%'}),
-      if (f.minInvest != null)
-        t('markets.row.min', {
-          'amount': '${f.currency} ${_commas(f.minInvest!)}',
-        }),
-    ].join(' \u00b7 ');
+    final raw = delta;
+    final d = raw == null ? null : (useNet ? raw * (1 - wht / 100) : raw);
+    String signed(double v, {int places = 2}) =>
+        '${v > 0 ? '+' : ''}${v.toStringAsFixed(places)}';
+
+    void tapRow() {
+      if (selectable) {
+        onToggleSelect?.call();
+        return;
+      }
+      ref.read(openFundRowProvider.notifier).state = open ? null : f.id;
+    }
 
     return Material(
-      color: widget.selected ? c.accentSoft : c.bg.withValues(alpha: 0),
-      child: InkWell(
-        onTap: widget.selectable ? widget.onToggleSelect : widget.onTap,
-        child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 20),
-          padding: const EdgeInsets.symmetric(vertical: 13),
-          decoration: BoxDecoration(
-            border: Border(bottom: BorderSide(color: c.line)),
-          ),
-          child: Row(
-            children: [
-              if (widget.rank != null) ...[
-                SizedBox(
-                  width: 20,
-                  child: Text(
-                    '${widget.rank}',
-                    style: fructaFonts.numeric(
-                      color: widget.rank! <= 3 ? c.accentInk : c.faint,
-                      size: 12,
-                      weight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 4),
-              ],
-              SizedBox(
-                width: 38,
-                height: 38,
-                child: Stack(
-                  clipBehavior: Clip.none,
+      color: selected
+          ? c.accentSoft
+          : open
+          ? c.s1
+          : c.bg.withValues(alpha: 0),
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: c.line)),
+        ),
+        child: Column(
+          children: [
+            InkWell(
+              onTap: tapRow,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 14, 12),
+                child: Row(
                   children: [
-                    FundLogo(
-                      domain: f.logoDomain,
-                      logoUrl: logoUrl,
-                      seed: f.manager,
-                      size: 38,
-                      brandColor: widget.brandColor,
-                    ),
-                    if (widget.selectable && widget.selected)
-                      Positioned(
-                        right: -3,
-                        top: -3,
-                        child: Container(
-                          width: 18,
-                          height: 18,
-                          decoration: BoxDecoration(
-                            color: c.accent,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: c.bg, width: 2),
+                    if (rank != null)
+                      SizedBox(
+                        width: 22,
+                        child: Text(
+                          '$rank',
+                          style: fructaFonts.numeric(
+                            color: rank! <= 3 ? c.accentInk : c.faint,
+                            size: 12,
+                            weight: FontWeight.w600,
                           ),
-                          child: Icon(Icons.check, size: 10, color: c.onAccent),
                         ),
                       ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      f.name,
-                      style: TextStyle(
-                        color: c.text,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        height: 1.3,
+                    _Logo(
+                      fund: f,
+                      brandColor: brandColor,
+                      checked: selectable && selected,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        f.name,
+                        style: TextStyle(
+                          color: c.text,
+                          fontSize: 15,
+                          height: 1.3,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 3),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 3,
-                      crossAxisAlignment: WrapCrossAlignment.center,
+                    const SizedBox(width: 10),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          type,
-                          style: TextStyle(color: c.muted, fontSize: 12),
-                        ),
-                        if (f.taxFree)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 1,
-                            ),
-                            decoration: BoxDecoration(
-                              color: c.upSoft,
-                              borderRadius: BorderRadius.circular(5),
-                            ),
+                        StretchSwap(
+                          value: useNet,
+                          alignment: Alignment.centerRight,
+                          child: Glitch(
+                            trigger: rate,
+                            a: c.accent,
+                            b: c.down,
                             child: Text(
-                              t('markets.row.taxFree'),
-                              style: TextStyle(
-                                color: c.up,
-                                fontSize: 9.5,
-                                letterSpacing: 0.3,
-                                fontWeight: FontWeight.w700,
+                              big,
+                              style: fructaFonts.numeric(
+                                color: bigColor,
+                                size: 18,
+                                weight: FontWeight.w600,
                               ),
+                            ),
+                          ),
+                        ),
+                        if (headline case ReturnHeadline(:final label))
+                          Text(
+                            label,
+                            style: TextStyle(color: c.faint, fontSize: 10.5),
+                          )
+                        else if (headline case NoHeadline(:final reason))
+                          Text(
+                            reason,
+                            style: TextStyle(color: c.faint, fontSize: 9.5),
+                          )
+                        else if (d != null && d != 0)
+                          Text(
+                            signed(d),
+                            style: fructaFonts.numeric(
+                              color: c.delta(d),
+                              size: 11.5,
+                              weight: FontWeight.w600,
                             ),
                           ),
                       ],
                     ),
-                    if (detail.isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        detail,
-                        style: TextStyle(color: c.muted, fontSize: 12),
+                    if (!selectable) ...[
+                      const SizedBox(width: 6),
+                      AnimatedRotation(
+                        turns: open ? 0.5 : 0,
+                        duration: const Duration(milliseconds: 200),
+                        child: Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          size: 20,
+                          color: c.faint,
+                        ),
                       ),
                     ],
                   ],
                 ),
               ),
-              // Rate series only: never a rate trend beside a period return.
-              if (f.showsYield && f.spark.length >= 2) ...[
-                const SizedBox(width: 10),
-                SizedBox(
-                  width: 44,
-                  height: 24,
-                  child: CustomPaint(
-                    painter: _TileSpark(
-                      f.spark,
-                      up: c.up,
-                      down: c.down,
-                      flat: c.faint,
-                    ),
-                  ),
-                ),
-              ],
-              const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Glitch(
-                    trigger: rate,
-                    a: c.accent,
-                    b: c.down,
-                    child: Text(
-                      big,
-                      style: fructaFonts.numeric(
-                        color: bigColor,
-                        size: 18,
-                        weight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  // The period stays under a return, so a quarter is never read
-                  // as a year beside a column of annual yields.
-                  if (headline case ReturnHeadline(:final label)) ...[
-                    const SizedBox(height: 3),
-                    Text(
-                      label,
-                      style: TextStyle(color: c.faint, fontSize: 10.5),
-                    ),
-                  ],
-                  if (headline case NoHeadline(:final reason)) ...[
-                    const SizedBox(height: 3),
-                    Text(
-                      reason,
-                      style: TextStyle(
-                        color: c.faint,
-                        fontSize: 9.5,
-                        letterSpacing: 0.3,
-                      ),
-                    ),
-                  ],
-                  if (d != null && d != 0) ...[
-                    const SizedBox(height: 3),
-                    Text(
-                      '${d > 0 ? '+' : ''}${d.toStringAsFixed(2)}',
-                      style: fructaFonts.numeric(
-                        color: c.delta(d),
-                        size: 11.5,
-                        weight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ],
-          ),
+            ),
+            AnimatedSize(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              alignment: Alignment.topCenter,
+              child: open
+                  ? _Details(
+                      fund: f,
+                      hasRate: hasRate,
+                      gross: rate,
+                      net: net,
+                      delta: d,
+                      deltaText: d == null || d == 0
+                          ? t('markets.row.noMove')
+                          : t('today.pts', {'v': signed(d)}),
+                      onOpen: onTap,
+                      inset: rank != null ? 22 : 0,
+                    )
+                  : const SizedBox(width: double.infinity),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-/// Minimal trailing sparkline: 1.5px polyline, coloured by overall trend
-/// (first vs last point). Self-contained so the tile has no dependency on
-/// the chart stack.
-class _TileSpark extends CustomPainter {
-  _TileSpark(
-    this.points, {
-    required this.up,
-    required this.down,
-    required this.flat,
+/// Logo with the compare check badge.
+class _Logo extends ConsumerWidget {
+  const _Logo({
+    required this.fund,
+    required this.brandColor,
+    required this.checked,
   });
-  final List<double> points;
-  final Color up;
-  final Color down;
-  final Color flat;
+
+  final Fund fund;
+  final Color? brandColor;
+  final bool checked;
 
   @override
-  void paint(Canvas canvas, Size size) {
-    if (points.length < 2) return;
-    var lo = points.first, hi = points.first;
-    for (final v in points) {
-      if (v < lo) lo = v;
-      if (v > hi) hi = v;
-    }
-    final span = (hi - lo) == 0 ? 1.0 : (hi - lo);
-    final path = Path();
-    for (var i = 0; i < points.length; i++) {
-      final x = i / (points.length - 1) * size.width;
-      final y = size.height - ((points[i] - lo) / span) * size.height;
-      i == 0 ? path.moveTo(x, y) : path.lineTo(x, y);
-    }
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color =
-            (points.last == points.first
-                    ? flat
-                    : points.last > points.first
-                    ? up
-                    : down)
-                .withValues(alpha: 0.9)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.5
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round,
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.c;
+    return SizedBox(
+      width: 36,
+      height: 36,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          FundLogo(
+            domain: fund.logoDomain,
+            logoUrl: ref.watch(logoUrlProvider(fund.id)),
+            seed: fund.manager,
+            size: 36,
+            brandColor: brandColor,
+          ),
+          if (checked)
+            Positioned(
+              right: -3,
+              top: -3,
+              child: Container(
+                width: 18,
+                height: 18,
+                decoration: BoxDecoration(
+                  color: c.accent,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: c.bg, width: 2),
+                ),
+                child: Icon(Icons.check, size: 10, color: c.onAccent),
+              ),
+            ),
+        ],
+      ),
     );
   }
+}
+
+/// What a row reveals when opened.
+class _Details extends ConsumerWidget {
+  const _Details({
+    required this.fund,
+    required this.hasRate,
+    required this.gross,
+    required this.net,
+    required this.delta,
+    required this.deltaText,
+    required this.onOpen,
+    required this.inset,
+  });
+
+  final Fund fund;
+  final bool hasRate;
+  final double? gross;
+  final double? net;
+  final double? delta;
+  final String deltaText;
+  final VoidCallback onOpen;
+  final double inset;
 
   @override
-  bool shouldRepaint(_TileSpark old) => old.points != points;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.c;
+    final f = fund;
+    final cfg = ref.watch(remoteConfigProvider);
+    final inflation = cfg.inflationFor(f.currency);
+    final real = hasRate && inflation != null
+        ? f.realRate(inflation, whtPct: cfg.whtPct)
+        : null;
+    final following = ref.watch(subscriptionsProvider).contains(f.id);
+
+    final type = categoryLabel(f.category);
+    final typeLine = [
+      if (f.fundType != null) _typeNames[f.fundType] ?? type else type,
+      f.currency,
+      f.manager,
+      if (f.minInvest != null)
+        t('markets.row.min', {
+          'amount': '${f.currency} ${_commas(f.minInvest!)}',
+        }),
+    ].where((s) => s.isNotEmpty).join(' \u00b7 ');
+
+    Widget cell(String label, String value, Color color) => Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: TextStyle(color: c.muted, fontSize: 10.5)),
+          const SizedBox(height: 3),
+          Text(
+            value,
+            style: fructaFonts.numeric(
+              color: color,
+              size: 13.5,
+              weight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20 + inset + 48, 0, 20, 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (hasRate)
+            Row(
+              children: [
+                cell(t('basis.gross'), '${gross!.toStringAsFixed(2)}%', c.text),
+                cell(
+                  f.taxFree ? t('markets.row.taxFreeShort') : t('basis.net'),
+                  '${(net ?? gross!).toStringAsFixed(2)}%',
+                  c.text,
+                ),
+                cell(
+                  t('today.afterInflation'),
+                  real == null
+                      ? t('common.dash')
+                      : '${real >= 0 ? '+' : ''}${real.toStringAsFixed(2)}%',
+                  real == null ? c.muted : c.delta(real),
+                ),
+                cell(
+                  t('markets.row.week'),
+                  deltaText,
+                  delta == null || delta == 0 ? c.muted : c.delta(delta!),
+                ),
+              ],
+            ),
+          if (hasRate) const SizedBox(height: 10),
+          Text(
+            typeLine,
+            style: TextStyle(color: c.muted, fontSize: 12, height: 1.4),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: c.accent,
+                    foregroundColor: c.onAccent,
+                    minimumSize: const Size.fromHeight(40),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: onOpen,
+                  child: Text(
+                    t('markets.row.open'),
+                    style: const TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: c.text,
+                    minimumSize: const Size.fromHeight(40),
+                    side: BorderSide(color: c.line2),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () =>
+                      ref.read(subscriptionsProvider.notifier).toggle(f.id),
+                  child: Text(
+                    t(following ? 'today.following' : 'today.follow'),
+                    style: const TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+const _typeNames = {
+  'mmf': 'Money Market',
+  'fixed_income': 'Fixed Income',
+  'equity': 'Equity',
+  'balanced': 'Balanced',
+  'special': 'Special',
+};
+
+String _commas(num v) {
+  final s = v.round().toString();
+  final b = StringBuffer();
+  for (var i = 0; i < s.length; i++) {
+    if (i > 0 && (s.length - i) % 3 == 0) b.write(',');
+    b.write(s[i]);
+  }
+  return b.toString();
 }

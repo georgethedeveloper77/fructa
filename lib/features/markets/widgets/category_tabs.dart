@@ -4,9 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme.dart';
 import '../markets_controller.dart';
 
-/// Category tabs  v5 `.cattab`: rounded-rect (r14, not fully-round), 46px
-/// touch target. Selected inverts to the text colour (near-white on dark /
-/// near-black on light), NOT the accent.
+/// Category tabs: underlined text on a hairline, 42px tall. The selected tab
+/// is bold text with an accent rule; the rest are muted. Lighter than boxed
+/// pills, so the list below starts higher and reads first.
 class CategoryTabs extends ConsumerWidget {
   const CategoryTabs({super.key});
 
@@ -16,13 +16,16 @@ class CategoryTabs extends ConsumerWidget {
     final selected = ref.watch(marketTabProvider);
     final tabs = ref.watch(visibleMarketTabsProvider);
 
-    return SizedBox(
-      height: 46,
+    return Container(
+      height: 42,
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: c.line)),
+      ),
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         itemCount: tabs.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 6),
+        separatorBuilder: (_, _) => const SizedBox(width: 20),
         itemBuilder: (context, i) {
           final tab = tabs[i];
           final on = tab == selected;
@@ -34,21 +37,24 @@ class CategoryTabs extends ConsumerWidget {
                 ref.read(marketMoneyCcyProvider.notifier).state = null;
               }
             },
+            behavior: HitTestBehavior.opaque,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 160),
               alignment: Alignment.center,
-              padding: const EdgeInsets.symmetric(horizontal: 18),
               decoration: BoxDecoration(
-                color: on ? c.text : c.s1,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: on ? c.text : c.line),
+                border: Border(
+                  bottom: BorderSide(
+                    color: on ? c.accent : c.accent.withValues(alpha: 0),
+                    width: 2,
+                  ),
+                ),
               ),
               child: Text(
                 tab.label,
                 style: TextStyle(
-                  color: on ? c.bg : c.muted,
+                  color: on ? c.text : c.muted,
                   fontSize: 14,
-                  fontWeight: on ? FontWeight.w600 : FontWeight.w500,
+                  fontWeight: on ? FontWeight.w700 : FontWeight.w500,
                 ),
               ),
             ),

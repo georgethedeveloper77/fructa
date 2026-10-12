@@ -850,5 +850,11 @@
   "portfolio.holdingOne": "1 holding",
   "portfolio.holdingMany": "{n} holdings",
   "portfolio.managerOne": "1 manager",
-  "portfolio.managerMany": "{n} managers"
+  "portfolio.managerMany": "{n} managers",
+  "basis.gross": "Gross",
+  "basis.net": "Net",
+  "markets.row.noMove": "No change",
+  "markets.row.taxFreeShort": "Tax-free",
+  "markets.row.week": "7 days",
+  "markets.row.open": "Open fund"
 }

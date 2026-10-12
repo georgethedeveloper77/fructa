@@ -3,17 +3,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/i18n.dart';
 import '../../../core/theme.dart';
+import '../../../core/widgets/rate_basis_toggle.dart';
 import '../markets_controller.dart';
 
-/// One row under the category tabs: how many funds are showing, a single
-/// filter button that summarises the active currency and sort, and Compare.
-///
-/// Replaces the stacked currency and sort pill rows. Both choices still exist;
-/// they live one tap away in [showFundFilterSheet], so the list starts higher.
+/// One row under the category tabs: the app-wide Gross | Net switch, how many
+/// funds are showing, then filter and compare as icons. Currency and sort live
+/// in [showFundFilterSheet]; the icon carries a dot while either is changed
+/// from its default, so a filtered list never passes for the whole market.
 class FundFilterBar extends ConsumerWidget {
   const FundFilterBar({super.key, required this.label, this.onCompare});
 
-  /// The count line, already worded by the caller.
+  /// The count, already worded by the caller.
   final String label;
 
   /// Enters compare mode. Null hides the button (already comparing).
@@ -22,34 +22,33 @@ class FundFilterBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.c;
-    final ccy = ref.watch(marketMoneyCcyProvider);
-    final sort = ref.watch(marketSortProvider);
-    final hasCcy = ref.watch(tabCurrenciesProvider).length > 1;
-    final summary = [
-      if (hasCcy) ccy ?? t('markets.filter.allCcy'),
-      t('markets.sort.${sort.name}'),
-    ].join(' \u00b7 ');
-
+    final filtered =
+        ref.watch(marketMoneyCcyProvider) != null ||
+        ref.watch(marketSortProvider) != MarketSort.highestYield;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 12, 0),
       child: Row(
         children: [
+          const RateBasisToggle(),
           Expanded(
             child: Text(
               label,
-              style: TextStyle(color: c.muted, fontSize: 12.5),
+              textAlign: TextAlign.right,
+              style: TextStyle(color: c.muted, fontSize: 12),
             ),
           ),
-          _BarButton(
+          const SizedBox(width: 6),
+          _IconAction(
             icon: Icons.tune_rounded,
-            label: summary,
+            tooltip: t('markets.filter.title'),
+            dot: filtered,
             onTap: () => showFundFilterSheet(context),
           ),
           if (onCompare != null) ...[
             const SizedBox(width: 6),
-            _BarButton(
+            _IconAction(
               icon: Icons.compare_arrows_rounded,
-              label: t('markets.sort.compare'),
+              tooltip: t('markets.sort.compare'),
               onTap: onCompare!,
             ),
           ],
@@ -59,43 +58,55 @@ class FundFilterBar extends ConsumerWidget {
   }
 }
 
-class _BarButton extends StatelessWidget {
-  const _BarButton({
+class _IconAction extends StatelessWidget {
+  const _IconAction({
     required this.icon,
-    required this.label,
+    required this.tooltip,
     required this.onTap,
+    this.dot = false,
   });
 
   final IconData icon;
-  final String label;
+  final String tooltip;
   final VoidCallback onTap;
+  final bool dot;
 
   @override
   Widget build(BuildContext context) {
     final c = context.c;
-    return Material(
-      color: c.s1,
-      shape: StadiumBorder(side: BorderSide(color: c.line)),
-      child: InkWell(
-        customBorder: const StadiumBorder(),
-        onTap: onTap,
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 36),
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 16, color: c.text),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  color: c.text,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: c.s1,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: c.line),
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          child: SizedBox(
+            width: 40,
+            height: 40,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Icon(icon, size: 18, color: c.text),
+                if (dot)
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Container(
+                      width: 7,
+                      height: 7,
+                      decoration: BoxDecoration(
+                        color: c.accent,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),

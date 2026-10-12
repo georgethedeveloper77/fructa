@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
 import '../../core/category_colors.dart';
+import '../../core/rate_basis.dart';
 import '../../data/models/fund.dart';
 import '../../data/models/market_event.dart';
 import '../../data/providers.dart';
@@ -61,27 +62,38 @@ extension TodayCategoryX on TodayCategory {
 
 /// The best fund in one category, ranked on what the holder keeps.
 class TodayLeader {
-  const TodayLeader(this.category, this.fund, this.net);
+  const TodayLeader(this.category, this.fund, this.net, this.gross);
 
   final TodayCategory category;
   final Fund fund;
 
   /// Net of withholding tax (gross for tax-free funds).
   final double net;
+
+  /// The advertised rate.
+  final double gross;
+
+  /// The figure on the app's chosen basis ([showNetProvider]).
+  double shown(bool showNet) => showNet ? net : gross;
 }
 
-/// One leader per category that has a quoting fund. Categories with nothing
-/// to show are absent, so the tabs and the ticker never offer an empty view.
+/// One leader per category that has a quoting fund, ranked on the basis the
+/// app is showing, so the "best rate" is best on the number printed beside it.
+/// Categories with nothing to show are absent.
 final todayLeadersProvider = Provider<List<TodayLeader>>((ref) {
   final funds = ref.watch(ratesProvider).value ?? const <Fund>[];
   final wht = ref.watch(remoteConfigProvider).whtPct;
+  final showNet = ref.watch(showNetProvider);
   final out = <TodayLeader>[];
   for (final cat in TodayCategory.values) {
     TodayLeader? best;
     for (final f in funds) {
       if (!f.showsYield || f.currentRate == null || !cat.matches(f)) continue;
       final net = f.netRate(wht) ?? f.currentRate!;
-      if (best == null || net > best.net) best = TodayLeader(cat, f, net);
+      final cand = TodayLeader(cat, f, net, f.currentRate!);
+      if (best == null || cand.shown(showNet) > best.shown(showNet)) {
+        best = cand;
+      }
     }
     if (best != null) out.add(best);
   }
@@ -90,9 +102,6 @@ final todayLeadersProvider = Provider<List<TodayLeader>>((ref) {
 
 /// The category the hero shows. Null means the first available one.
 final todayCategoryProvider = StateProvider<TodayCategory?>((_) => null);
-
-/// Whether the hero headline is net (default) or gross.
-final todayNetBasisProvider = StateProvider<bool>((_) => true);
 
 /// The leader currently in the hero.
 final todayHeroProvider = Provider<TodayLeader?>((ref) {
