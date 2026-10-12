@@ -122,7 +122,14 @@ String _today() {
 }
 
 final _tags = RegExp(r'</?b>');
-String _strip(String s) => s.replaceAll(_tags, '');
+
+/// Removes markup tags and repairs dash punctuation. Bank copy (baked or
+/// admin-edited) may carry em dashes, or the double space an earlier strip of
+/// them left behind; both become a comma so no em dash ever reaches the screen.
+String _strip(String s) => s
+    .replaceAll(_tags, '')
+    .replaceAll(RegExp(r'\s*\u2014\s*'), ', ')
+    .replaceAll(RegExp(' {2,}'), ', ');
 
 /// Build up to 4 signals for [f], using [peers] (same snapshot) for class rank.
 List<Signal> buildSignals(
@@ -171,32 +178,9 @@ List<Signal> buildSignals(
     out.add(Signal(tag, _strip(fill(list[(seed + off) % list.length]))));
   }
 
-  // Class leader. The cohort is same fund_type + same currency + retail +
-  // yielding: the SAME predicate the rank line and the peer bars already use,
-  // so the three can never tell the user three different stories.
-  //
-  // This used to cohort on the legacy `category`. Fund.fromJson coerces a null
-  // category to '', and only the legacy instruments ever carried one, so every
-  // equity / balanced / fixed-income / special fund fell into a single shared
-  // '' bucket and was ranked against funds of a different TYPE and a different
-  // CURRENCY. Money market funds survived it only by accident, because
-  // mmf_kes / mmf_usd happen to encode the currency in the category string.
-  final cls = peers
-      .where(
-        (x) =>
-            x.id != f.id &&
-            x.retail &&
-            x.fundType != null &&
-            x.fundType == f.fundType &&
-            x.currency == f.currency &&
-            x.showsYield &&
-            x.currentRate != null,
-      )
-      .toList();
-  if (r != null && f.showsYield && cls.isNotEmpty) {
-    final best = cls.map((x) => x.currentRate!).reduce((a, b) => a > b ? a : b);
-    if (r >= best) add(SignalTag.strength, 'top1', 6);
-  }
+  // No class-leader signal. The rank line directly under the headline already
+  // says "#1 of N" off the same cohort (same fund_type and currency, retail,
+  // yielding), so a 'top1' signal put the same fact on the page twice.
 
   // Minimum ticket, in the currency's own units. The old gate was hard-wired to
   // KES with KES thresholds, so a USD fund could never earn a minimum-ticket

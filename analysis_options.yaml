@@ -9,6 +9,15 @@
 # packages, and plugins designed to encourage good coding practices.
 include: package:flutter_lints/flutter.yaml
 
+# Generated and vendored code is not ours to lint. Without this, `flutter
+# analyze` also walks build/ios and build/macos SourcePackages (plugin example
+# apps with their own missing dependencies) and buries the app's real results
+# under hundreds of unrelated errors.
+analyzer:
+  exclude:
+    - build/**
+    - lib/generated/**
+
 linter:
   # The lint rules applied to this project can be customized in the
   # section below to disable rules from the `package:flutter_lints/flutter.yaml`
