@@ -279,7 +279,11 @@ class _Full extends ConsumerWidget {
                 gainKes >= 1
                     ? Row(
                         children: [
-                          Icon(Icons.trending_up_rounded, color: c.up, size: 16),
+                          Icon(
+                            Icons.trending_up_rounded,
+                            color: c.up,
+                            size: 16,
+                          ),
                           const SizedBox(width: 5),
                           Text(
                             bal('+${money('KES', gainKes.round())}'),
@@ -305,8 +309,11 @@ class _Full extends ConsumerWidget {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      Icon(Icons.error_outline_rounded,
-                          color: c.faint, size: 14),
+                      Icon(
+                        Icons.error_outline_rounded,
+                        color: c.faint,
+                        size: 14,
+                      ),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
@@ -328,12 +335,18 @@ class _Full extends ConsumerWidget {
 
         // pf run-rate - forward earning at the current blended net yield
         EarnStrip([
-          EarnCell(t('portfolio.earnDay'),
-              '+${bal(money('KES', dailyKes.round()))}'),
-          EarnCell(t('portfolio.earnMonth'),
-              '+${bal(money('KES', monthlyKes.round()))}'),
-          EarnCell(t('portfolio.earnYear'),
-              '+${bal(money('KES', yearlyKes.round()))}'),
+          EarnCell(
+            t('portfolio.earnDay'),
+            '+${bal(money('KES', dailyKes.round()))}',
+          ),
+          EarnCell(
+            t('portfolio.earnMonth'),
+            '+${bal(money('KES', monthlyKes.round()))}',
+          ),
+          EarnCell(
+            t('portfolio.earnYear'),
+            '+${bal(money('KES', yearlyKes.round()))}',
+          ),
         ]),
 
         // ── Which currency the book sits in ───────────────────────────
@@ -379,8 +392,9 @@ class _Full extends ConsumerWidget {
         ],
 
         SectionHeader(
-            title: t('portfolio.holdings'),
-            trailing: t('portfolio.holdingsTrailing')),
+          title: t('portfolio.holdings'),
+          trailing: t('portfolio.holdingsTrailing'),
+        ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 2, 16, 0),
           child: _HoldingsCard(
@@ -541,11 +555,7 @@ class _AllocationCard extends StatelessWidget {
               children: [
                 CustomPaint(
                   size: const Size.square(96),
-                  painter: _DonutPainter(
-                    segs: segs,
-                    stroke: 15,
-                    track: c.line,
-                  ),
+                  painter: _DonutPainter(segs: segs, stroke: 15, track: c.line),
                 ),
                 Column(
                   mainAxisSize: MainAxisSize.min,
@@ -699,7 +709,13 @@ class _DonutPainter extends CustomPainter {
       final full = frac * 2 * math.pi;
       final sweep = full - gap;
       if (sweep > 0) {
-        canvas.drawArc(rect, start + gap / 2, sweep, false, ring..color = s.color);
+        canvas.drawArc(
+          rect,
+          start + gap / 2,
+          sweep,
+          false,
+          ring..color = s.color,
+        );
       }
       start += full;
     }

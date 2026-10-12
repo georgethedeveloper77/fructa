@@ -122,9 +122,9 @@ class YieldCurve extends ConsumerWidget {
     final asOf = cfg.benchmark('benchmark.tbill_91')?.asOf;
 
     return InkWell(
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const MarketYieldCurvePage()),
-      ),
+      onTap: () => Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const MarketYieldCurvePage())),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 30, 20, 8),
         child: Column(

@@ -234,11 +234,10 @@ List<String> _currenciesIn(List<Fund> funds, MarketTab tab) {
     if (ccy.isNotEmpty) set.add(ccy);
   }
   int rank(String c) => c == 'KES' ? 0 : (c == 'USD' ? 1 : 2);
-  return set.toList()
-    ..sort((a, b) {
-      final r = rank(a).compareTo(rank(b));
-      return r != 0 ? r : a.compareTo(b);
-    });
+  return set.toList()..sort((a, b) {
+    final r = rank(a).compareTo(rank(b));
+    return r != 0 ? r : a.compareTo(b);
+  });
 }
 
 /// Currencies available in the tab currently selected. Drives the sub-filter
@@ -255,6 +254,7 @@ final tabCurrenciesProvider = Provider<List<String>>((ref) {
 final moneyMarketCurrenciesProvider = tabCurrenciesProvider;
 
 double _rate(Fund f) => f.currentRate ?? double.negativeInfinity;
+
 /// Minimum investment, CONVERTED TO A COMMON CURRENCY.
 ///
 /// The raw column is a bare number whose unit lives in a neighbouring field, so

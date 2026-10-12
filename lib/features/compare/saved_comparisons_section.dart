@@ -24,12 +24,15 @@ class SavedComparisonsSection extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(t('compare.savedTitle').toUpperCase(),
-              style: TextStyle(
-                  color: c.faint,
-                  fontSize: 11,
-                  letterSpacing: 0.8,
-                  fontWeight: FontWeight.w600)),
+          Text(
+            t('compare.savedTitle').toUpperCase(),
+            style: TextStyle(
+              color: c.faint,
+              fontSize: 11,
+              letterSpacing: 0.8,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const SizedBox(height: 8),
           for (final s in saved)
             Padding(
@@ -47,7 +50,8 @@ class SavedComparisonsSection extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(14),
                         onTap: () => Navigator.of(context).push(
                           MaterialPageRoute(
-                              builder: (_) => CompareOverlay(s.fundIds)),
+                            builder: (_) => CompareOverlay(s.fundIds),
+                          ),
                         ),
                         child: Padding(
                           padding: const EdgeInsets.all(14),

@@ -63,8 +63,18 @@ class _SaccoPageState extends ConsumerState<SaccoPage> {
   String _pct(double v) => '${v.toStringAsFixed(2)}%';
 
   static const _months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
 
   /// The licence has an expiry and the badge says so, because "SASRA licensed"
@@ -120,9 +130,9 @@ class _SaccoPageState extends ConsumerState<SaccoPage> {
         actions: [
           IconButton(
             tooltip: t('nav.alerts'),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const AlertsPage()),
-            ),
+            onPressed: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const AlertsPage())),
             icon: Icon(Icons.notifications_none, color: c.muted),
           ),
           // FOLLOW STAR GOES HERE, and is deliberately absent until push.dart
@@ -906,9 +916,15 @@ class _SaccoPageState extends ConsumerState<SaccoPage> {
   Widget _institution(BuildContext context, Sacco s) {
     final rows = <(String, String)>[
       if (s.totalAssetsKes != null)
-        ('Total assets', 'KES ${(s.totalAssetsKes! / 1e9).toStringAsFixed(1)}B'),
+        (
+          'Total assets',
+          'KES ${(s.totalAssetsKes! / 1e9).toStringAsFixed(1)}B',
+        ),
       if (s.depositsKes != null)
-        ('Member deposits', 'KES ${(s.depositsKes! / 1e9).toStringAsFixed(1)}B'),
+        (
+          'Member deposits',
+          'KES ${(s.depositsKes! / 1e9).toStringAsFixed(1)}B',
+        ),
       if (s.members != null) ('Members', _commas(s.members!)),
       if (s.branches != null) ('Branches', '${s.branches}'),
       if (s.registeredYear != null) ('Registered', '${s.registeredYear}'),
@@ -954,10 +970,7 @@ class _SaccoPageState extends ConsumerState<SaccoPage> {
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _sectionTitle(context, 'Joining'),
-        _rowCard(context, rows),
-      ],
+      children: [_sectionTitle(context, 'Joining'), _rowCard(context, rows)],
     );
   }
 
@@ -1205,9 +1218,7 @@ class _SaccoPageState extends ConsumerState<SaccoPage> {
               width: double.infinity,
               child: FilledButton(
                 onPressed: () {
-                  final v = double.tryParse(
-                    ctrl.text.replaceAll(',', ''),
-                  );
+                  final v = double.tryParse(ctrl.text.replaceAll(',', ''));
                   if (v == null || v < 0) return;
                   Navigator.of(sheetCtx).pop(v);
                 },
@@ -1332,10 +1343,7 @@ class _SaccoPageState extends ConsumerState<SaccoPage> {
             ),
           ),
           if (caption != null)
-            Text(
-              caption,
-              style: TextStyle(color: c.faint, fontSize: 10.5),
-            ),
+            Text(caption, style: TextStyle(color: c.faint, fontSize: 10.5)),
         ],
       ),
     );

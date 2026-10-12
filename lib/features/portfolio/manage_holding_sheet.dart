@@ -63,8 +63,10 @@ class _ManageSheetState extends ConsumerState<_ManageSheet> {
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: c.s1,
-        title: Text(t('portfolio.manage.removeTitle'),
-            style: TextStyle(color: c.text)),
+        title: Text(
+          t('portfolio.manage.removeTitle'),
+          style: TextStyle(color: c.text),
+        ),
         content: Text(
           t('portfolio.manage.removeBody', {
             'name': widget.fund?.name ?? widget.holding.fundId,
@@ -181,8 +183,7 @@ class _ManageSheetState extends ConsumerState<_ManageSheet> {
           ),
           const SizedBox(height: 6),
           Text(
-            t('portfolio.manage.was',
-                {'amt': money(h.currency, h.balance)}),
+            t('portfolio.manage.was', {'amt': money(h.currency, h.balance)}),
             style: TextStyle(color: c.faint, fontSize: 11),
           ),
           const SizedBox(height: 20),

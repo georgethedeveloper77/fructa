@@ -14,10 +14,10 @@ class LearnContent {
   bool get isEmpty => units.isEmpty;
 
   factory LearnContent.fromJson(Map<String, dynamic> j) => LearnContent(
-        ((j['units'] as List?) ?? const [])
-            .map((u) => LearnUnit.fromJson((u as Map).cast<String, dynamic>()))
-            .toList(),
-      );
+    ((j['units'] as List?) ?? const [])
+        .map((u) => LearnUnit.fromJson((u as Map).cast<String, dynamic>()))
+        .toList(),
+  );
 }
 
 class LearnUnit {
@@ -38,16 +38,15 @@ class LearnUnit {
   });
 
   factory LearnUnit.fromJson(Map<String, dynamic> j) => LearnUnit(
-        id: j['id'] as String,
-        title: j['title'] as String,
-        subtitle: j['subtitle'] as String?,
-        accent: j['accent'] as String?,
-        unlockAfter: j['unlock_after'] as String?,
-        lessons: ((j['lessons'] as List?) ?? const [])
-            .map((l) =>
-                LearnLesson.fromJson((l as Map).cast<String, dynamic>()))
-            .toList(),
-      );
+    id: j['id'] as String,
+    title: j['title'] as String,
+    subtitle: j['subtitle'] as String?,
+    accent: j['accent'] as String?,
+    unlockAfter: j['unlock_after'] as String?,
+    lessons: ((j['lessons'] as List?) ?? const [])
+        .map((l) => LearnLesson.fromJson((l as Map).cast<String, dynamic>()))
+        .toList(),
+  );
 }
 
 class LearnLesson {
@@ -66,14 +65,14 @@ class LearnLesson {
   });
 
   factory LearnLesson.fromJson(Map<String, dynamic> j) => LearnLesson(
-        id: j['id'] as String,
-        title: j['title'] as String,
-        xp: (j['xp'] as num?)?.toInt() ?? 20,
-        fundId: j['fund_id'] as String?,
-        steps: ((j['steps'] as List?) ?? const [])
-            .map((s) => LearnStep.fromJson((s as Map).cast<String, dynamic>()))
-            .toList(),
-      );
+    id: j['id'] as String,
+    title: j['title'] as String,
+    xp: (j['xp'] as num?)?.toInt() ?? 20,
+    fundId: j['fund_id'] as String?,
+    steps: ((j['steps'] as List?) ?? const [])
+        .map((s) => LearnStep.fromJson((s as Map).cast<String, dynamic>()))
+        .toList(),
+  );
 }
 
 class LearnOption {
@@ -90,20 +89,24 @@ class LearnStep {
   final LearnStepKind kind;
   final Map<String, dynamic> payload;
 
-  const LearnStep({required this.id, required this.kind, required this.payload});
+  const LearnStep({
+    required this.id,
+    required this.kind,
+    required this.payload,
+  });
 
   factory LearnStep.fromJson(Map<String, dynamic> j) => LearnStep(
-        id: (j['id'] as String?) ?? '',
-        kind: switch (j['kind']) {
-          'explainer' => LearnStepKind.explainer,
-          'interactive' => LearnStepKind.interactive,
-          'quiz' => LearnStepKind.quiz,
-          'image' => LearnStepKind.image,
-          'chart' => LearnStepKind.chart,
-          _ => LearnStepKind.unknown,
-        },
-        payload: ((j['payload'] as Map?) ?? const {}).cast<String, dynamic>(),
-      );
+    id: (j['id'] as String?) ?? '',
+    kind: switch (j['kind']) {
+      'explainer' => LearnStepKind.explainer,
+      'interactive' => LearnStepKind.interactive,
+      'quiz' => LearnStepKind.quiz,
+      'image' => LearnStepKind.image,
+      'chart' => LearnStepKind.chart,
+      _ => LearnStepKind.unknown,
+    },
+    payload: ((j['payload'] as Map?) ?? const {}).cast<String, dynamic>(),
+  );
 
   // Shared
   String? get title => payload['title'] as String?;

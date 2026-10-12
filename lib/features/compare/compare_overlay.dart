@@ -42,8 +42,7 @@ class _CompareOverlayState extends ConsumerState<CompareOverlay> {
     final c = context.c;
     final byId = ref.watch(fundsByIdProvider);
     final whtPct = ref.watch(remoteConfigProvider).whtPct;
-    final funds =
-        fundIds.map((id) => byId[id]).whereType<Fund>().toList();
+    final funds = fundIds.map((id) => byId[id]).whereType<Fund>().toList();
 
     final histories = <String, List<RateHistory>>{};
     for (final id in fundIds) {
@@ -61,18 +60,17 @@ class _CompareOverlayState extends ConsumerState<CompareOverlay> {
         actions: [
           TextButton.icon(
             onPressed: () async {
-              await ref
-                  .read(savedComparisonsProvider.notifier)
-                  .save(fundIds);
+              await ref.read(savedComparisonsProvider.notifier).save(fundIds);
               if (!context.mounted) return;
               ScaffoldMessenger.of(context)
                 ..hideCurrentSnackBar()
-                ..showSnackBar(
-                    SnackBar(content: Text(t('compare.saveDone'))));
+                ..showSnackBar(SnackBar(content: Text(t('compare.saveDone'))));
             },
             icon: Icon(Icons.star_border, color: c.accent),
-            label: Text(t('compare.saveSet'),
-                style: TextStyle(color: c.accent)),
+            label: Text(
+              t('compare.saveSet'),
+              style: TextStyle(color: c.accent),
+            ),
           ),
         ],
       ),
@@ -87,14 +85,13 @@ class _CompareOverlayState extends ConsumerState<CompareOverlay> {
               range: _range,
             ),
           ),
-          RangeBar(
-            value: _range,
-            onChanged: (r) => setState(() => _range = r),
-          ),
+          RangeBar(value: _range, onChanged: (r) => setState(() => _range = r)),
           const SizedBox(height: 4),
           Center(
-            child: Text(t('compare.chartCaption'),
-                style: TextStyle(color: c.faint, fontSize: 11)),
+            child: Text(
+              t('compare.chartCaption'),
+              style: TextStyle(color: c.faint, fontSize: 11),
+            ),
           ),
           const SizedBox(height: 16),
           _Matrix(funds: funds, whtPct: whtPct),
@@ -139,21 +136,26 @@ class _Matrix extends StatelessWidget {
     final minWin = minBy((f) => f.minInvest);
     final feeWin = minBy((f) => f.mgmtFee);
 
-    Widget row(String label, String Function(Fund) cell, String? winId,
-        {bool divider = true}) {
+    Widget row(
+      String label,
+      String Function(Fund) cell,
+      String? winId, {
+      bool divider = true,
+    }) {
       return Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          border:
-              divider ? Border(bottom: BorderSide(color: c.line)) : null,
+          border: divider ? Border(bottom: BorderSide(color: c.line)) : null,
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(
               width: 84,
-              child: Text(label,
-                  style: TextStyle(color: c.faint, fontSize: 12)),
+              child: Text(
+                label,
+                style: TextStyle(color: c.faint, fontSize: 12),
+              ),
             ),
             for (final f in funds)
               Expanded(
@@ -162,8 +164,9 @@ class _Matrix extends StatelessWidget {
                   style: TextStyle(
                     color: f.id == winId ? c.up : c.text,
                     fontSize: 13,
-                    fontWeight:
-                        f.id == winId ? FontWeight.w700 : FontWeight.w500,
+                    fontWeight: f.id == winId
+                        ? FontWeight.w700
+                        : FontWeight.w500,
                   ),
                 ),
               ),
@@ -190,15 +193,19 @@ class _Matrix extends StatelessWidget {
                         height: 8,
                         margin: const EdgeInsets.only(right: 5),
                         decoration: BoxDecoration(
-                            color: seriesColor(i),
-                            shape: BoxShape.circle),
+                          color: seriesColor(i),
+                          shape: BoxShape.circle,
+                        ),
                       ),
                       Expanded(
-                        child: Text(funds[i].name.split(' ').first,
-                            style: TextStyle(
-                                color: c.text,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600)),
+                        child: Text(
+                          funds[i].name.split(' ').first,
+                          style: TextStyle(
+                            color: c.text,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -206,27 +213,35 @@ class _Matrix extends StatelessWidget {
             ],
           ),
           Divider(color: c.line, height: 20),
-          row(t('compare.gross'),
-              (f) => f.currentRate != null
-                  ? '${f.currentRate!.toStringAsFixed(2)}%'
-                  : t('common.dash'),
-              grossWin),
-          row(t('compare.net'),
-              (f) => f.currentRate != null
-                  ? '${_net(f, whtPct).toStringAsFixed(2)}%'
-                  : t('common.dash'),
-              netWin),
-          row(t('compare.minimum'),
-              (f) => f.minInvest != null
-                  ? withCommas(f.minInvest!)
-                  : t('common.dash'),
-              minWin),
-          row(t('compare.fee'),
-              (f) => f.mgmtFee != null
-                  ? '${f.mgmtFee!.toStringAsFixed(2)}%'
-                  : t('common.dash'),
-              feeWin,
-              divider: false),
+          row(
+            t('compare.gross'),
+            (f) => f.currentRate != null
+                ? '${f.currentRate!.toStringAsFixed(2)}%'
+                : t('common.dash'),
+            grossWin,
+          ),
+          row(
+            t('compare.net'),
+            (f) => f.currentRate != null
+                ? '${_net(f, whtPct).toStringAsFixed(2)}%'
+                : t('common.dash'),
+            netWin,
+          ),
+          row(
+            t('compare.minimum'),
+            (f) => f.minInvest != null
+                ? withCommas(f.minInvest!)
+                : t('common.dash'),
+            minWin,
+          ),
+          row(
+            t('compare.fee'),
+            (f) => f.mgmtFee != null
+                ? '${f.mgmtFee!.toStringAsFixed(2)}%'
+                : t('common.dash'),
+            feeWin,
+            divider: false,
+          ),
         ],
       ),
     );
@@ -235,8 +250,11 @@ class _Matrix extends StatelessWidget {
 
 // ── Multi-line overlay chart (last 12 months) ──────────────────────────────
 class _Overlay extends StatelessWidget {
-  const _Overlay(
-      {required this.fundIds, required this.histories, required this.range});
+  const _Overlay({
+    required this.fundIds,
+    required this.histories,
+    required this.range,
+  });
   final List<String> fundIds;
   final Map<String, List<RateHistory>> histories;
   final ChartRange range;
@@ -247,18 +265,21 @@ class _Overlay extends StatelessWidget {
     final cutoff = DateTime.now().subtract(Duration(days: range.days));
     final perFund = <String, List<RateHistory>>{};
     for (final id in fundIds) {
-      final pts = (histories[id] ?? const <RateHistory>[])
-          .where((p) => !DateTime.parse(p.asOf).isBefore(cutoff))
-          .toList()
-        ..sort((a, b) => a.asOf.compareTo(b.asOf));
+      final pts =
+          (histories[id] ?? const <RateHistory>[])
+              .where((p) => !DateTime.parse(p.asOf).isBefore(cutoff))
+              .toList()
+            ..sort((a, b) => a.asOf.compareTo(b.asOf));
       if (pts.length >= 2) perFund[id] = pts;
     }
 
     if (perFund.isEmpty) {
       return Center(
-        child: Text(t('compare.buildingHistory'),
-            textAlign: TextAlign.center,
-            style: TextStyle(color: c.muted, fontSize: 13)),
+        child: Text(
+          t('compare.buildingHistory'),
+          textAlign: TextAlign.center,
+          style: TextStyle(color: c.muted, fontSize: 13),
+        ),
       );
     }
 
@@ -281,44 +302,55 @@ class _Overlay extends StatelessWidget {
         hi = hi == null ? p.rate : (p.rate > hi! ? p.rate : hi);
         return FlSpot(x, p.rate);
       }).toList();
-      bars.add(LineChartBarData(
-        spots: spots,
-        isCurved: true,
-        color: color,
-        barWidth: 2,
-        dotData: const FlDotData(show: false),
-      ));
+      bars.add(
+        LineChartBarData(
+          spots: spots,
+          isCurved: true,
+          color: color,
+          barWidth: 2,
+          dotData: const FlDotData(show: false),
+        ),
+      );
     });
 
     final pad = ((hi! - lo!) * 0.2).clamp(0.3, 5.0);
-    return LineChart(LineChartData(
-      minX: 0,
-      maxX: maxD!.difference(minD!).inDays.toDouble(),
-      minY: (lo! - pad).clamp(0.0, double.infinity),
-      maxY: hi! + pad,
-      gridData: FlGridData(
-        show: true,
-        drawVerticalLine: false,
-        getDrawingHorizontalLine: (_) => FlLine(color: c.line, strokeWidth: 1),
-      ),
-      borderData: FlBorderData(show: false),
-      titlesData: FlTitlesData(
-        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        rightTitles:
-            const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        bottomTitles:
-            const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        leftTitles: AxisTitles(
-          sideTitles: SideTitles(
-            showTitles: true,
-            reservedSize: 34,
-            getTitlesWidget: (v, _) => Text('${v.toStringAsFixed(0)}%',
-                style: TextStyle(color: c.faint, fontSize: 10)),
+    return LineChart(
+      LineChartData(
+        minX: 0,
+        maxX: maxD!.difference(minD!).inDays.toDouble(),
+        minY: (lo! - pad).clamp(0.0, double.infinity),
+        maxY: hi! + pad,
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+          getDrawingHorizontalLine: (_) =>
+              FlLine(color: c.line, strokeWidth: 1),
+        ),
+        borderData: FlBorderData(show: false),
+        titlesData: FlTitlesData(
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          bottomTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 34,
+              getTitlesWidget: (v, _) => Text(
+                '${v.toStringAsFixed(0)}%',
+                style: TextStyle(color: c.faint, fontSize: 10),
+              ),
+            ),
           ),
         ),
+        lineTouchData: const LineTouchData(enabled: false),
+        lineBarsData: bars,
       ),
-      lineTouchData: const LineTouchData(enabled: false),
-      lineBarsData: bars,
-    ));
+    );
   }
 }

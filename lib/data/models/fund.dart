@@ -424,8 +424,7 @@ class Fund {
   bool get canProject => showsYield;
 
   /// Whether withholding tax is still owed on the headline, per [netOf].
-  bool get whtStillDue =>
-      !taxFree && (netOf ?? NetOf.fees).whtStillDue;
+  bool get whtStillDue => !taxFree && (netOf ?? NetOf.fees).whtStillDue;
 
   double? get grossRate => currentRate;
 
@@ -526,8 +525,18 @@ class Fund {
     final d = iso == null ? null : DateTime.tryParse(iso);
     if (d == null) return p.label;
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return switch (p) {
       ReturnPeriod.quarter => 'Q${((d.month - 1) ~/ 3) + 1} ${d.year}',

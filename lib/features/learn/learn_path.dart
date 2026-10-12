@@ -86,14 +86,14 @@ class LearnPath {
   /// renders before the completion is written, so asking the live path for
   /// "what is next" there returns the lesson the learner has just finished.
   LearnPath assumingDone(String lessonId) => LearnPath(
-        content,
-        LearnProgress(
-          completed: {...progress.completed, lessonId},
-          xp: progress.xp,
-          streak: progress.streak,
-          lastDay: progress.lastDay,
-          best: progress.best,
-          activeDays: progress.activeDays,
-        ),
-      );
+    content,
+    LearnProgress(
+      completed: {...progress.completed, lessonId},
+      xp: progress.xp,
+      streak: progress.streak,
+      lastDay: progress.lastDay,
+      best: progress.best,
+      activeDays: progress.activeDays,
+    ),
+  );
 }

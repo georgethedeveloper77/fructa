@@ -25,11 +25,7 @@ import '../core/theme.dart';
 ///
 /// A tap still skips.
 class RealSplash extends StatefulWidget {
-  const RealSplash({
-    super.key,
-    required this.onDone,
-    this.dataReady = false,
-  });
+  const RealSplash({super.key, required this.onDone, this.dataReady = false});
 
   final VoidCallback onDone;
 
@@ -59,10 +55,8 @@ class _RealSplashState extends State<RealSplash>
     super.initState();
     // Matched to minHold so the animation completes exactly as the earliest
     // possible hand-off becomes available. Nothing is ever cut short.
-    _c = AnimationController(
-      vsync: this,
-      duration: RealSplash.minHold,
-    )..forward();
+    _c = AnimationController(vsync: this, duration: RealSplash.minHold)
+      ..forward();
 
     _min = Timer(RealSplash.minHold, () {
       _minElapsed = true;

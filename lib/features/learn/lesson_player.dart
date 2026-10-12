@@ -118,7 +118,9 @@ class _LessonPlayerState extends ConsumerState<LessonPlayer> {
     final progress = ((_i + 1) / total).clamp(0.0, 1.0);
     final step = _isWin ? null : _steps[_i];
     final quizPending =
-        step != null && step.kind == LearnStepKind.quiz && !_answered.contains(_i);
+        step != null &&
+        step.kind == LearnStepKind.quiz &&
+        !_answered.contains(_i);
 
     return Scaffold(
       backgroundColor: c.bg,
@@ -128,35 +130,41 @@ class _LessonPlayerState extends ConsumerState<LessonPlayer> {
             // Close + progress
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 12, 18, 8),
-              child: Row(children: [
-                InkWell(
-                  onTap: () => Navigator.of(context).pop(),
-                  borderRadius: BorderRadius.circular(10),
-                  child: Container(
-                    width: 36,
-                    height: 36,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: c.s2,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: c.line2),
-                    ),
-                    child: Icon(Icons.close_rounded, color: c.muted, size: 20),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: progress,
-                      minHeight: 8,
-                      backgroundColor: c.s3,
-                      valueColor: AlwaysStoppedAnimation(c.accent),
+              child: Row(
+                children: [
+                  InkWell(
+                    onTap: () => Navigator.of(context).pop(),
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: c.s2,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: c.line2),
+                      ),
+                      child: Icon(
+                        Icons.close_rounded,
+                        color: c.muted,
+                        size: 20,
+                      ),
                     ),
                   ),
-                ),
-              ]),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: progress,
+                        minHeight: 8,
+                        backgroundColor: c.s3,
+                        valueColor: AlwaysStoppedAnimation(c.accent),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
             Expanded(
               child: _isWin
@@ -201,11 +209,16 @@ class _LessonPlayerState extends ConsumerState<LessonPlayer> {
                       disabledForegroundColor: c.faint,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15)),
+                        borderRadius: BorderRadius.circular(15),
+                      ),
                       textStyle: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w600),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                    child: Text(_i == _steps.length - 1 ? 'Finish' : 'Continue'),
+                    child: Text(
+                      _i == _steps.length - 1 ? 'Finish' : 'Continue',
+                    ),
                   ),
                 ),
               ),
@@ -240,8 +253,9 @@ class _StepView extends StatelessWidget {
         return _QuizView(step: step, onAnswered: onAnswered);
       case LearnStepKind.image:
         return _NetImage(
-            url: step.payload['url'] as String?,
-            caption: step.payload['caption'] as String?);
+          url: step.payload['url'] as String?,
+          caption: step.payload['caption'] as String?,
+        );
       case LearnStepKind.chart:
         return _ChartView(spec: step.payload);
       case LearnStepKind.unknown:
@@ -271,24 +285,33 @@ class _LiveBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: c.line2),
       ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Container(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
             width: 7,
             height: 7,
-            decoration: BoxDecoration(color: c.up, shape: BoxShape.circle)),
-        const SizedBox(width: 8),
-        Text(fund.name,
-            style: TextStyle(
-                color: c.accent,
-                fontFamily: fructaFonts.mono,
-                fontSize: 13,
-                fontWeight: FontWeight.w700)),
-        if (rate != null) ...[
+            decoration: BoxDecoration(color: c.up, shape: BoxShape.circle),
+          ),
           const SizedBox(width: 8),
-          Text('${rate.toStringAsFixed(2)}% \u00b7 live',
-              style: TextStyle(color: c.muted, fontSize: 12)),
+          Text(
+            fund.name,
+            style: TextStyle(
+              color: c.accent,
+              fontFamily: fructaFonts.mono,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          if (rate != null) ...[
+            const SizedBox(width: 8),
+            Text(
+              '${rate.toStringAsFixed(2)}% \u00b7 live',
+              style: TextStyle(color: c.muted, fontSize: 12),
+            ),
+          ],
         ],
-      ]),
+      ),
     );
   }
 }
@@ -305,17 +328,19 @@ class _Explainer extends StatelessWidget {
       children: [
         if (fund != null) _LiveBadge(fund!),
         if (step.title != null)
-          Text(step.title!,
-              style: TextStyle(
-                  color: c.text,
-                  fontFamily: fructaFonts.mono,
-                  fontSize: 23,
-                  height: 1.2,
-                  fontWeight: FontWeight.w700)),
+          Text(
+            step.title!,
+            style: TextStyle(
+              color: c.text,
+              fontFamily: fructaFonts.mono,
+              fontSize: 23,
+              height: 1.2,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         const SizedBox(height: 12),
         for (final p in _paragraphs(step.body)) ...[
-          Text(p,
-              style: TextStyle(color: c.muted, fontSize: 15, height: 1.6)),
+          Text(p, style: TextStyle(color: c.muted, fontSize: 15, height: 1.6)),
           const SizedBox(height: 12),
         ],
         if (step.note != null)
@@ -326,8 +351,10 @@ class _Explainer extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               border: Border(left: BorderSide(color: c.accent, width: 3)),
             ),
-            child: Text(step.note!,
-                style: TextStyle(color: c.muted, fontSize: 13, height: 1.55)),
+            child: Text(
+              step.note!,
+              style: TextStyle(color: c.muted, fontSize: 13, height: 1.55),
+            ),
           ),
         _Media(payload: step.payload),
       ],
@@ -360,18 +387,23 @@ class _InteractiveState extends State<_Interactive> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (widget.step.title != null)
-          Text(widget.step.title!,
-              style: TextStyle(
-                  color: c.text,
-                  fontFamily: fructaFonts.mono,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700)),
+          Text(
+            widget.step.title!,
+            style: TextStyle(
+              color: c.text,
+              fontFamily: fructaFonts.mono,
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         const SizedBox(height: 8),
         for (final p in _paragraphs(widget.step.body))
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
-            child: Text(p,
-                style: TextStyle(color: c.muted, fontSize: 14.5, height: 1.55)),
+            child: Text(
+              p,
+              style: TextStyle(color: c.muted, fontSize: 14.5, height: 1.55),
+            ),
           ),
         const SizedBox(height: 8),
         Container(
@@ -388,26 +420,42 @@ class _InteractiveState extends State<_Interactive> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(money('KES', kept),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        money('KES', kept),
                         style: TextStyle(
-                            color: c.up,
-                            fontFamily: fructaFonts.mono,
-                            fontSize: 28,
-                            fontWeight: FontWeight.w700)),
-                    Text(t('lesson.keptAfterTax'),
-                        style: TextStyle(color: c.faint, fontSize: 11.5)),
-                  ]),
-                  Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                    Text(money('KES', _amt),
+                          color: c.up,
+                          fontFamily: fructaFonts.mono,
+                          fontSize: 28,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Text(
+                        t('lesson.keptAfterTax'),
+                        style: TextStyle(color: c.faint, fontSize: 11.5),
+                      ),
+                    ],
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        money('KES', _amt),
                         style: TextStyle(
-                            color: c.text,
-                            fontFamily: fructaFonts.mono,
-                            fontSize: 17,
-                            fontWeight: FontWeight.w700)),
-                    Text(t('lesson.youPutIn'),
-                        style: TextStyle(color: c.faint, fontSize: 11.5)),
-                  ]),
+                          color: c.text,
+                          fontFamily: fructaFonts.mono,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Text(
+                        t('lesson.youPutIn'),
+                        style: TextStyle(color: c.faint, fontSize: 11.5),
+                      ),
+                    ],
+                  ),
                 ],
               ),
               Slider(
@@ -445,20 +493,26 @@ class _QuizViewState extends State<_QuizView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(t('lesson.quickCheck'),
-            style: TextStyle(
-                color: c.faint,
-                fontSize: 10.5,
-                letterSpacing: 1,
-                fontWeight: FontWeight.w700)),
+        Text(
+          t('lesson.quickCheck'),
+          style: TextStyle(
+            color: c.faint,
+            fontSize: 10.5,
+            letterSpacing: 1,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
         const SizedBox(height: 8),
         if (widget.step.prompt != null)
-          Text(widget.step.prompt!,
-              style: TextStyle(
-                  color: c.text,
-                  fontSize: 19,
-                  height: 1.25,
-                  fontWeight: FontWeight.w700)),
+          Text(
+            widget.step.prompt!,
+            style: TextStyle(
+              color: c.text,
+              fontSize: 19,
+              height: 1.25,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         const SizedBox(height: 16),
         for (var i = 0; i < opts.length; i++)
           _Option(
@@ -466,8 +520,8 @@ class _QuizViewState extends State<_QuizView> {
             state: !answered
                 ? _OptState.idle
                 : (opts[i].correct
-                    ? _OptState.correct
-                    : (i == _picked ? _OptState.wrong : _OptState.idle)),
+                      ? _OptState.correct
+                      : (i == _picked ? _OptState.wrong : _OptState.idle)),
             onTap: answered
                 ? null
                 : () {
@@ -483,15 +537,17 @@ class _QuizViewState extends State<_QuizView> {
               color: (correct ? c.up : c.down).withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                  color: (correct ? c.up : c.down).withValues(alpha: 0.35)),
+                color: (correct ? c.up : c.down).withValues(alpha: 0.35),
+              ),
             ),
             child: Text(
               (correct ? widget.step.explainOk : widget.step.explainNo) ??
                   (correct ? 'Correct.' : 'Not quite.'),
               style: TextStyle(
-                  color: correct ? c.up : c.down,
-                  fontSize: 13,
-                  height: 1.5),
+                color: correct ? c.up : c.down,
+                fontSize: 13,
+                height: 1.5,
+              ),
             ),
           ),
         ],
@@ -512,8 +568,18 @@ class _Option extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.c;
     final (border, fill, dotColor, dotIcon) = switch (state) {
-      _OptState.correct => (c.up, c.up.withValues(alpha: 0.10), c.up, Icons.check_rounded),
-      _OptState.wrong => (c.down, c.down.withValues(alpha: 0.10), c.down, Icons.close_rounded),
+      _OptState.correct => (
+        c.up,
+        c.up.withValues(alpha: 0.10),
+        c.up,
+        Icons.check_rounded,
+      ),
+      _OptState.wrong => (
+        c.down,
+        c.down.withValues(alpha: 0.10),
+        c.down,
+        Icons.close_rounded,
+      ),
       _OptState.idle => (c.line2, c.s2, c.line2, null),
     };
     return Padding(
@@ -527,35 +593,44 @@ class _Option extends StatelessWidget {
             color: fill,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-                color: border, width: state == _OptState.idle ? 1 : 1.5),
+              color: border,
+              width: state == _OptState.idle ? 1 : 1.5,
+            ),
           ),
-          child: Row(children: [
-            Container(
-              width: 22,
-              height: 22,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: dotIcon == null ? Colors.transparent : dotColor,
-                border: Border.all(color: dotColor, width: 2),
+          child: Row(
+            children: [
+              Container(
+                width: 22,
+                height: 22,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: dotIcon == null ? Colors.transparent : dotColor,
+                  border: Border.all(color: dotColor, width: 2),
+                ),
+                child: dotIcon == null
+                    ? null
+                    : Icon(
+                        dotIcon,
+                        size: 14,
+                        color: state == _OptState.correct
+                            ? const Color(0xFF04120C)
+                            : const Color(0xFF1A0605),
+                      ),
               ),
-              child: dotIcon == null
-                  ? null
-                  : Icon(dotIcon,
-                      size: 14,
-                      color: state == _OptState.correct
-                          ? const Color(0xFF04120C)
-                          : const Color(0xFF1A0605)),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(text,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  text,
                   style: TextStyle(
-                      color: c.text,
-                      fontSize: 14.5,
-                      fontWeight: FontWeight.w500)),
-            ),
-          ]),
+                    color: c.text,
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -611,25 +686,37 @@ class _WinView extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(t('lesson.xpPlus', {'n': '${lesson.xp}'}),
-                    style: TextStyle(
-                        color: c.text,
-                        fontFamily: fructaFonts.mono,
-                        fontSize: 28,
-                        fontWeight: FontWeight.w700)),
-                Text(t('lesson.xp'),
-                    style: TextStyle(color: c.muted, fontSize: 11)),
+                Text(
+                  t('lesson.xpPlus', {'n': '${lesson.xp}'}),
+                  style: TextStyle(
+                    color: c.text,
+                    fontFamily: fructaFonts.mono,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  t('lesson.xp'),
+                  style: TextStyle(color: c.muted, fontSize: 11),
+                ),
               ],
             ),
           ),
           const SizedBox(height: 20),
-          Text(t('lesson.complete'),
-              style: TextStyle(
-                  color: c.text, fontSize: 24, fontWeight: FontWeight.w700)),
+          Text(
+            t('lesson.complete'),
+            style: TextStyle(
+              color: c.text,
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
           const SizedBox(height: 8),
-          Text(t('lesson.completeBody', {'n': '$streak'}),
-              textAlign: TextAlign.center,
-              style: TextStyle(color: c.muted, fontSize: 14, height: 1.5)),
+          Text(
+            t('lesson.completeBody', {'n': '$streak'}),
+            textAlign: TextAlign.center,
+            style: TextStyle(color: c.muted, fontSize: 14, height: 1.5),
+          ),
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
@@ -638,16 +725,26 @@ class _WinView extends StatelessWidget {
               borderRadius: BorderRadius.circular(999),
               border: Border.all(color: c.up.withValues(alpha: 0.35)),
             ),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              Icon(Icons.local_fire_department_rounded, size: 16, color: c.up),
-              const SizedBox(width: 8),
-              Text(t('lesson.streak', {'n': '$streak'}),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.local_fire_department_rounded,
+                  size: 16,
+                  color: c.up,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  t('lesson.streak', {'n': '$streak'}),
                   style: TextStyle(
-                      color: c.up,
-                      fontFamily: fructaFonts.mono,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700)),
-            ]),
+                    color: c.up,
+                    fontFamily: fructaFonts.mono,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
           ),
           const Spacer(),
 
@@ -671,9 +768,12 @@ class _WinView extends StatelessWidget {
                   foregroundColor: c.onAccent,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15)),
-                  textStyle:
-                      const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  textStyle: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 child: Text(t('lesson.nextLesson')),
               ),
@@ -691,7 +791,8 @@ class _WinView extends StatelessWidget {
                     side: BorderSide(color: c.line2),
                     padding: const EdgeInsets.symmetric(vertical: 15),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                   ),
                 ),
               ),
@@ -720,9 +821,12 @@ class _WinView extends StatelessWidget {
                   foregroundColor: c.onAccent,
                   padding: const EdgeInsets.symmetric(vertical: 15),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
-                  textStyle:
-                      const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  textStyle: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
@@ -736,7 +840,8 @@ class _WinView extends StatelessWidget {
                   side: BorderSide(color: c.line2),
                   padding: const EdgeInsets.symmetric(vertical: 15),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                 ),
                 child: Text(t('lesson.backToPath')),
               ),
@@ -751,9 +856,12 @@ class _WinView extends StatelessWidget {
                   foregroundColor: c.onAccent,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15)),
-                  textStyle:
-                      const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  textStyle: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 child: Text(t('lesson.backToPath')),
               ),
@@ -777,15 +885,19 @@ class _Media extends StatelessWidget {
     final children = <Widget>[];
     if (img is String && img.isNotEmpty) {
       children.add(const SizedBox(height: 8));
-      children.add(_NetImage(
-          url: img, caption: payload['image_caption'] as String?));
+      children.add(
+        _NetImage(url: img, caption: payload['image_caption'] as String?),
+      );
     }
     if (chart is Map) {
       children.add(const SizedBox(height: 8));
       children.add(_ChartView(spec: chart.cast<String, dynamic>()));
     }
     if (children.isEmpty) return const SizedBox.shrink();
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: children);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: children,
+    );
   }
 }
 
@@ -865,16 +977,23 @@ class _ChartView extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (title != null && title.isNotEmpty) ...[
-            Text(title,
-                style: TextStyle(
-                    color: c.text, fontSize: 14, fontWeight: FontWeight.w700)),
+            Text(
+              title,
+              style: TextStyle(
+                color: c.text,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
             const SizedBox(height: 14),
           ],
           chart,
           if (caption != null && caption.isNotEmpty) ...[
             const SizedBox(height: 10),
-            Text(caption,
-                style: TextStyle(color: c.faint, fontSize: 12, height: 1.4)),
+            Text(
+              caption,
+              style: TextStyle(color: c.faint, fontSize: 12, height: 1.4),
+            ),
           ],
         ],
       ),
@@ -940,12 +1059,15 @@ class _Bar extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(label, style: TextStyle(color: c.muted, fontSize: 12.5)),
-            Text('${_fmt(value)}$unit',
-                style: TextStyle(
-                    color: color,
-                    fontFamily: fructaFonts.mono,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700)),
+            Text(
+              '${_fmt(value)}$unit',
+              style: TextStyle(
+                color: color,
+                fontFamily: fructaFonts.mono,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 5),
@@ -978,8 +1100,9 @@ class _LineView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.c;
-    final labels =
-        ((spec['labels'] as List?) ?? const []).map((e) => '$e').toList();
+    final labels = ((spec['labels'] as List?) ?? const [])
+        .map((e) => '$e')
+        .toList();
     final lines = ((spec['lines'] as List?) ?? const [])
         .map((e) => (e as Map).cast<String, dynamic>())
         .toList();
@@ -1005,55 +1128,66 @@ class _LineView extends StatelessWidget {
       children: [
         SizedBox(
           height: 150,
-          child: LineChart(LineChartData(
-            minY: lo - span * 0.12,
-            maxY: hi + span * 0.12,
-            gridData: const FlGridData(show: false),
-            borderData: FlBorderData(show: false),
-            lineTouchData: const LineTouchData(enabled: false),
-            titlesData: FlTitlesData(
-              leftTitles:
-                  const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-              topTitles:
-                  const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-              rightTitles:
-                  const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-              bottomTitles: AxisTitles(
-                sideTitles: SideTitles(
-                  showTitles: labels.isNotEmpty,
-                  interval: 1,
-                  getTitlesWidget: (v, meta) {
-                    final i = v.toInt();
-                    if (i < 0 || i >= labels.length) {
-                      return const SizedBox.shrink();
-                    }
-                    return Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: Text(labels[i],
-                          style: TextStyle(color: c.faint, fontSize: 10)),
-                    );
-                  },
+          child: LineChart(
+            LineChartData(
+              minY: lo - span * 0.12,
+              maxY: hi + span * 0.12,
+              gridData: const FlGridData(show: false),
+              borderData: FlBorderData(show: false),
+              lineTouchData: const LineTouchData(enabled: false),
+              titlesData: FlTitlesData(
+                leftTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                topTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                rightTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: labels.isNotEmpty,
+                    interval: 1,
+                    getTitlesWidget: (v, meta) {
+                      final i = v.toInt();
+                      if (i < 0 || i >= labels.length) {
+                        return const SizedBox.shrink();
+                      }
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text(
+                          labels[i],
+                          style: TextStyle(color: c.faint, fontSize: 10),
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
-            ),
-            lineBarsData: [
-              for (var i = 0; i < lines.length; i++)
-                LineChartBarData(
-                  spots: [
-                    for (var x = 0;
+              lineBarsData: [
+                for (var i = 0; i < lines.length; i++)
+                  LineChartBarData(
+                    spots: [
+                      for (
+                        var x = 0;
                         x < (lines[i]['values'] as List? ?? const []).length;
-                        x++)
-                      FlSpot(x.toDouble(),
-                          ((lines[i]['values'] as List)[x] as num).toDouble()),
-                  ],
-                  isCurved: true,
-                  curveSmoothness: 0.25,
-                  color: pal[i % pal.length],
-                  barWidth: 2.4,
-                  dotData: const FlDotData(show: false),
-                ),
-            ],
-          )),
+                        x++
+                      )
+                        FlSpot(
+                          x.toDouble(),
+                          ((lines[i]['values'] as List)[x] as num).toDouble(),
+                        ),
+                    ],
+                    isCurved: true,
+                    curveSmoothness: 0.25,
+                    color: pal[i % pal.length],
+                    barWidth: 2.4,
+                    dotData: const FlDotData(show: false),
+                  ),
+              ],
+            ),
+          ),
         ),
         const SizedBox(height: 10),
         Wrap(
@@ -1061,17 +1195,24 @@ class _LineView extends StatelessWidget {
           runSpacing: 6,
           children: [
             for (var i = 0; i < lines.length; i++)
-              Row(mainAxisSize: MainAxisSize.min, children: [
-                Container(
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
                     width: 10,
                     height: 3,
                     decoration: BoxDecoration(
-                        color: pal[i % pal.length],
-                        borderRadius: BorderRadius.circular(2))),
-                const SizedBox(width: 6),
-                Text(lines[i]['label'] as String? ?? '',
-                    style: TextStyle(color: c.muted, fontSize: 11.5)),
-              ]),
+                      color: pal[i % pal.length],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    lines[i]['label'] as String? ?? '',
+                    style: TextStyle(color: c.muted, fontSize: 11.5),
+                  ),
+                ],
+              ),
           ],
         ),
       ],
@@ -1098,65 +1239,75 @@ class _GrowthView extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('${money('KES', vals.last)} in $years years',
-            style: TextStyle(
-                color: c.up,
-                fontFamily: fructaFonts.mono,
-                fontSize: 20,
-                fontWeight: FontWeight.w700)),
+        Text(
+          '${money('KES', vals.last)} in $years years',
+          style: TextStyle(
+            color: c.up,
+            fontFamily: fructaFonts.mono,
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
         const SizedBox(height: 10),
         SizedBox(
           height: 130,
-          child: LineChart(LineChartData(
-            minY: lo - span * 0.05,
-            maxY: hi + span * 0.08,
-            gridData: const FlGridData(show: false),
-            borderData: FlBorderData(show: false),
-            lineTouchData: const LineTouchData(enabled: false),
-            titlesData: FlTitlesData(
-              leftTitles:
-                  const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-              topTitles:
-                  const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-              rightTitles:
-                  const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-              bottomTitles: AxisTitles(
-                sideTitles: SideTitles(
-                  showTitles: true,
-                  interval: 1,
-                  getTitlesWidget: (v, meta) => Padding(
-                    padding: const EdgeInsets.only(top: 6),
-                    child: Text(t('lesson.chartYear', {'n': '${v.toInt()}'}),
-                        style: TextStyle(color: c.faint, fontSize: 10)),
+          child: LineChart(
+            LineChartData(
+              minY: lo - span * 0.05,
+              maxY: hi + span * 0.08,
+              gridData: const FlGridData(show: false),
+              borderData: FlBorderData(show: false),
+              lineTouchData: const LineTouchData(enabled: false),
+              titlesData: FlTitlesData(
+                leftTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                topTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                rightTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    interval: 1,
+                    getTitlesWidget: (v, meta) => Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Text(
+                        t('lesson.chartYear', {'n': '${v.toInt()}'}),
+                        style: TextStyle(color: c.faint, fontSize: 10),
+                      ),
+                    ),
                   ),
                 ),
               ),
+              lineBarsData: [
+                LineChartBarData(
+                  spots: [
+                    for (var y = 0; y < vals.length; y++)
+                      FlSpot(y.toDouble(), vals[y].toDouble()),
+                  ],
+                  isCurved: true,
+                  curveSmoothness: 0.2,
+                  color: c.accent,
+                  barWidth: 2.6,
+                  dotData: const FlDotData(show: false),
+                  belowBarData: BarAreaData(
+                    show: true,
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        c.accent.withValues(alpha: 0.22),
+                        c.accent.withValues(alpha: 0.0),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-            lineBarsData: [
-              LineChartBarData(
-                spots: [
-                  for (var y = 0; y < vals.length; y++)
-                    FlSpot(y.toDouble(), vals[y].toDouble())
-                ],
-                isCurved: true,
-                curveSmoothness: 0.2,
-                color: c.accent,
-                barWidth: 2.6,
-                dotData: const FlDotData(show: false),
-                belowBarData: BarAreaData(
-                  show: true,
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      c.accent.withValues(alpha: 0.22),
-                      c.accent.withValues(alpha: 0.0),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          )),
+          ),
         ),
       ],
     );

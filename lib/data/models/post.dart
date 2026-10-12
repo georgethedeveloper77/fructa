@@ -43,13 +43,13 @@ class Post {
     body: j['body'] as String?,
     heroImageUrl: j['hero_image_url'] as String?,
     author: j['author'] as String?,
-    tags: ((j['tags'] as List?) ?? const [])
-        .whereType<String>()
-        .toList(),
+    tags: ((j['tags'] as List?) ?? const []).whereType<String>().toList(),
     fundId: j['fund_id'] as String?,
     companyId: j['company_id'] as String?,
     pinned: (j['pinned'] ?? false) as bool,
     readingMinutes: (j['reading_minutes'] as num?)?.toInt(),
-    publishedAt: DateTime.tryParse((j['published_at'] ?? '') as String)?.toLocal(),
+    publishedAt: DateTime.tryParse(
+      (j['published_at'] ?? '') as String,
+    )?.toLocal(),
   );
 }

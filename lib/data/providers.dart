@@ -156,7 +156,10 @@ final navHistoryProvider = FutureProvider.autoDispose
 ///
 /// Returns an empty list when the fund has no class group, which is nearly
 /// every fund, so callers render nothing without asking whether they should.
-final classSiblingsProvider = Provider.family<List<Fund>, String>((ref, fundId) {
+final classSiblingsProvider = Provider.family<List<Fund>, String>((
+  ref,
+  fundId,
+) {
   final byId = ref.watch(fundsByIdProvider);
   final me = byId[fundId];
   final group = me?.classGroup;

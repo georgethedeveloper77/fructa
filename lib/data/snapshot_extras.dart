@@ -168,8 +168,7 @@ class SnapshotExtras {
         .toList();
 
     final insuranceTypes = (m['insurance_types'] as List? ?? const [])
-        .map((e) =>
-            InsuranceType.fromJson((e as Map).cast<String, dynamic>()))
+        .map((e) => InsuranceType.fromJson((e as Map).cast<String, dynamic>()))
         .toList();
 
     // Composition  sibling array keyed by fund_id (mirrors the deltas

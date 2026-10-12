@@ -42,8 +42,7 @@ const fundTypeColors = <String, Color>{
   'special': Color(0xFF2FB5A0), // emerald
 };
 
-Color fundTypeColor(String? t) =>
-    fundTypeColors[t] ?? const Color(0xFF8A92A3);
+Color fundTypeColor(String? t) => fundTypeColors[t] ?? const Color(0xFF8A92A3);
 
 /// Asset-class colours for the CMA market-allocation view (where the market's
 /// money actually sits). Keyed by the CIS class keys published under

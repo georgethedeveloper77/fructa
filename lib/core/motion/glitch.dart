@@ -75,7 +75,10 @@ class _GlitchState extends State<Glitch> with SingleTickerProviderStateMixin {
   }
 
   Widget _tinted(Widget child, Color color) => ColorFiltered(
-    colorFilter: ColorFilter.mode(color.withValues(alpha: 0.85), BlendMode.srcIn),
+    colorFilter: ColorFilter.mode(
+      color.withValues(alpha: 0.85),
+      BlendMode.srcIn,
+    ),
     child: child,
   );
 
@@ -104,10 +107,7 @@ class _GlitchState extends State<Glitch> with SingleTickerProviderStateMixin {
             ),
             ClipRect(
               clipper: _BandClipper(f.top, f.bottom),
-              child: Transform.translate(
-                offset: Offset(f.dx, 0),
-                child: child,
-              ),
+              child: Transform.translate(offset: Offset(f.dx, 0), child: child),
             ),
           ],
         );

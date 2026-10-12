@@ -31,9 +31,9 @@ class PortfolioCodec {
   static const schema = 1;
 
   static Map<String, dynamic> buildPayload(List<Holding> holdings) => {
-        'schema': schema,
-        'holdings': holdings.map((h) => h.toMap()).toList(),
-      };
+    'schema': schema,
+    'holdings': holdings.map((h) => h.toMap()).toList(),
+  };
 
   static List<Holding> parsePayload(Map<String, dynamic> data) =>
       ((data['holdings'] as List?) ?? const [])
@@ -126,7 +126,8 @@ class PortfolioCodec {
       throw const BadRecoveryCode();
     }
 
-    final data = (jsonDecode(utf8.decode(plain)) as Map).cast<String, dynamic>();
+    final data = (jsonDecode(utf8.decode(plain)) as Map)
+        .cast<String, dynamic>();
     return parsePayload(data);
   }
 }

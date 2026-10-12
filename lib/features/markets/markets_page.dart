@@ -191,9 +191,7 @@ void _openFund(BuildContext context, Fund f) {
     currency: f.currency,
     grossRate: f.currentRate,
   );
-  Navigator.of(
-    context,
-  ).push(MaterialPageRoute(builder: (_) => CompanyPage(f)));
+  Navigator.of(context).push(MaterialPageRoute(builder: (_) => CompanyPage(f)));
 }
 
 class MarketsPage extends ConsumerWidget {
@@ -365,7 +363,8 @@ class MarketsPage extends ConsumerWidget {
                             // tab currently selected, so Money Market behaves
                             // exactly as before and every other tab is finally
                             // right.
-                            showCcy: ref.watch(tabCurrenciesProvider).length > 1,
+                            showCcy:
+                                ref.watch(tabCurrenciesProvider).length > 1,
                             showSector:
                                 isStock &&
                                 ref.watch(stockSectorsProvider).length > 1,
@@ -392,9 +391,7 @@ class MarketsPage extends ConsumerWidget {
                             loading: () => SliverToBoxAdapter(
                               child: Padding(
                                 padding: const EdgeInsets.all(40),
-                                child: Center(
-                                  child: const AppLoader(),
-                                ),
+                                child: Center(child: const AppLoader()),
                               ),
                             ),
                             error: (e, _) => SliverToBoxAdapter(
@@ -452,9 +449,7 @@ class MarketsPage extends ConsumerWidget {
                         if (!isStock &&
                             !isSacco &&
                             !showAll &&
-                            (merged
-                                    ? (allRows.value?.length ?? 0)
-                                    : total) >
+                            (merged ? (allRows.value?.length ?? 0) : total) >
                                 kFundsInitial)
                           SliverToBoxAdapter(
                             child: _ShowMoreButton(
@@ -468,9 +463,10 @@ class MarketsPage extends ConsumerWidget {
                               // matches and the list is short again.
                               onTap: () =>
                                   ref
-                                          .read(expandedViewProvider.notifier)
-                                          .state =
-                                      ref.read(marketViewKeyProvider),
+                                      .read(expandedViewProvider.notifier)
+                                      .state = ref.read(
+                                    marketViewKeyProvider,
+                                  ),
                             ),
                           ),
                         SliverToBoxAdapter(
@@ -884,9 +880,7 @@ Widget _mergedSliver(
     loading: () => SliverToBoxAdapter(
       child: Padding(
         padding: const EdgeInsets.all(40),
-        child: Center(
-          child: const AppLoader(),
-        ),
+        child: Center(child: const AppLoader()),
       ),
     ),
     error: (e, _) => SliverToBoxAdapter(

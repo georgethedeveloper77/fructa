@@ -300,14 +300,14 @@ final fxHoldingCaseProvider = Provider<FxCase?>((ref) {
 /// and the card hides, rather than calling a two month window calm.
 final fxMovesProvider =
     Provider<({FxRegime regime, double move12, double move3})?>((ref) {
-  final series = ref.watch(fxSeriesProvider);
-  if (series == null || series.mean.length < 13) return null;
-  return (
-    regime: FxEngine.regimeOf(series.mean),
-    move12: series.moveOver(12) ?? 0,
-    move3: series.moveOver(3) ?? 0,
-  );
-});
+      final series = ref.watch(fxSeriesProvider);
+      if (series == null || series.mean.length < 13) return null;
+      return (
+        regime: FxEngine.regimeOf(series.mean),
+        move12: series.moveOver(12) ?? 0,
+        move3: series.moveOver(3) ?? 0,
+      );
+    });
 
 /// The card's sentence, from the admin-editable bank in the snapshot with an
 /// in-code fallback. Slot from market state, phrasing from the day of the year.
@@ -411,9 +411,7 @@ final rankedSaccosProvider = Provider<List<Sacco>>((ref) {
       .watch(saccosProvider)
       .where((s) => s.hasDepositRate)
       .toList();
-  rated.sort(
-    (a, b) => b.interestOnDeposits!.compareTo(a.interestOnDeposits!),
-  );
+  rated.sort((a, b) => b.interestOnDeposits!.compareTo(a.interestOnDeposits!));
   return rated;
 });
 

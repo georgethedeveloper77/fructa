@@ -20,14 +20,13 @@ class Agent {
   });
 
   factory Agent.fromJson(Map<String, dynamic> j) => Agent(
-        id: j['id'] as String,
-        name: (j['name'] ?? '') as String,
-        role: j['role'] as String?,
-        phone: j['phone'] as String?,
-        whatsapp: (j['whatsapp'] ?? false) as bool,
-        photoUrl: j['photo_url'] as String?,
-        isFree: (j['is_free'] ?? false) as bool,
-        companyIds:
-            ((j['company_ids'] as List?) ?? const []).cast<String>(),
-      );
+    id: j['id'] as String,
+    name: (j['name'] ?? '') as String,
+    role: j['role'] as String?,
+    phone: j['phone'] as String?,
+    whatsapp: (j['whatsapp'] ?? false) as bool,
+    photoUrl: j['photo_url'] as String?,
+    isFree: (j['is_free'] ?? false) as bool,
+    companyIds: ((j['company_ids'] as List?) ?? const []).cast<String>(),
+  );
 }

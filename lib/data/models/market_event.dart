@@ -14,12 +14,12 @@ class MarketEvent {
   });
 
   factory MarketEvent.fromJson(Map<String, dynamic> j) => MarketEvent(
-        type: j['type'] as String,
-        category: j['category'] as String?,
-        fundId: j['fund_id'] as String?,
-        payload: (j['payload'] as Map?)?.cast<String, dynamic>() ?? const {},
-        createdAt: DateTime.parse(j['created_at'] as String),
-      );
+    type: j['type'] as String,
+    category: j['category'] as String?,
+    fundId: j['fund_id'] as String?,
+    payload: (j['payload'] as Map?)?.cast<String, dynamic>() ?? const {},
+    createdAt: DateTime.parse(j['created_at'] as String),
+  );
 
   /// Headline for the news feed: explicit payload headline, else a fallback.
   String get headline =>

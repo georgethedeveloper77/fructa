@@ -129,6 +129,7 @@ List<Signal> buildSignals(
   Fund f,
   List<Fund> peers, {
   Map<String, List<String>>? bank,
+
   /// Withholding rate from remote config. Defaults to the baked figure so an
   /// existing call site keeps compiling, but the caller should pass cfg.whtPct:
   /// the {net} figure printed inside a signal sits on the same screen as the

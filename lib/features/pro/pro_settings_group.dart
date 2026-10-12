@@ -12,8 +12,18 @@ import '../../data/pro/pro_service.dart';
 import 'pro_widgets.dart';
 
 const _months = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
 ];
 
 String _date(DateTime d) => '${d.day} ${_months[d.month - 1]} ${d.year}';
@@ -35,7 +45,8 @@ class _ProSettingsGroupState extends ConsumerState<ProSettingsGroup> {
   /// over everything else because it is the only state that needs action.
   String _statusLine(ProState s) {
     if (!s.active) return 'Statement import, credited yield, tax reports';
-    if (s.billingIssue) return 'Payment problem. Update it in your store account';
+    if (s.billingIssue)
+      return 'Payment problem. Update it in your store account';
     final end = s.expiresAt;
     if (end == null) return 'Active';
     if (s.inTrial) {
@@ -43,7 +54,9 @@ class _ProSettingsGroupState extends ConsumerState<ProSettingsGroup> {
           ? 'Free trial, first payment ${_date(end)}'
           : 'Free trial, ends ${_date(end)}';
     }
-    return s.willRenew ? 'Active, renews ${_date(end)}' : 'Active, ends ${_date(end)}';
+    return s.willRenew
+        ? 'Active, renews ${_date(end)}'
+        : 'Active, ends ${_date(end)}';
   }
 
   Future<void> _manage(ProState s) async {

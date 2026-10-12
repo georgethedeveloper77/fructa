@@ -37,7 +37,8 @@ class SaccoRate {
   factory SaccoRate.fromJson(Map<String, dynamic> j) => SaccoRate(
     financialYear: (j['financial_year'] as num).toInt(),
     interestOnDeposits: (j['interest_on_deposits'] as num?)?.toDouble(),
-    dividendOnShareCapital: (j['dividend_on_share_capital'] as num?)?.toDouble(),
+    dividendOnShareCapital: (j['dividend_on_share_capital'] as num?)
+        ?.toDouble(),
     declaredOn: j['declared_on'] as String?,
     sourceUrl: j['source_url'] as String?,
     sourceDoc: j['source_doc'] as String?,
@@ -257,9 +258,6 @@ class Sacco {
     final d = interestOnDeposits;
     final s = dividendOnShareCapital;
     if (d == null || s == null) return null;
-    return (
-      fromDeposits: deposits * d / 100,
-      fromShares: shares * s / 100,
-    );
+    return (fromDeposits: deposits * d / 100, fromShares: shares * s / 100);
   }
 }

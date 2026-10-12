@@ -56,9 +56,7 @@ final onboardingPersonaProvider = Provider<String>(
 /// list on a first install with nothing cached, which would report ready while
 /// the top-rate scene has no number to show. Non-empty is the honest signal.
 final ratesReadyProvider = Provider<bool>(
-  (ref) => ref.watch(
-    ratesProvider.select((s) => s.value?.isNotEmpty ?? false),
-  ),
+  (ref) => ref.watch(ratesProvider.select((s) => s.value?.isNotEmpty ?? false)),
 );
 
 /// Root gate. Point `MaterialApp.home` at this. The launch splash plays while

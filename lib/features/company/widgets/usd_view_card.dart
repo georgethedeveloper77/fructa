@@ -109,11 +109,7 @@ class UsdViewCard extends ConsumerWidget {
             const SizedBox(height: 16),
             Row(
               children: [
-                _Figure(
-                  label: t('fund.usd.inKes'),
-                  value: rate,
-                  color: c.text,
-                ),
+                _Figure(label: t('fund.usd.inKes'), value: rate, color: c.text),
                 Container(
                   width: 1,
                   height: 34,

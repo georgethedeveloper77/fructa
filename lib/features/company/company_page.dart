@@ -118,8 +118,18 @@ String _quarter(String asOf) {
 }
 
 const _moShort = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
 ];
 
 // "10 Jul 2026" from an ISO date, or the raw string when unparseable. Used by
@@ -129,7 +139,6 @@ String _dayMonth(String iso) {
   if (d == null) return iso;
   return '${d.day} ${_moShort[d.month - 1]} ${d.year}';
 }
-
 
 /// v6 `.co` - company/fund detail. Carded sections (chart · performance ·
 /// manager CIS · credentials · composition · peers · terms) over a brand-tinted
@@ -195,7 +204,8 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
         final c = sheetCtx.c;
         // Same contrast-safe brand tint the detail page uses, so the sheet
         // matches the fund's colour.
-        final raw = ref.read(brandColorProvider(fund.id)) ??
+        final raw =
+            ref.read(brandColorProvider(fund.id)) ??
             categoryColor(fund.category);
         final tint = c.brandOnBg(raw);
         return SafeArea(
@@ -222,16 +232,20 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.notifications_active_outlined,
-                            size: 20, color: tint),
+                        Icon(
+                          Icons.notifications_active_outlined,
+                          size: 20,
+                          color: tint,
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             t('company.coach.title'),
                             style: TextStyle(
-                                color: c.text,
-                                fontSize: 17,
-                                fontWeight: FontWeight.w700),
+                              color: c.text,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
                       ],
@@ -240,7 +254,10 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
                     Text(
                       t('company.coach.body'),
                       style: TextStyle(
-                          color: c.muted, fontSize: 13.5, height: 1.5),
+                        color: c.muted,
+                        fontSize: 13.5,
+                        height: 1.5,
+                      ),
                     ),
                   ],
                 ),
@@ -345,8 +362,11 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
     final peers = ref.watch(ratesProvider).value ?? const <Fund>[];
     final held = _heldIn(ref.watch(holdingsProvider));
     final following = ref.watch(subscriptionsProvider).contains(fund.id);
-    final signals = buildSignals(fund, peers,
-        bank: ref.watch(snapshotExtrasProvider).templateBank);
+    final signals = buildSignals(
+      fund,
+      peers,
+      bank: ref.watch(snapshotExtrasProvider).templateBank,
+    );
     final agents = ref.watch(agentsForCompanyProvider(fund.companyId));
     final d7 = ref.watch(fundDeltaProvider(fund.id));
 
@@ -355,8 +375,12 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
     // rate while the LABEL two hundred lines below read cfg.whtPct. Tax.apply
     // asks whether tax is owed at all, per the fund's own net_of, and takes the
     // rate from config so the number and its label cannot disagree.
-    final netPct = Tax.apply(rate ?? 0,
-        netOf: fund.netOf, taxFree: fund.taxFree, whtPct: cfg.whtPct);
+    final netPct = Tax.apply(
+      rate ?? 0,
+      netOf: fund.netOf,
+      taxFree: fund.taxFree,
+      whtPct: cfg.whtPct,
+    );
 
     // Real return is the NET rate deflated by the inflation of the fund's OWN
     // currency: benchmark.inflation for KES, benchmark.inflation_usd for USD.
@@ -372,7 +396,8 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
     // as the fact sheet's fund-vs-T-bill line). Null unless seeded + yielding.
     // KES benchmarks (T-bills, CBR) only describe KES funds. A USD fund seeded
     // with tbill_91 was told it "trails the 91-day T-bill" (audit D3).
-    final Benchmark? bench = (fund.showsYield &&
+    final Benchmark? bench =
+        (fund.showsYield &&
             rate != null &&
             fund.currency == 'KES' &&
             fund.benchmarkConfigKey != null)
@@ -380,8 +405,9 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
         : null;
 
     // Terms card helpers (0026).
-    final benchLabel =
-        fund.benchmarkKey != null ? _benchLabels[fund.benchmarkKey] : null;
+    final benchLabel = fund.benchmarkKey != null
+        ? _benchLabels[fund.benchmarkKey]
+        : null;
     final hasLiquidity =
         fund.lockInMonths != null || fund.redemptionFee != null;
     String liquidityText() {
@@ -405,15 +431,18 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
         return p.taxFree ? r : r * (1 - wht / 100);
       }
 
-      final sameSet = peers
-          .where((p) =>
-              p.retail &&
-              p.fundType == fund.fundType &&
-              p.currency == fund.currency &&
-              p.showsYield &&
-              p.currentRate != null)
-          .toList()
-        ..sort((a, b) => net(b).compareTo(net(a)));
+      final sameSet =
+          peers
+              .where(
+                (p) =>
+                    p.retail &&
+                    p.fundType == fund.fundType &&
+                    p.currency == fund.currency &&
+                    p.showsYield &&
+                    p.currentRate != null,
+              )
+              .toList()
+            ..sort((a, b) => net(b).compareTo(net(a)));
       final i = sameSet.indexWhere((p) => p.id == fund.id);
       if (i >= 0) {
         fundRank = i + 1;
@@ -436,16 +465,17 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
 
     // Manager market position (CMA Table 1 via companies): share + rank.
     final allCompanies = ref.watch(companiesProvider);
-    final manager =
-        fund.companyId != null ? allCompanies[fund.companyId] : null;
-    final rankedCount =
-        allCompanies.values.where((co) => co.marketShare != null).length;
+    final manager = fund.companyId != null
+        ? allCompanies[fund.companyId]
+        : null;
+    final rankedCount = allCompanies.values
+        .where((co) => co.marketShare != null)
+        .length;
     int? managerRank;
     if (manager?.marketShare != null) {
-      final ranked = allCompanies.values
-          .where((co) => co.marketShare != null)
-          .toList()
-        ..sort((a, b) => b.marketShare!.compareTo(a.marketShare!));
+      final ranked =
+          allCompanies.values.where((co) => co.marketShare != null).toList()
+            ..sort((a, b) => b.marketShare!.compareTo(a.marketShare!));
       final i = ranked.indexWhere((co) => co.id == manager!.id);
       if (i >= 0) managerRank = i + 1;
     }
@@ -458,8 +488,9 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
 
     // The manager's own published channels, each surfaced on its own row. Null
     // (section hidden) when the fund has no manager or the manager carries none.
-    final contactCard =
-        manager != null ? _contactSection(context, manager, tint) : null;
+    final contactCard = manager != null
+        ? _contactSection(context, manager, tint)
+        : null;
 
     return Scaffold(
       backgroundColor: c.bg,
@@ -474,17 +505,23 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
         title: FittedBox(
           fit: BoxFit.scaleDown,
           alignment: Alignment.centerLeft,
-          child: Text(fund.name,
-              maxLines: 1,
-              softWrap: false,
-              style: TextStyle(
-                  color: c.text, fontSize: 16.5, fontWeight: FontWeight.w700)),
+          child: Text(
+            fund.name,
+            maxLines: 1,
+            softWrap: false,
+            style: TextStyle(
+              color: c.text,
+              fontSize: 16.5,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ),
         actions: [
           IconButton(
             tooltip: t('nav.alerts'),
-            onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const AlertsPage())),
+            onPressed: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const AlertsPage())),
             icon: Icon(Icons.notifications_none, color: c.muted),
           ),
           FollowStar(
@@ -527,28 +564,34 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
                 child: Row(
                   children: [
                     FundLogo(
-                        domain: fund.logoDomain,
-                        logoUrl: logoUrl,
-                        seed: fund.manager,
-                        size: 46,
-                        brandColor: rawTint),
+                      domain: fund.logoDomain,
+                      logoUrl: logoUrl,
+                      seed: fund.manager,
+                      size: 46,
+                      brandColor: rawTint,
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(fund.name,
-                              style: TextStyle(
-                                  color: c.text,
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w700)),
+                          Text(
+                            fund.name,
+                            style: TextStyle(
+                              color: c.text,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
                           const SizedBox(height: 2),
                           Text(
-                              '${fund.manager} \u00b7 ${_typeName(fund)} \u00b7 ${fund.currency}',
-                              style: TextStyle(
-                                  color: c.muted,
-                                  fontFamily: fructaFonts.mono,
-                                  fontSize: 11)),
+                            '${fund.manager} \u00b7 ${_typeName(fund)} \u00b7 ${fund.currency}',
+                            style: TextStyle(
+                              color: c.muted,
+                              fontFamily: fructaFonts.mono,
+                              fontSize: 11,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -591,49 +634,61 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
                         // without the compiler stopping here first.
                         children: switch (fund.headlineWith(latestReturn)) {
                           YieldHeadline(:final gross) => [
-                              TextSpan(
-                                  text: gross.toStringAsFixed(2),
-                                  style: const TextStyle(
-                                      fontSize: 46, letterSpacing: -1.5)),
-                              TextSpan(
-                                  text: '% gross',
-                                  style:
-                                      TextStyle(fontSize: 18, color: c.muted)),
-                            ],
+                            TextSpan(
+                              text: gross.toStringAsFixed(2),
+                              style: const TextStyle(
+                                fontSize: 46,
+                                letterSpacing: -1.5,
+                              ),
+                            ),
+                            TextSpan(
+                              text: '% gross',
+                              style: TextStyle(fontSize: 18, color: c.muted),
+                            ),
+                          ],
                           // The period rides WITH the number, never beside it as
                           // decoration. 4.74% over a quarter and 4.74% over a
                           // year print identically and are not the same fact.
                           ReturnHeadline(:final pct, :final label) => [
-                              TextSpan(
-                                  text:
-                                      '${pct >= 0 ? '+' : ''}${pct.toStringAsFixed(2)}',
-                                  style: TextStyle(
-                                      fontSize: 46,
-                                      letterSpacing: -1.5,
-                                      color: c.delta(pct))),
-                              TextSpan(
-                                  text: '% $label',
-                                  style:
-                                      TextStyle(fontSize: 18, color: c.muted)),
-                            ],
-                          NoHeadline() when fund.showsPrice &&
+                            TextSpan(
+                              text:
+                                  '${pct >= 0 ? '+' : ''}${pct.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                fontSize: 46,
+                                letterSpacing: -1.5,
+                                color: c.delta(pct),
+                              ),
+                            ),
+                            TextSpan(
+                              text: '% $label',
+                              style: TextStyle(fontSize: 18, color: c.muted),
+                            ),
+                          ],
+                          NoHeadline()
+                              when fund.showsPrice &&
                                   fund.pricePerUnit != null =>
                             [
                               TextSpan(
-                                  text: fund.pricePerUnit!.toStringAsFixed(2),
-                                  style: const TextStyle(
-                                      fontSize: 46, letterSpacing: -1.5)),
+                                text: fund.pricePerUnit!.toStringAsFixed(2),
+                                style: const TextStyle(
+                                  fontSize: 46,
+                                  letterSpacing: -1.5,
+                                ),
+                              ),
                               TextSpan(
-                                  text: ' / unit',
-                                  style:
-                                      TextStyle(fontSize: 18, color: c.muted)),
+                                text: ' / unit',
+                                style: TextStyle(fontSize: 18, color: c.muted),
+                              ),
                             ],
                           NoHeadline() => [
-                              TextSpan(
-                                  text: t('common.dash'),
-                                  style: const TextStyle(
-                                      fontSize: 46, letterSpacing: -1.5)),
-                            ],
+                            TextSpan(
+                              text: t('common.dash'),
+                              style: const TextStyle(
+                                fontSize: 46,
+                                letterSpacing: -1.5,
+                              ),
+                            ),
+                          ],
                         },
                       ),
                     ),
@@ -645,18 +700,21 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                                d7 > 0
-                                    ? Icons.arrow_drop_up
-                                    : Icons.arrow_drop_down,
-                                size: 18,
-                                color: c.delta(d7)),
+                              d7 > 0
+                                  ? Icons.arrow_drop_up
+                                  : Icons.arrow_drop_down,
+                              size: 18,
+                              color: c.delta(d7),
+                            ),
                             Text(
-                                '${d7.abs().toStringAsFixed(2)} ${t('company.pts7d')}',
-                                style: TextStyle(
-                                    color: c.delta(d7),
-                                    fontFamily: fructaFonts.mono,
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.w600)),
+                              '${d7.abs().toStringAsFixed(2)} ${t('company.pts7d')}',
+                              style: TextStyle(
+                                color: c.delta(d7),
+                                fontFamily: fructaFonts.mono,
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -672,9 +730,10 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
                   child: Text(
                     'Priced as of ${_dayMonth(fund.priceAsOf!)}',
                     style: TextStyle(
-                        color: c.faint,
-                        fontFamily: fructaFonts.mono,
-                        fontSize: 11),
+                      color: c.faint,
+                      fontFamily: fructaFonts.mono,
+                      fontSize: 11,
+                    ),
                   ),
                 ),
 
@@ -696,8 +755,9 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
                         netLabel: fund.taxFree
                             ? 'TAX-FREE'
                             : 'NET (${cfg.whtPct.toStringAsFixed(0)}% WHT)',
-                        netValue:
-                            rate != null ? '${netPct.toStringAsFixed(2)}%' : t('common.dash'),
+                        netValue: rate != null
+                            ? '${netPct.toStringAsFixed(2)}%'
+                            : t('common.dash'),
                         real: fund.showsYield ? realPct : null,
                         minValue: fund.minInvest != null
                             ? '${fund.currency} ${_commas(fund.minInvest!)}'
@@ -753,9 +813,14 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
                 _eyebrow(context, 'UNIT PRICE'),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: _card(context,
-                      child: NavChart(fund.id,
-                          currency: fund.currency, color: tint)),
+                  child: _card(
+                    context,
+                    child: NavChart(
+                      fund.id,
+                      currency: fund.currency,
+                      color: tint,
+                    ),
+                  ),
                 ),
               ],
 
@@ -764,8 +829,12 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
               //    own money first. ────────────────────────────────────────
               if (held != null) ...[
                 SectionHeader(title: t('company.yourPosition')),
-                _position(context, held, netPct,
-                    usdKes: ref.watch(usdKesProvider)),
+                _position(
+                  context,
+                  held,
+                  netPct,
+                  usdKes: ref.watch(usdKesProvider),
+                ),
               ],
 
               // ── Completed periods - the chart a return-basis fund lives
@@ -775,8 +844,10 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
                 _eyebrow(context, 'COMPLETED PERIODS'),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: _card(context,
-                      child: PeriodReturnsBar(fund, returns, tint: tint)),
+                  child: _card(
+                    context,
+                    child: PeriodReturnsBar(fund, returns, tint: tint),
+                  ),
                 ),
               ],
 
@@ -791,31 +862,35 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
               // ── Growth since inception - what a return fund gets INSTEAD of
               //    the projection. Same slot, opposite direction in time, so
               //    it promises nothing. ─────────────────────────────────────
-              if (fund.showsPeriodReturn &&
-                  returns.growthMultiple != null) ...[
+              if (fund.showsPeriodReturn && returns.growthMultiple != null) ...[
                 _eyebrow(context, 'GROWTH SINCE INCEPTION'),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: _card(context,
-                      padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
-                      child: GrowthSinceInception(fund, returns, tint: tint)),
+                  child: _card(
+                    context,
+                    padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
+                    child: GrowthSinceInception(fund, returns, tint: tint),
+                  ),
                 ),
               ],
 
               // ── Manager · CMA CIS position ─────────────────────────────
               if (manager?.aumKes != null || manager?.marketShare != null) ...[
                 _eyebrow(
-                    context,
-                    'MANAGER${manager?.aumAsOf != null ? ' \u00b7 CMA CIS ${_quarter(manager!.aumAsOf!)}' : ''}'),
+                  context,
+                  'MANAGER${manager?.aumAsOf != null ? ' \u00b7 CMA CIS ${_quarter(manager!.aumAsOf!)}' : ''}',
+                ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: _card(context,
-                      child: _Stat3(
-                        aum: manager?.aumKes,
-                        rank: managerRank,
-                        rankTotal: rankedCount,
-                        share: manager?.marketShare,
-                      )),
+                  child: _card(
+                    context,
+                    child: _Stat3(
+                      aum: manager?.aumKes,
+                      rank: managerRank,
+                      rankTotal: rankedCount,
+                      share: manager?.marketShare,
+                    ),
+                  ),
                 ),
               ],
 
@@ -853,34 +928,43 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
               _eyebrow(context, 'TERMS'),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: _card(context,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: _Facts(rows: [
+                child: _card(
+                  context,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _Facts(
+                    rows: [
                       if (fund.mgmtFee != null)
                         _Fact(fund.feeLabel, '${fund.mgmtFee}% p.a.'),
                       if (fund.hasPerfFee)
-                        _Fact('Performance charge',
-                            '${fund.perfFeePct}% above ${fund.hurdlePct}% p.a.'),
+                        _Fact(
+                          'Performance charge',
+                          '${fund.perfFeePct}% above ${fund.hurdlePct}% p.a.',
+                        ),
                       if (fund.expenseRatio != null)
                         _Fact('Expense ratio', '${fund.expenseRatio}% p.a.'),
                       if (fund.distributionPct != null)
                         _Fact('Distribution', '${fund.distributionPct}% p.a.'),
                       _Fact(
-                          'Tax',
-                          fund.taxFree
-                              ? 'Tax-free'
-                              : fund.whtStillDue
-                                  ? '${cfg.whtPct.toStringAsFixed(0)}% WHT'
-                                  // Already deducted by the manager. Printing
-                                  // the rate here would imply it is still to
-                                  // come and understate what the holder keeps.
-                                  : 'Already deducted'),
+                        'Tax',
+                        fund.taxFree
+                            ? 'Tax-free'
+                            : fund.whtStillDue
+                            ? '${cfg.whtPct.toStringAsFixed(0)}% WHT'
+                            // Already deducted by the manager. Printing
+                            // the rate here would imply it is still to
+                            // come and understate what the holder keeps.
+                            : 'Already deducted',
+                      ),
                       if (benchLabel != null) _Fact('Benchmark', benchLabel),
                       if (fund.topUpMin != null)
-                        _Fact('Top-up min',
-                            '${fund.currency} ${_commas(fund.topUpMin!)}'),
+                        _Fact(
+                          'Top-up min',
+                          '${fund.currency} ${_commas(fund.topUpMin!)}',
+                        ),
                       if (hasLiquidity) _Fact('Liquidity', liquidityText()),
-                    ])),
+                    ],
+                  ),
+                ),
               ),
 
               // ── Signals ────────────────────────────────────────────────
@@ -895,8 +979,10 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
                   ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
-                  child: Text(t('company.signalsFoot'),
-                      style: TextStyle(color: c.faint, fontSize: 9.5)),
+                  child: Text(
+                    t('company.signalsFoot'),
+                    style: TextStyle(color: c.faint, fontSize: 9.5),
+                  ),
                 ),
               ],
 
@@ -913,20 +999,22 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
               // ── CTAs ───────────────────────────────────────────────────
               if (topUpUrl != null)
                 CtaFull(
-                    icon: Icons.add,
-                    label: t('company.fundTopUp'),
-                    tint: tint,
-                    onTap: () => _open(topUpUrl)),
+                  icon: Icons.add,
+                  label: t('company.fundTopUp'),
+                  tint: tint,
+                  onTap: () => _open(topUpUrl),
+                ),
               // The single best-contact button appears only when the Contact
               // section above did not (no manager channels), so an agent-only
               // or fund-level contact link still has a home and no channel is
               // shown twice.
               if (contactCard == null && contactUrl != null)
                 CtaGhost(
-                    icon: _contactIcon(contactUrl),
-                    label: t('company.contact'),
-                    tint: tint,
-                    onTap: () => _open(contactUrl)),
+                  icon: _contactIcon(contactUrl),
+                  label: t('company.contact'),
+                  tint: tint,
+                  onTap: () => _open(contactUrl),
+                ),
 
               Disclaimer(t('company.moneyNote'), center: true),
               const SizedBox(height: 20),
@@ -941,12 +1029,26 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
   //    via PortfolioMath, so it reads the SAME grown value as the Portfolio
   //    tab - not the static entry balance. ───────────────────────────────
   static const _posMonths = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
 
-  Widget _position(BuildContext context, Holding held, double netPct,
-      {double? usdKes}) {
+  Widget _position(
+    BuildContext context,
+    Holding held,
+    double netPct, {
+    double? usdKes,
+  }) {
     final c = context.c;
     final v = PortfolioMath.value(
       held,
@@ -955,8 +1057,7 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
       usdKes: usdKes,
       asOf: DateTime.now(),
     );
-    final since =
-        '${_posMonths[v.firstLot.month - 1]} ${v.firstLot.day}';
+    final since = '${_posMonths[v.firstLot.month - 1]} ${v.firstLot.day}';
     final netLbl = fund.taxFree
         ? t('company.atTaxFree', {'net': netPct.toStringAsFixed(2)})
         : t('company.atNet', {'net': netPct.toStringAsFixed(2)});
@@ -1090,21 +1191,25 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
   }
 
   SignalTone _tone(SignalTag tag) => switch (tag) {
-        SignalTag.strength => SignalTone.positive,
-        SignalTag.watch => SignalTone.negative,
-        SignalTag.note => SignalTone.neutral,
-      };
+    SignalTag.strength => SignalTone.positive,
+    SignalTag.watch => SignalTone.negative,
+    SignalTag.note => SignalTone.neutral,
+  };
 
   String _tagLabel(SignalTag tag) => switch (tag) {
-        SignalTag.strength => t('company.tag.strength'),
-        SignalTag.watch => t('company.tag.watch'),
-        SignalTag.note => t('company.tag.note'),
-      };
+    SignalTag.strength => t('company.tag.strength'),
+    SignalTag.watch => t('company.tag.watch'),
+    SignalTag.note => t('company.tag.note'),
+  };
 }
 
 // ── local building blocks (mockup cards) ─────────────────────────────────
 
-Widget _card(BuildContext context, {required Widget child, EdgeInsets? padding}) {
+Widget _card(
+  BuildContext context, {
+  required Widget child,
+  EdgeInsets? padding,
+}) {
   final c = context.c;
   return Container(
     padding: padding ?? const EdgeInsets.all(16),
@@ -1121,13 +1226,16 @@ Widget _eyebrow(BuildContext context, String text) {
   final c = context.c;
   return Padding(
     padding: const EdgeInsets.fromLTRB(20, 26, 20, 12),
-    child: Text(text,
-        style: TextStyle(
-            color: c.faint,
-            fontFamily: fructaFonts.mono,
-            fontSize: 10.5,
-            letterSpacing: 1.6,
-            fontWeight: FontWeight.w600)),
+    child: Text(
+      text,
+      style: TextStyle(
+        color: c.faint,
+        fontFamily: fructaFonts.mono,
+        fontSize: 10.5,
+        letterSpacing: 1.6,
+        fontWeight: FontWeight.w600,
+      ),
+    ),
   );
 }
 
@@ -1209,17 +1317,20 @@ class _RankLine extends StatelessWidget {
               child: Text.rich(
                 TextSpan(
                   style: TextStyle(
-                      color: c.muted,
-                      fontFamily: fructaFonts.mono,
-                      fontSize: 11,
-                      height: 1.3),
+                    color: c.muted,
+                    fontFamily: fructaFonts.mono,
+                    fontSize: 11,
+                    height: 1.3,
+                  ),
                   children: [
                     TextSpan(
-                        text: '#$rank of $total',
-                        style: TextStyle(
-                            color: c.accent, fontWeight: FontWeight.w700)),
-                    TextSpan(
-                        text: ' $currency $typeLabel funds by net yield'),
+                      text: '#$rank of $total',
+                      style: TextStyle(
+                        color: c.accent,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    TextSpan(text: ' $currency $typeLabel funds by net yield'),
                   ],
                 ),
               ),
@@ -1250,8 +1361,9 @@ class _BenchmarkLine extends StatelessWidget {
     final delta = fundRate - benchRate;
     final beating = delta >= 0;
     final col = c.delta(delta);
-    final mag =
-        beating ? '+${delta.toStringAsFixed(2)}' : delta.abs().toStringAsFixed(2);
+    final mag = beating
+        ? '+${delta.toStringAsFixed(2)}'
+        : delta.abs().toStringAsFixed(2);
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
       child: Container(
@@ -1263,28 +1375,35 @@ class _BenchmarkLine extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(beating ? Icons.trending_up : Icons.trending_down,
-                size: 15, color: col),
+            Icon(
+              beating ? Icons.trending_up : Icons.trending_down,
+              size: 15,
+              color: col,
+            ),
             const SizedBox(width: 8),
             Expanded(
               child: Text.rich(
                 TextSpan(
                   style: TextStyle(
-                      color: c.muted,
-                      fontFamily: fructaFonts.mono,
-                      fontSize: 11,
-                      height: 1.3),
+                    color: c.muted,
+                    fontFamily: fructaFonts.mono,
+                    fontSize: 11,
+                    height: 1.3,
+                  ),
                   children: [
                     TextSpan(text: beating ? 'Beating the ' : 'Trailing the '),
                     TextSpan(
-                        text: label,
-                        style: TextStyle(
-                            color: c.text, fontWeight: FontWeight.w600)),
+                      text: label,
+                      style: TextStyle(
+                        color: c.text,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                     const TextSpan(text: ' by '),
                     TextSpan(
-                        text: '$mag pts',
-                        style:
-                            TextStyle(color: col, fontWeight: FontWeight.w700)),
+                      text: '$mag pts',
+                      style: TextStyle(color: col, fontWeight: FontWeight.w700),
+                    ),
                   ],
                 ),
               ),
@@ -1320,25 +1439,25 @@ class _RiskBand extends StatelessWidget {
   static ({int level, String label, String note})? _spec(String? type) =>
       switch (type) {
         'mmf' => (
-            level: 1,
-            label: t('company.risk.low'),
-            note: t('company.risk.mmfNote'),
-          ),
+          level: 1,
+          label: t('company.risk.low'),
+          note: t('company.risk.mmfNote'),
+        ),
         'fixed_income' => (
-            level: 2,
-            label: t('company.risk.lowMed'),
-            note: t('company.risk.fixedIncomeNote'),
-          ),
+          level: 2,
+          label: t('company.risk.lowMed'),
+          note: t('company.risk.fixedIncomeNote'),
+        ),
         'balanced' => (
-            level: 3,
-            label: t('company.risk.med'),
-            note: t('company.risk.balancedNote'),
-          ),
+          level: 3,
+          label: t('company.risk.med'),
+          note: t('company.risk.balancedNote'),
+        ),
         'equity' => (
-            level: 4,
-            label: t('company.risk.high'),
-            note: t('company.risk.equityNote'),
-          ),
+          level: 4,
+          label: t('company.risk.high'),
+          note: t('company.risk.equityNote'),
+        ),
         _ => null,
       };
 
@@ -1365,21 +1484,27 @@ class _RiskBand extends StatelessWidget {
           children: [
             Row(
               children: [
-                Text(t('company.risk.title'),
-                    style: TextStyle(
-                        color: c.faint,
-                        fontFamily: fructaFonts.mono,
-                        fontSize: 10.5,
-                        letterSpacing: 1.6,
-                        fontWeight: FontWeight.w600)),
+                Text(
+                  t('company.risk.title'),
+                  style: TextStyle(
+                    color: c.faint,
+                    fontFamily: fructaFonts.mono,
+                    fontSize: 10.5,
+                    letterSpacing: 1.6,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const Spacer(),
-                Text(s.label.toUpperCase(),
-                    style: TextStyle(
-                        color: labelHue,
-                        fontFamily: fructaFonts.mono,
-                        fontSize: 11,
-                        letterSpacing: 0.6,
-                        fontWeight: FontWeight.w700)),
+                Text(
+                  s.label.toUpperCase(),
+                  style: TextStyle(
+                    color: labelHue,
+                    fontFamily: fructaFonts.mono,
+                    fontSize: 11,
+                    letterSpacing: 0.6,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 12),
@@ -1402,24 +1527,32 @@ class _RiskBand extends StatelessWidget {
             const SizedBox(height: 7),
             Row(
               children: [
-                Text(t('company.risk.lower'),
-                    style: TextStyle(
-                        color: c.faint,
-                        fontFamily: fructaFonts.mono,
-                        fontSize: 8.5,
-                        letterSpacing: 0.4)),
+                Text(
+                  t('company.risk.lower'),
+                  style: TextStyle(
+                    color: c.faint,
+                    fontFamily: fructaFonts.mono,
+                    fontSize: 8.5,
+                    letterSpacing: 0.4,
+                  ),
+                ),
                 const Spacer(),
-                Text(t('company.risk.higher'),
-                    style: TextStyle(
-                        color: c.faint,
-                        fontFamily: fructaFonts.mono,
-                        fontSize: 8.5,
-                        letterSpacing: 0.4)),
+                Text(
+                  t('company.risk.higher'),
+                  style: TextStyle(
+                    color: c.faint,
+                    fontFamily: fructaFonts.mono,
+                    fontSize: 8.5,
+                    letterSpacing: 0.4,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 12),
-            Text(s.note,
-                style: TextStyle(color: c.muted, fontSize: 12.5, height: 1.45)),
+            Text(
+              s.note,
+              style: TextStyle(color: c.muted, fontSize: 12.5, height: 1.45),
+            ),
           ],
         ),
       ),
@@ -1460,8 +1593,7 @@ class _ProjectionSectionState extends State<_ProjectionSection> {
     _scale = _projScaleFor(widget.fund);
     _topUp = _scale.topUp;
     final seed = widget.fund.minInvest;
-    _initial =
-        TextEditingController(text: seed != null ? _commas(seed) : '');
+    _initial = TextEditingController(text: seed != null ? _commas(seed) : '');
   }
 
   @override
@@ -1521,22 +1653,30 @@ class _ProjectionSectionState extends State<_ProjectionSection> {
     // path and lost another 15%. The engine now takes net_of and decides.
     final due = fund.whtStillDue;
     final wht = widget.whtPct / 100;
-    final projected = ProjectionEngine.project(initial, rate, _months,
-        monthlyTopUp: _topUp,
-        net: true,
-        whtPct: widget.whtPct,
-        netOf: fund.netOf,
-        taxFree: taxFree);
+    final projected = ProjectionEngine.project(
+      initial,
+      rate,
+      _months,
+      monthlyTopUp: _topUp,
+      net: true,
+      whtPct: widget.whtPct,
+      netOf: fund.netOf,
+      taxFree: taxFree,
+    );
     final netInterest = projected - contributed;
     final grossInterest = due ? netInterest / (1 - wht) : netInterest;
     final whtPaid = grossInterest - netInterest;
 
-    final series = ProjectionEngine.series(initial, rate, _months,
-        monthlyTopUp: _topUp,
-        net: true,
-        whtPct: widget.whtPct,
-        netOf: fund.netOf,
-        taxFree: taxFree);
+    final series = ProjectionEngine.series(
+      initial,
+      rate,
+      _months,
+      monthlyTopUp: _topUp,
+      net: true,
+      whtPct: widget.whtPct,
+      netOf: fund.netOf,
+      taxFree: taxFree,
+    );
 
     // Formats in the FUND's currency, not KES. The old name of this closure
     // was `kes`, which is exactly the assumption this delivery is unpicking.
@@ -1555,13 +1695,16 @@ class _ProjectionSectionState extends State<_ProjectionSection> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // headline projected value
-                Text(amt(projected),
-                    style: TextStyle(
-                        color: c.text,
-                        fontFamily: fructaFonts.mono,
-                        fontSize: 30,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: -1.1)),
+                Text(
+                  amt(projected),
+                  style: TextStyle(
+                    color: c.text,
+                    fontFamily: fructaFonts.mono,
+                    fontSize: 30,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -1.1,
+                  ),
+                ),
                 const SizedBox(height: 6),
                 Row(
                   children: [
@@ -1570,9 +1713,10 @@ class _ProjectionSectionState extends State<_ProjectionSection> {
                       child: Text(
                         '${amt(netInterest < 0 ? 0 : netInterest)} net growth \u00b7 over ${_horizonLabel(_months)}',
                         style: TextStyle(
-                            color: c.up,
-                            fontFamily: fructaFonts.mono,
-                            fontSize: 12.5),
+                          color: c.up,
+                          fontFamily: fructaFonts.mono,
+                          fontSize: 12.5,
+                        ),
                       ),
                     ),
                   ],
@@ -1629,8 +1773,7 @@ class _ProjectionSectionState extends State<_ProjectionSection> {
               children: [
                 _LedgerRow(
                   k: 'You contribute',
-                  sub:
-                      '${amt(initial)} + ${amt(_topUp)} \u00d7 $_months',
+                  sub: '${amt(initial)} + ${amt(_topUp)} \u00d7 $_months',
                   v: amt(contributed),
                 ),
                 _LedgerRow(
@@ -1682,8 +1825,7 @@ class _ProjectionSectionState extends State<_ProjectionSection> {
                       'fee': '${fund.mgmtFee}',
                       'rate': rate.toStringAsFixed(2),
                     }),
-                    style: TextStyle(
-                        color: c.faint, fontSize: 11, height: 1.4),
+                    style: TextStyle(color: c.faint, fontSize: 11, height: 1.4),
                   ),
                 ),
               ],
@@ -1702,95 +1844,111 @@ class _ProjectionSectionState extends State<_ProjectionSection> {
   }
 
   Widget _amountField(fructaColors c, String cur, double rate) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(t('company.proj.initial'),
-                  style: TextStyle(color: c.muted, fontSize: 11.5)),
-              if (widget.fund.minInvest != null)
-                Text(
-                    t('company.proj.min',
-                        {'amt': money(cur, widget.fund.minInvest!)}),
-                    style: TextStyle(
-                        color: c.faint,
-                        fontFamily: fructaFonts.mono,
-                        fontSize: 11.5)),
-            ],
+          Text(
+            t('company.proj.initial'),
+            style: TextStyle(color: c.muted, fontSize: 11.5),
           ),
-          const SizedBox(height: 6),
-          Container(
-            decoration: BoxDecoration(
-              color: c.s2,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: c.line),
+          if (widget.fund.minInvest != null)
+            Text(
+              t('company.proj.min', {
+                'amt': money(cur, widget.fund.minInvest!),
+              }),
+              style: TextStyle(
+                color: c.faint,
+                fontFamily: fructaFonts.mono,
+                fontSize: 11.5,
+              ),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: Row(
-              children: [
-                Text(cur,
-                    style: TextStyle(
-                        color: c.muted,
-                        fontFamily: fructaFonts.mono,
-                        fontSize: 13)),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextField(
-                    controller: _initial,
-                    keyboardType: const TextInputType.numberWithOptions(),
-                    onChanged: (_) => setState(() {}),
-                    style: TextStyle(
-                        color: c.text,
-                        fontFamily: fructaFonts.mono,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600),
-                    decoration: InputDecoration(
-                      isDense: true,
-                      contentPadding:
-                          const EdgeInsets.symmetric(vertical: 14),
-                      border: InputBorder.none,
-                      hintText: '0',
-                      hintStyle: TextStyle(
-                          color: c.faint, fontFamily: fructaFonts.mono),
-                    ),
+        ],
+      ),
+      const SizedBox(height: 6),
+      Container(
+        decoration: BoxDecoration(
+          color: c.s2,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: c.line),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        child: Row(
+          children: [
+            Text(
+              cur,
+              style: TextStyle(
+                color: c.muted,
+                fontFamily: fructaFonts.mono,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: TextField(
+                controller: _initial,
+                keyboardType: const TextInputType.numberWithOptions(),
+                onChanged: (_) => setState(() {}),
+                style: TextStyle(
+                  color: c.text,
+                  fontFamily: fructaFonts.mono,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                ),
+                decoration: InputDecoration(
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                  border: InputBorder.none,
+                  hintText: '0',
+                  hintStyle: TextStyle(
+                    color: c.faint,
+                    fontFamily: fructaFonts.mono,
                   ),
                 ),
-                const SizedBox(width: 8),
-                Text(t('company.proj.earning',
-                        {'rate': rate.toStringAsFixed(2)}),
-                    style: TextStyle(
-                        color: c.faint,
-                        fontFamily: fructaFonts.mono,
-                        fontSize: 10.5)),
-              ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              t('company.proj.earning', {'rate': rate.toStringAsFixed(2)}),
+              style: TextStyle(
+                color: c.faint,
+                fontFamily: fructaFonts.mono,
+                fontSize: 10.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
+
+  Widget _sliderRow(
+    fructaColors c, {
+    required String label,
+    required String valueText,
+    required Widget slider,
+  }) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(color: c.muted, fontSize: 11.5)),
+          Text(
+            valueText,
+            style: TextStyle(
+              color: c.text,
+              fontFamily: fructaFonts.mono,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
-      );
-
-  Widget _sliderRow(fructaColors c,
-          {required String label,
-          required String valueText,
-          required Widget slider}) =>
-      Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(label, style: TextStyle(color: c.muted, fontSize: 11.5)),
-              Text(valueText,
-                  style: TextStyle(
-                      color: c.text,
-                      fontFamily: fructaFonts.mono,
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w600)),
-            ],
-          ),
-          SizedBox(height: 34, child: slider),
-        ],
-      );
+      ),
+      SizedBox(height: 34, child: slider),
+    ],
+  );
 }
 
 class _LedgerRow extends StatelessWidget {
@@ -1818,9 +1976,7 @@ class _LedgerRow extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: total ? acc.withValues(alpha: 0.12) : null,
-        border: last
-            ? null
-            : Border(bottom: BorderSide(color: c.line)),
+        border: last ? null : Border(bottom: BorderSide(color: c.line)),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
       child: Row(
@@ -1830,30 +1986,38 @@ class _LedgerRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(k,
-                    style: TextStyle(
-                        color: total ? c.text : c.muted,
-                        fontSize: total ? 13 : 12.5,
-                        fontWeight:
-                            total ? FontWeight.w600 : FontWeight.w400)),
+                Text(
+                  k,
+                  style: TextStyle(
+                    color: total ? c.text : c.muted,
+                    fontSize: total ? 13 : 12.5,
+                    fontWeight: total ? FontWeight.w600 : FontWeight.w400,
+                  ),
+                ),
                 if (sub != null) ...[
                   const SizedBox(height: 2),
-                  Text(sub!,
-                      style: TextStyle(
-                          color: c.faint,
-                          fontFamily: fructaFonts.mono,
-                          fontSize: 10)),
+                  Text(
+                    sub!,
+                    style: TextStyle(
+                      color: c.faint,
+                      fontFamily: fructaFonts.mono,
+                      fontSize: 10,
+                    ),
+                  ),
                 ],
               ],
             ),
           ),
           const SizedBox(width: 12),
-          Text(v,
-              style: TextStyle(
-                  color: total ? acc : (vColor ?? c.text),
-                  fontFamily: fructaFonts.mono,
-                  fontSize: total ? 16 : 13.5,
-                  fontWeight: total ? FontWeight.w700 : FontWeight.w600)),
+          Text(
+            v,
+            style: TextStyle(
+              color: total ? acc : (vColor ?? c.text),
+              fontFamily: fructaFonts.mono,
+              fontSize: total ? 16 : 13.5,
+              fontWeight: total ? FontWeight.w700 : FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );
@@ -1871,40 +2035,42 @@ class _ProjChart extends StatelessWidget {
     final lo = series.reduce((a, b) => a < b ? a : b);
     final hi = series.reduce((a, b) => a > b ? a : b);
     if (hi <= lo) return const SizedBox.shrink();
-    return LineChart(LineChartData(
-      minX: 0,
-      maxX: (series.length - 1).toDouble(),
-      minY: lo,
-      maxY: hi + (hi - lo) * 0.05,
-      gridData: const FlGridData(show: false),
-      titlesData: const FlTitlesData(show: false),
-      borderData: FlBorderData(show: false),
-      lineTouchData: const LineTouchData(enabled: false),
-      lineBarsData: [
-        LineChartBarData(
-          spots: [
-            for (var i = 0; i < series.length; i++)
-              FlSpot(i.toDouble(), series[i]),
-          ],
-          isCurved: true,
-          curveSmoothness: 0.28,
-          color: color,
-          barWidth: 2,
-          dotData: const FlDotData(show: false),
-          belowBarData: BarAreaData(
-            show: true,
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                color.withValues(alpha: 0.18),
-                color.withValues(alpha: 0.0),
-              ],
+    return LineChart(
+      LineChartData(
+        minX: 0,
+        maxX: (series.length - 1).toDouble(),
+        minY: lo,
+        maxY: hi + (hi - lo) * 0.05,
+        gridData: const FlGridData(show: false),
+        titlesData: const FlTitlesData(show: false),
+        borderData: FlBorderData(show: false),
+        lineTouchData: const LineTouchData(enabled: false),
+        lineBarsData: [
+          LineChartBarData(
+            spots: [
+              for (var i = 0; i < series.length; i++)
+                FlSpot(i.toDouble(), series[i]),
+            ],
+            isCurved: true,
+            curveSmoothness: 0.28,
+            color: color,
+            barWidth: 2,
+            dotData: const FlDotData(show: false),
+            belowBarData: BarAreaData(
+              show: true,
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  color.withValues(alpha: 0.18),
+                  color.withValues(alpha: 0.0),
+                ],
+              ),
             ),
           ),
-        ),
-      ],
-    ));
+        ],
+      ),
+    );
   }
 }
 
@@ -1924,10 +2090,11 @@ class _Triad extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.c;
     Widget divider() => Container(
-        width: 1,
-        height: 30,
-        margin: const EdgeInsets.symmetric(horizontal: 14),
-        color: c.line);
+      width: 1,
+      height: 30,
+      margin: const EdgeInsets.symmetric(horizontal: 14),
+      color: c.line,
+    );
     return Row(
       children: [
         _TriadCell(k: netLabel, v: netValue),
@@ -1963,10 +2130,11 @@ class _TriadNav extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.c;
     Widget divider() => Container(
-        width: 1,
-        height: 30,
-        margin: const EdgeInsets.symmetric(horizontal: 14),
-        color: c.line);
+      width: 1,
+      height: 30,
+      margin: const EdgeInsets.symmetric(horizontal: 14),
+      color: c.line,
+    );
     return Row(
       children: [
         _TriadCell(
@@ -2017,10 +2185,11 @@ class _TriadReturn extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.c;
     Widget divider() => Container(
-        width: 1,
-        height: 30,
-        margin: const EdgeInsets.symmetric(horizontal: 14),
-        color: c.line);
+      width: 1,
+      height: 30,
+      margin: const EdgeInsets.symmetric(horizontal: 14),
+      color: c.line,
+    );
 
     final avgKey = averageLabel == null
         ? 'AVERAGE'
@@ -2065,20 +2234,26 @@ class _TriadCell extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(k,
-              style: TextStyle(
-                  color: c.faint,
-                  fontFamily: fructaFonts.mono,
-                  fontSize: 9.5,
-                  letterSpacing: 1,
-                  fontWeight: FontWeight.w600)),
+          Text(
+            k,
+            style: TextStyle(
+              color: c.faint,
+              fontFamily: fructaFonts.mono,
+              fontSize: 9.5,
+              letterSpacing: 1,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const SizedBox(height: 3),
-          Text(v,
-              style: TextStyle(
-                  color: color ?? c.text,
-                  fontFamily: fructaFonts.mono,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500)),
+          Text(
+            v,
+            style: TextStyle(
+              color: color ?? c.text,
+              fontFamily: fructaFonts.mono,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         ],
       ),
     );
@@ -2101,23 +2276,27 @@ class _Stat3 extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.c;
     Widget divider() => Container(
-        width: 1,
-        height: 34,
-        margin: const EdgeInsets.symmetric(horizontal: 12),
-        color: c.line);
+      width: 1,
+      height: 34,
+      margin: const EdgeInsets.symmetric(horizontal: 12),
+      color: c.line,
+    );
     return Row(
       children: [
         _StatCell(
-            k: 'MANAGER AUM',
-            v: aum != null ? FundComposition.kesShort(aum!) : t('common.dash')),
+          k: 'MANAGER AUM',
+          v: aum != null ? FundComposition.kesShort(aum!) : t('common.dash'),
+        ),
         divider(),
         _StatCell(
-            k: 'RANK',
-            v: rank != null ? '#$rank / $rankTotal' : t('common.dash')),
+          k: 'RANK',
+          v: rank != null ? '#$rank / $rankTotal' : t('common.dash'),
+        ),
         divider(),
         _StatCell(
-            k: 'MARKET SHARE',
-            v: share != null ? '${share!.toStringAsFixed(1)}%' : t('common.dash')),
+          k: 'MARKET SHARE',
+          v: share != null ? '${share!.toStringAsFixed(1)}%' : t('common.dash'),
+        ),
       ],
     );
   }
@@ -2135,20 +2314,26 @@ class _StatCell extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(k,
-              style: TextStyle(
-                  color: c.faint,
-                  fontFamily: fructaFonts.mono,
-                  fontSize: 9.5,
-                  letterSpacing: 0.8,
-                  fontWeight: FontWeight.w600)),
+          Text(
+            k,
+            style: TextStyle(
+              color: c.faint,
+              fontFamily: fructaFonts.mono,
+              fontSize: 9.5,
+              letterSpacing: 0.8,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const SizedBox(height: 3),
-          Text(v,
-              style: TextStyle(
-                  color: c.text,
-                  fontFamily: fructaFonts.mono,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600)),
+          Text(
+            v,
+            style: TextStyle(
+              color: c.text,
+              fontFamily: fructaFonts.mono,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );
@@ -2173,34 +2358,45 @@ class _Facts extends StatelessWidget {
       pairs.add(rows.sublist(i, (i + 2) > rows.length ? rows.length : i + 2));
     }
     Widget cell(_Fact f, {required bool left}) => Padding(
-          padding: EdgeInsets.only(
-              top: 12, bottom: 12, left: left ? 14 : 0, right: left ? 0 : 14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(f.k,
-                  style: TextStyle(
-                      color: c.faint,
-                      fontFamily: fructaFonts.mono,
-                      fontSize: 9.5,
-                      letterSpacing: 0.8,
-                      fontWeight: FontWeight.w600)),
-              const SizedBox(height: 3),
-              Text(f.v,
-                  style: TextStyle(
-                      color: c.text,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500)),
-            ],
+      padding: EdgeInsets.only(
+        top: 12,
+        bottom: 12,
+        left: left ? 14 : 0,
+        right: left ? 0 : 14,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            f.k,
+            style: TextStyle(
+              color: c.faint,
+              fontFamily: fructaFonts.mono,
+              fontSize: 9.5,
+              letterSpacing: 0.8,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-        );
+          const SizedBox(height: 3),
+          Text(
+            f.v,
+            style: TextStyle(
+              color: c.text,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
     return Column(
       children: [
         for (var p = 0; p < pairs.length; p++)
           Container(
             decoration: p < pairs.length - 1
                 ? BoxDecoration(
-                    border: Border(bottom: BorderSide(color: c.line)))
+                    border: Border(bottom: BorderSide(color: c.line)),
+                  )
                 : null,
             child: IntrinsicHeight(
               child: Row(

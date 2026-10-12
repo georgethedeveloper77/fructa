@@ -57,10 +57,10 @@ class SettingsPrefs {
   /// A toggle that is ON contributes nothing: no tag is the default state, and
   /// that is what makes the whole scheme backward compatible.
   Set<String> get muteTags => {
-        if (!rateMoves) Push.muteRateMoves,
-        if (!savedComparisons) Push.muteSaved,
-        if (!couponsMaturities) Push.muteCoupons,
-      };
+    if (!rateMoves) Push.muteRateMoves,
+    if (!savedComparisons) Push.muteSaved,
+    if (!couponsMaturities) Push.muteCoupons,
+  };
 
   /// Same derivation, straight off the Hive box.
   ///
@@ -101,7 +101,8 @@ class SettingsController extends Notifier<SettingsPrefs> {
   bool _get(String k, bool d) =>
       ref.read(settingsBoxProvider).get('pref_$k', defaultValue: d) as bool;
 
-  void _put(String k, bool v) => ref.read(settingsBoxProvider).put('pref_$k', v);
+  void _put(String k, bool v) =>
+      ref.read(settingsBoxProvider).put('pref_$k', v);
 
   @override
   SettingsPrefs build() {

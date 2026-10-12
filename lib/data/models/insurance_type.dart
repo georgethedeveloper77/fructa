@@ -24,19 +24,31 @@ class InsuranceType {
   bool get isLive => status == 'live';
 
   factory InsuranceType.fromJson(Map<String, dynamic> j) => InsuranceType(
-        key: (j['key'] ?? '') as String,
-        label: (j['label'] ?? '') as String,
-        icon: j['icon'] as String?,
-        status: (j['status'] ?? 'soon') as String,
-        ord: (j['ord'] as num?)?.toInt() ?? 0,
-        sub: j['sub'] as String?,
-        lottieUrl: j['lottie_url'] as String?,
-      );
+    key: (j['key'] ?? '') as String,
+    label: (j['label'] ?? '') as String,
+    icon: j['icon'] as String?,
+    status: (j['status'] ?? 'soon') as String,
+    ord: (j['ord'] as num?)?.toInt() ?? 0,
+    sub: j['sub'] as String?,
+    lottieUrl: j['lottie_url'] as String?,
+  );
 
   /// Baked fallback used when the snapshot carries no types (e.g. before the
   /// first publish): the two flows the app can price. Matches the mockup.
   static const fallback = [
-    InsuranceType(key: 'motor', label: 'Motor', icon: 'motor', status: 'live', ord: 0),
-    InsuranceType(key: 'travel', label: 'Travel', icon: 'travel', status: 'live', ord: 1),
+    InsuranceType(
+      key: 'motor',
+      label: 'Motor',
+      icon: 'motor',
+      status: 'live',
+      ord: 0,
+    ),
+    InsuranceType(
+      key: 'travel',
+      label: 'Travel',
+      icon: 'travel',
+      status: 'live',
+      ord: 1,
+    ),
   ];
 }

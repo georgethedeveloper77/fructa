@@ -22,6 +22,7 @@ class ProjectionEngine {
   /// history, not a run rate. Both get the growth card instead, which looks
   /// backwards and therefore promises nothing.
   static bool canProject(String? basis) => (basis ?? 'yield') == 'yield';
+
   /// Effective monthly rate from an effective annual rate (%).
   static double monthlyRate(double annualRatePercent) {
     final r = annualRatePercent / 100.0;
@@ -62,8 +63,13 @@ class ProjectionEngine {
     NetOf? netOf,
     bool taxFree = false,
   }) {
-    final m = _effMonthly(annualRatePercent, net,
-        whtPct: whtPct, netOf: netOf, taxFree: taxFree);
+    final m = _effMonthly(
+      annualRatePercent,
+      net,
+      whtPct: whtPct,
+      netOf: netOf,
+      taxFree: taxFree,
+    );
     final growth = math.pow(1 + m, months).toDouble();
     final fvPrincipal = principal * growth;
     final fvContrib = m == 0
@@ -83,8 +89,13 @@ class ProjectionEngine {
     NetOf? netOf,
     bool taxFree = false,
   }) {
-    final m = _effMonthly(annualRatePercent, net,
-        whtPct: whtPct, netOf: netOf, taxFree: taxFree);
+    final m = _effMonthly(
+      annualRatePercent,
+      net,
+      whtPct: whtPct,
+      netOf: netOf,
+      taxFree: taxFree,
+    );
     final out = <double>[principal];
     var v = principal;
     for (var i = 1; i <= months; i++) {
@@ -107,8 +118,13 @@ class ProjectionEngine {
     bool taxFree = false,
   }) {
     if (target <= principal) return 0;
-    final m = _effMonthly(annualRatePercent, net,
-        whtPct: whtPct, netOf: netOf, taxFree: taxFree);
+    final m = _effMonthly(
+      annualRatePercent,
+      net,
+      whtPct: whtPct,
+      netOf: netOf,
+      taxFree: taxFree,
+    );
     if (m <= 0 && monthlyTopUp <= 0) return null;
     var v = principal;
     var months = 0;

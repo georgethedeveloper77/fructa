@@ -64,11 +64,7 @@ class InsurerReviews extends ConsumerWidget {
             return Column(
               children: [
                 for (var k = 0; k < ordered.length; k++)
-                  _ReviewCard(
-                    review: ordered[k],
-                    insurer: insurer,
-                    index: k,
-                  ),
+                  _ReviewCard(review: ordered[k], insurer: insurer, index: k),
               ],
             );
           },
@@ -202,8 +198,7 @@ class _Histogram extends StatelessWidget {
     final complete = reviews.isNotEmpty && reviews.length == stats.count;
     final claimed = reviews.where((r) => r.claimsHolder).toList();
     final untested = reviews.where((r) => !r.claimsHolder).toList();
-    final showSplit =
-        complete && claimed.isNotEmpty && untested.isNotEmpty;
+    final showSplit = complete && claimed.isNotEmpty && untested.isNotEmpty;
     double mean(List<InsurerReview> l) =>
         l.fold<int>(0, (a, r) => a + r.rating) / l.length;
 
@@ -232,99 +227,100 @@ class _Histogram extends StatelessWidget {
             ),
           ],
           Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Column(
-            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text(
-                stats.average.toStringAsFixed(1),
-                style: TextStyle(
-                  color: c.text,
-                  fontFamily: fructaFonts.mono,
-                  fontSize: 38,
-                  height: 1,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -1.8,
-                ),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    stats.average.toStringAsFixed(1),
+                    style: TextStyle(
+                      color: c.text,
+                      fontFamily: fructaFonts.mono,
+                      fontSize: 38,
+                      height: 1,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -1.8,
+                    ),
+                  ),
+                  const SizedBox(height: 7),
+                  Stars(stats.average.round(), size: 12),
+                  const SizedBox(height: 6),
+                  Text(
+                    t('insure.review.count', {'n': '${stats.count}'}),
+                    style: TextStyle(color: c.faint, fontSize: 10),
+                  ),
+                ],
               ),
-              const SizedBox(height: 7),
-              Stars(stats.average.round(), size: 12),
-              const SizedBox(height: 6),
-              Text(
-                t('insure.review.count', {'n': '${stats.count}'}),
-                style: TextStyle(color: c.faint, fontSize: 10),
-              ),
-            ],
-          ),
-          const SizedBox(width: 20),
-          Expanded(
-            child: Column(
-              children: [
-                for (var star = 5; star >= 1; star--)
-                  Padding(
-                    padding: EdgeInsets.only(bottom: star == 1 ? 0 : 5),
-                    child: Row(
-                      children: [
-                        SizedBox(
-                          width: 9,
-                          child: Text(
-                            '$star',
-                            style: TextStyle(
-                              color: c.faint,
-                              fontFamily: fructaFonts.mono,
-                              fontSize: 10,
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  children: [
+                    for (var star = 5; star >= 1; star--)
+                      Padding(
+                        padding: EdgeInsets.only(bottom: star == 1 ? 0 : 5),
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: 9,
+                              child: Text(
+                                '$star',
+                                style: TextStyle(
+                                  color: c.faint,
+                                  fontFamily: fructaFonts.mono,
+                                  fontSize: 10,
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: Container(
-                              height: 6,
-                              color: c.s3,
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: TweenAnimationBuilder<double>(
-                                  tween: Tween(
-                                    begin: 0,
-                                    end: stats.fraction(star),
-                                  ),
-                                  duration: Duration(
-                                    milliseconds: 700 + (5 - star) * 60,
-                                  ),
-                                  curve: Curves.easeOutCubic,
-                                  builder: (_, v, _) => FractionallySizedBox(
-                                    widthFactor: v.clamp(0.0, 1.0),
-                                    child: Container(color: c.accent),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(4),
+                                child: Container(
+                                  height: 6,
+                                  color: c.s3,
+                                  child: Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: TweenAnimationBuilder<double>(
+                                      tween: Tween(
+                                        begin: 0,
+                                        end: stats.fraction(star),
+                                      ),
+                                      duration: Duration(
+                                        milliseconds: 700 + (5 - star) * 60,
+                                      ),
+                                      curve: Curves.easeOutCubic,
+                                      builder: (_, v, _) =>
+                                          FractionallySizedBox(
+                                            widthFactor: v.clamp(0.0, 1.0),
+                                            child: Container(color: c.accent),
+                                          ),
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          width: 22,
-                          child: Text(
-                            '${stats.buckets[star] ?? 0}',
-                            textAlign: TextAlign.right,
-                            style: TextStyle(
-                              color: c.faint,
-                              fontFamily: fructaFonts.mono,
-                              fontSize: 10,
+                            const SizedBox(width: 8),
+                            SizedBox(
+                              width: 22,
+                              child: Text(
+                                '${stats.buckets[star] ?? 0}',
+                                textAlign: TextAlign.right,
+                                style: TextStyle(
+                                  color: c.faint,
+                                  fontFamily: fructaFonts.mono,
+                                  fontSize: 10,
+                                ),
+                              ),
                             ),
-                          ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
         ],
       ),
     );

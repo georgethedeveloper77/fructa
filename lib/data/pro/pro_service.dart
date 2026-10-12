@@ -57,10 +57,8 @@ class ProService {
 
   /// [whenReady] with a ceiling, so a store SDK that never answers leaves the
   /// caller with "not available" instead of a spinner that never ends.
-  static Future<bool> _live() => whenReady.timeout(
-    const Duration(seconds: 12),
-    onTimeout: () => false,
-  );
+  static Future<bool> _live() =>
+      whenReady.timeout(const Duration(seconds: 12), onTimeout: () => false);
 
   /// Whether the SDK came up. False means every query below answers empty.
   static bool get configured => _configured;

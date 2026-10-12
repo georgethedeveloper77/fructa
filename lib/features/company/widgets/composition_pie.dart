@@ -78,34 +78,34 @@ class _CompositionPieState extends State<CompositionPie>
                       builder: (context, _) {
                         final g = Curves.easeOutCubic.transform(_c.value);
                         return PieChart(
-                      PieChartData(
-                        sectionsSpace: 2,
-                        centerSpaceRadius: 42,
-                        startDegreeOffset: -90,
-                        pieTouchData: PieTouchData(
-                          touchCallback: (event, resp) {
-                            if (!event.isInterestedForInteractions ||
-                                resp?.touchedSection == null) {
-                              setState(() => _touched = -1);
-                              return;
-                            }
-                            setState(
-                              () => _touched =
-                                  resp!.touchedSection!.touchedSectionIndex,
-                            );
-                          },
-                        ),
-                        sections: [
-                          for (var i = 0; i < slices.length; i++)
-                            PieChartSectionData(
-                              value: slices[i].value,
-                              color: slices[i].key.color,
-                              radius: (i == _touched ? 26 : 22) * g,
-                              showTitle: false,
+                          PieChartData(
+                            sectionsSpace: 2,
+                            centerSpaceRadius: 42,
+                            startDegreeOffset: -90,
+                            pieTouchData: PieTouchData(
+                              touchCallback: (event, resp) {
+                                if (!event.isInterestedForInteractions ||
+                                    resp?.touchedSection == null) {
+                                  setState(() => _touched = -1);
+                                  return;
+                                }
+                                setState(
+                                  () => _touched =
+                                      resp!.touchedSection!.touchedSectionIndex,
+                                );
+                              },
                             ),
-                        ],
-                      ),
-                      duration: Duration.zero,
+                            sections: [
+                              for (var i = 0; i < slices.length; i++)
+                                PieChartSectionData(
+                                  value: slices[i].value,
+                                  color: slices[i].key.color,
+                                  radius: (i == _touched ? 26 : 22) * g,
+                                  showTitle: false,
+                                ),
+                            ],
+                          ),
+                          duration: Duration.zero,
                         );
                       },
                     ),

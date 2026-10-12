@@ -270,10 +270,8 @@ class _BarsPainter extends CustomPainter {
       ReturnPeriod.quarter => 'Q${((d.month - 1) ~/ 3) + 1} $yy',
       ReturnPeriod.year => '${d.year}',
       ReturnPeriod.half => 'H${d.month <= 6 ? 1 : 2} $yy',
-      _ => '${const [
-        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-      ][d.month - 1]} $yy',
+      _ =>
+        '${const ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.month - 1]} $yy',
     };
   }
 

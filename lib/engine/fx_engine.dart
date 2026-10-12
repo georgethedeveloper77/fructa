@@ -62,13 +62,9 @@ enum FxHurdleBand { low, moderate, high }
 /// A single day's quote. [bid] and [ask] are null when the source published a
 /// mean only, which is the case for every row written before the CBK backfill.
 class FxQuote {
-  const FxQuote({
-    required this.mean,
-    this.bid,
-    this.ask,
-    this.spread = 0.015,
-  })  : assert(mean > 0, 'mean must be positive'),
-        assert(spread >= 0 && spread < 0.5, 'spread is a one way fraction');
+  const FxQuote({required this.mean, this.bid, this.ask, this.spread = 0.015})
+    : assert(mean > 0, 'mean must be positive'),
+      assert(spread >= 0 && spread < 0.5, 'spread is a one way fraction');
 
   /// CBK indicative mean.
   final double mean;
@@ -107,11 +103,11 @@ class FxQuote {
   /// Replaces the legs with a quote the user was actually given. Passing a
   /// single figure treats it as the ask, which is what a buyer is quoted.
   FxQuote withUserQuote({double? userAsk, double? userBid}) => FxQuote(
-        mean: mean,
-        bid: userBid ?? bid,
-        ask: userAsk ?? ask,
-        spread: spread,
-      );
+    mean: mean,
+    bid: userBid ?? bid,
+    ask: userAsk ?? ask,
+    spread: spread,
+  );
 }
 
 /// One comparison, fully specified. Every figure on the page derives from an
@@ -123,8 +119,8 @@ class FxCase {
     required this.usdNet,
     required this.stance,
     this.years = 1,
-  })  : assert(years > 0, 'years must be positive'),
-        assert(kesNet > -1 && usdNet > -1, 'net rates are fractions');
+  }) : assert(years > 0, 'years must be positive'),
+       assert(kesNet > -1 && usdNet > -1, 'net rates are fractions');
 
   final FxQuote quote;
 
@@ -153,10 +149,7 @@ class FxCase {
   double? get breakeven {
     switch (stance) {
       case FxStance.buying:
-        return quote.mean *
-            quote.askFactor *
-            growthGap /
-            quote.bidFactor;
+        return quote.mean * quote.askFactor * growthGap / quote.bidFactor;
       case FxStance.holding:
         return quote.mean * growthGap;
       case FxStance.hedged:
@@ -217,14 +210,13 @@ class FxCase {
     double? usdNet,
     FxStance? stance,
     double? years,
-  }) =>
-      FxCase(
-        quote: quote ?? this.quote,
-        kesNet: kesNet ?? this.kesNet,
-        usdNet: usdNet ?? this.usdNet,
-        stance: stance ?? this.stance,
-        years: years ?? this.years,
-      );
+  }) => FxCase(
+    quote: quote ?? this.quote,
+    kesNet: kesNet ?? this.kesNet,
+    usdNet: usdNet ?? this.usdNet,
+    stance: stance ?? this.stance,
+    years: years ?? this.years,
+  );
 }
 
 /// Two paths valued in the same currency at the same moment.
@@ -368,12 +360,14 @@ abstract final class FxEngine {
           usdPath = amount * growUsd * exitBid;
       }
 
-      out.add(FxRacePoint(
-        monthIndex: start + m,
-        mean: meanNow,
-        kesPath: kesPath,
-        usdPath: usdPath,
-      ));
+      out.add(
+        FxRacePoint(
+          monthIndex: start + m,
+          mean: meanNow,
+          kesPath: kesPath,
+          usdPath: usdPath,
+        ),
+      );
     }
     return out;
   }
@@ -394,11 +388,7 @@ abstract final class FxEngine {
 
     for (var i = 0; i + windowMonths < means.length; i++) {
       final realised = (means[i + windowMonths] / means[i]) - 1;
-      windows.add(FxWindow(
-        startIndex: i,
-        realised: realised,
-        required: need,
-      ));
+      windows.add(FxWindow(startIndex: i, realised: realised, required: need));
     }
     return FxRecord(windows: windows, required: need);
   }
@@ -438,11 +428,13 @@ abstract final class FxEngine {
       kesPot = kesPot * stepKes + monthlyUsd * bidNow;
       usdPot = usdPot * stepUsd + monthlyUsd;
 
-      out.add(FxDripPoint(
-        monthIndex: start + m,
-        convertEachMonth: kesPot,
-        holdThenConvert: usdPot * bidNow,
-      ));
+      out.add(
+        FxDripPoint(
+          monthIndex: start + m,
+          convertEachMonth: kesPot,
+          holdThenConvert: usdPot * bidNow,
+        ),
+      );
     }
     return out;
   }
@@ -514,8 +506,7 @@ abstract final class FxEngine {
   /// the widget rebuilt, which reads as a glitch on a screen full of numbers.
   static int rotation({required DateTime now, required int count}) {
     if (count <= 1) return 0;
-    final dayOfYear =
-        now.difference(DateTime(now.year)).inDays;
+    final dayOfYear = now.difference(DateTime(now.year)).inDays;
     return dayOfYear % count;
   }
 }

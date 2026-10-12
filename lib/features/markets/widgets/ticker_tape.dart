@@ -137,27 +137,48 @@ class _TickerTapeState extends State<TickerTape>
     // legacy T-bill instrument rides at the end. Colours come straight from the
     // central palette so the ticker agrees with the donut and the pulse.
     final sections = <_Section>[
-      _Section('MMF KES', fundTypeColor('mmf'),
-          (f) => f.fundType == 'mmf' && f.currency == 'KES'),
-      _Section('MMF USD', fundTypeColor('mmf'),
-          (f) => f.fundType == 'mmf' && f.currency == 'USD'),
-      _Section('FIXED INCOME', fundTypeColor('fixed_income'),
-          (f) => f.fundType == 'fixed_income'),
-      _Section('SPECIAL', fundTypeColor('special'),
-          (f) => f.fundType == 'special'),
-      _Section('EQUITY', fundTypeColor('equity'),
-          (f) => f.fundType == 'equity'),
-      _Section('BALANCED', fundTypeColor('balanced'),
-          (f) => f.fundType == 'balanced'),
-      _Section('T-BILLS', categoryColor('tbill'),
-          (f) => f.category == 'tbill'),
+      _Section(
+        'MMF KES',
+        fundTypeColor('mmf'),
+        (f) => f.fundType == 'mmf' && f.currency == 'KES',
+      ),
+      _Section(
+        'MMF USD',
+        fundTypeColor('mmf'),
+        (f) => f.fundType == 'mmf' && f.currency == 'USD',
+      ),
+      _Section(
+        'FIXED INCOME',
+        fundTypeColor('fixed_income'),
+        (f) => f.fundType == 'fixed_income',
+      ),
+      _Section(
+        'SPECIAL',
+        fundTypeColor('special'),
+        (f) => f.fundType == 'special',
+      ),
+      _Section(
+        'EQUITY',
+        fundTypeColor('equity'),
+        (f) => f.fundType == 'equity',
+      ),
+      _Section(
+        'BALANCED',
+        fundTypeColor('balanced'),
+        (f) => f.fundType == 'balanced',
+      ),
+      _Section('T-BILLS', categoryColor('tbill'), (f) => f.category == 'tbill'),
     ];
 
     final items = <_Item>[];
     for (final sec in sections) {
       final group =
-          widget.funds.where((f) => f.currentRate != null && sec.test(f)).toList()
-            ..sort((a, b) => (b.currentRate ?? 0).compareTo(a.currentRate ?? 0));
+          widget.funds
+              .where((f) => f.currentRate != null && sec.test(f))
+              .toList()
+            ..sort(
+              (a, b) => (b.currentRate ?? 0).compareTo(a.currentRate ?? 0),
+            );
       if (group.isEmpty) continue;
       items.add(_HeaderItem(sec.label, sec.color));
       for (final f in group.take(6)) {
@@ -209,10 +230,16 @@ class _TickerTapeState extends State<TickerTape>
             itemBuilder: (context, i) {
               final it = items[i % items.length];
               final Widget child = switch (it) {
-                _HeaderItem(:final label, :final color) =>
-                  _header(label, color),
+                _HeaderItem(:final label, :final color) => _header(
+                  label,
+                  color,
+                ),
                 _FundItem(:final fund) => _fund(context, fund),
-                _FxItem(:final rate, :final move12) => _fx(context, rate, move12),
+                _FxItem(:final rate, :final move12) => _fx(
+                  context,
+                  rate,
+                  move12,
+                ),
                 _DividerItem() => _divider(context),
               };
               final onDouble = switch (it) {
@@ -235,18 +262,18 @@ class _TickerTapeState extends State<TickerTape>
   }
 
   Widget _header(String label, Color color) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: color,
-            fontFamily: fructaFonts.mono,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.5,
-          ),
-        ),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+    child: Text(
+      label,
+      style: TextStyle(
+        color: color,
+        fontFamily: fructaFonts.mono,
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.5,
+      ),
+    ),
+  );
 
   Widget _fund(BuildContext context, Fund f) {
     final c = context.c;
@@ -314,9 +341,9 @@ class _TickerTapeState extends State<TickerTape>
   }
 
   Widget _divider(BuildContext context) => Container(
-        width: 1,
-        height: 14,
-        margin: const EdgeInsets.symmetric(horizontal: 8),
-        color: context.c.line2,
-      );
+    width: 1,
+    height: 14,
+    margin: const EdgeInsets.symmetric(horizontal: 8),
+    color: context.c.line2,
+  );
 }

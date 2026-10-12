@@ -48,9 +48,8 @@ class MarketPoint {
   /// while min/max keep the column's numeric type and arrive as a STRING. A
   /// plain `as num` cast throws on the second. Parse both shapes here so no
   /// reader has to know.
-  static double? _n(dynamic v) => v is num
-      ? v.toDouble()
-      : (v is String ? double.tryParse(v) : null);
+  static double? _n(dynamic v) =>
+      v is num ? v.toDouble() : (v is String ? double.tryParse(v) : null);
 
   static MarketPoint? fromJson(Map<String, dynamic> j) {
     final type = j['fund_type'] as String?;

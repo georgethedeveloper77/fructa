@@ -247,7 +247,10 @@ class _SearchOverlayState extends ConsumerState<SearchOverlay> {
     // result is scored by WHERE it matched: a hit in the name outranks a hit in
     // the category tag, and a word that starts a name outranks one buried in
     // the middle.
-    final terms = needle.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+    final terms = needle
+        .split(RegExp(r'\s+'))
+        .where((w) => w.isNotEmpty)
+        .toList();
     final scored = <({_Hit hit, double score})>[];
 
     for (final h in hits) {
@@ -278,7 +281,10 @@ class _SearchOverlayState extends ConsumerState<SearchOverlay> {
         }
         // AND, not OR. Adding a word must narrow the list, which is the whole
         // reason a person types a second one.
-        if (best == 0) { allMatched = false; break; }
+        if (best == 0) {
+          allMatched = false;
+          break;
+        }
         score += best;
       }
       if (!allMatched) continue;

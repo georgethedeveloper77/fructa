@@ -36,13 +36,12 @@ class AccrualEngine {
     NetOf? netOf,
     bool taxFree = false,
     double whtPct = Tax.defaultWhtPct,
-  }) =>
-      Tax.apply(
-        dailyInterest(balance, annualRatePercent),
-        netOf: netOf,
-        taxFree: taxFree,
-        whtPct: whtPct,
-      );
+  }) => Tax.apply(
+    dailyInterest(balance, annualRatePercent),
+    netOf: netOf,
+    taxFree: taxFree,
+    whtPct: whtPct,
+  );
 
   /// Value of [balance] after [days], daily-compounded.
   /// When [net], WHT is taken from each day's interest before it reinvests.
@@ -75,7 +74,14 @@ class AccrualEngine {
     bool taxFree = false,
     double whtPct = Tax.defaultWhtPct,
   }) =>
-      accrue(balance, annualRatePercent, days,
-          net: net, netOf: netOf, taxFree: taxFree, whtPct: whtPct) -
+      accrue(
+        balance,
+        annualRatePercent,
+        days,
+        net: net,
+        netOf: netOf,
+        taxFree: taxFree,
+        whtPct: whtPct,
+      ) -
       balance;
 }

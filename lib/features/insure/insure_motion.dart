@@ -77,7 +77,8 @@ class _RingPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final rect = Offset(stroke / 2, stroke / 2) &
+    final rect =
+        Offset(stroke / 2, stroke / 2) &
         Size(size.width - stroke, size.height - stroke);
     canvas.drawArc(
       rect,
@@ -113,7 +114,12 @@ class _RingPainter extends CustomPainter {
 /// string into a position, which is the whole point: a retail buyer has never
 /// seen a GCR grade and cannot rank it unaided.
 class GradeScale extends StatelessWidget {
-  const GradeScale({super.key, required this.filled, this.steps = 7, this.color});
+  const GradeScale({
+    super.key,
+    required this.filled,
+    this.steps = 7,
+    this.color,
+  });
 
   final int filled;
   final int steps;
@@ -242,11 +248,7 @@ class BarChart extends StatelessWidget {
           for (var i = 0; i < bars.length; i++)
             Padding(
               padding: EdgeInsets.only(bottom: i == bars.length - 1 ? 0 : 11),
-              child: _Bar(
-                datum: bars[i],
-                index: i,
-                labelWidth: labelWidth,
-              ),
+              child: _Bar(datum: bars[i], index: i, labelWidth: labelWidth),
             ),
           if (foot != null) ...[
             const SizedBox(height: 14),
@@ -483,8 +485,8 @@ class _Seg extends StatelessWidget {
     final fg = !enabled
         ? c.faint.withValues(alpha: 0.45)
         : active
-            ? c.bg
-            : c.muted;
+        ? c.bg
+        : c.muted;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: enabled ? onTap : null,
@@ -550,7 +552,10 @@ class KpiStrip extends StatelessWidget {
             if (i > 0) const SizedBox(width: 9),
             Expanded(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 11,
+                ),
                 decoration: BoxDecoration(
                   color: c.s1,
                   borderRadius: BorderRadius.circular(14),

@@ -160,7 +160,8 @@ class _Chart extends StatelessWidget {
           show: true,
           drawVerticalLine: false,
           horizontalInterval: yStep,
-          getDrawingHorizontalLine: (_) => FlLine(color: c.line, strokeWidth: 1),
+          getDrawingHorizontalLine: (_) =>
+              FlLine(color: c.line, strokeWidth: 1),
         ),
         borderData: FlBorderData(show: false),
         titlesData: FlTitlesData(
@@ -203,10 +204,7 @@ class _Chart extends StatelessWidget {
                 if (d == null) return const SizedBox.shrink();
                 return Padding(
                   padding: const EdgeInsets.only(top: 6),
-                  child: Text(
-                    '${_mon(d.month)} ${d.day}',
-                    style: labelStyle,
-                  ),
+                  child: Text('${_mon(d.month)} ${d.day}', style: labelStyle),
                 );
               },
             ),

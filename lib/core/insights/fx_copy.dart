@@ -79,13 +79,16 @@ abstract final class FxCopy {
     final options = (raw != null && raw.isNotEmpty)
         ? (List<String>.of(raw)..sort())
         : (_fallback[key] == null
-            ? const <String>[]
-            : <String>[_fallback[key]!]);
+              ? const <String>[]
+              : <String>[_fallback[key]!]);
 
     if (options.isEmpty) return FxLine(key: key, text: '');
 
-    final pick = options[
-        FxEngine.rotation(now: now ?? DateTime.now(), count: options.length)];
+    final pick =
+        options[FxEngine.rotation(
+          now: now ?? DateTime.now(),
+          count: options.length,
+        )];
 
     return FxLine(key: key, text: _fill(pick, fxCase, move12, move3));
   }
@@ -106,8 +109,7 @@ abstract final class FxCopy {
     return template
         .replaceAll('{mean}', fxCase.quote.mean.toStringAsFixed(2))
         .replaceAll('{be}', be == null ? '-' : be.toStringAsFixed(2))
-        .replaceAll(
-            '{hurdle}', hurdle == null ? '-' : _pct(hurdle * 100))
+        .replaceAll('{hurdle}', hurdle == null ? '-' : _pct(hurdle * 100))
         .replaceAll('{gap}', _pct(fxCase.annualGap * 100))
         .replaceAll('{mv12}', _pct(move12.abs() * 100))
         .replaceAll('{mv3}', _pct(move3.abs() * 100));

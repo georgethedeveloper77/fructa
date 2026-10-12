@@ -27,13 +27,18 @@ class RatesApi {
 
   // Lazy per-fund history (charts). Fetched only when a fund detail opens.
   Future<List<RateHistory>> getHistory(String fundId) async {
-    final url = '${Config.restBase}/rate_history'
+    final url =
+        '${Config.restBase}/rate_history'
         '?fund_id=eq.$fundId&order=as_of&select=as_of,rate';
-    final res = await http.get(Uri.parse(url), headers: {
-      'apikey': Config.anonKey,
-      'Authorization': 'Bearer ${Config.anonKey}',
-    });
-    if (res.statusCode != 200) throw Exception('history HTTP ${res.statusCode}');
+    final res = await http.get(
+      Uri.parse(url),
+      headers: {
+        'apikey': Config.anonKey,
+        'Authorization': 'Bearer ${Config.anonKey}',
+      },
+    );
+    if (res.statusCode != 200)
+      throw Exception('history HTTP ${res.statusCode}');
     final list = jsonDecode(res.body) as List;
     return list
         .map((e) => RateHistory.fromJson(e as Map<String, dynamic>))
@@ -53,7 +58,8 @@ class RatesApi {
   /// price series into a document every device downloads would pay for a chart
   /// almost nobody opens.
   Future<List<NavHistory>> getNavHistory(String fundId) async {
-    final url = '${Config.restBase}/nav_history'
+    final url =
+        '${Config.restBase}/nav_history'
         '?fund_id=eq.$fundId&order=as_of&select=as_of,price';
     final res = await http.get(
       Uri.parse(url),
@@ -76,7 +82,8 @@ class RatesApi {
   /// list would be sixty four round trips for four sparkline pixels, which is
   /// what the snapshot's `spark` array is already for.
   Future<List<StockHistory>> getStockHistory(String stockId) async {
-    final url = '${Config.restBase}/stock_prices'
+    final url =
+        '${Config.restBase}/stock_prices'
         '?stock_id=eq.$stockId&order=as_of&select=as_of,close_kes';
     final res = await http.get(
       Uri.parse(url),

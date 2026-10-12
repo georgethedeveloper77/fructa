@@ -42,15 +42,15 @@ Color insurerBrand(BuildContext context, Insurer i) =>
 
 /// Material icon for an admin-set type icon name (never an emoji).
 IconData insureTypeIcon(String? name) => switch ((name ?? '').toLowerCase()) {
-      'motor' || 'car' => Icons.directions_car_outlined,
-      'travel' || 'flight' => Icons.flight_outlined,
-      'life' => Icons.favorite_outline,
-      'medical' || 'health' => Icons.local_hospital_outlined,
-      'home' || 'property' => Icons.home_outlined,
-      'business' => Icons.business_outlined,
-      'marine' => Icons.directions_boat_outlined,
-      _ => Icons.shield_outlined,
-    };
+  'motor' || 'car' => Icons.directions_car_outlined,
+  'travel' || 'flight' => Icons.flight_outlined,
+  'life' => Icons.favorite_outline,
+  'medical' || 'health' => Icons.local_hospital_outlined,
+  'home' || 'property' => Icons.home_outlined,
+  'business' => Icons.business_outlined,
+  'marine' => Icons.directions_boat_outlined,
+  _ => Icons.shield_outlined,
+};
 
 String regionLabel(String key) => t('insure.region.$key');
 
@@ -157,8 +157,11 @@ class Stars extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         for (var i = 0; i < 5; i++)
-          Icon(i < rating ? Icons.star_rounded : Icons.star_outline_rounded,
-              size: size, color: c.accent),
+          Icon(
+            i < rating ? Icons.star_rounded : Icons.star_outline_rounded,
+            size: size,
+            color: c.accent,
+          ),
       ],
     );
   }
@@ -211,11 +214,7 @@ class InsureH2 extends StatelessWidget {
               child: Text(
                 small!,
                 textAlign: TextAlign.end,
-                style: TextStyle(
-                  color: c.faint,
-                  fontSize: 9.5,
-                  height: 1.3,
-                ),
+                style: TextStyle(color: c.faint, fontSize: 9.5, height: 1.3),
               ),
             ),
           ],
@@ -431,7 +430,12 @@ class _QBar extends StatelessWidget {
 }
 
 class CoverRow extends StatelessWidget {
-  const CoverRow(this.label, {super.key, required this.tint, this.last = false});
+  const CoverRow(
+    this.label, {
+    super.key,
+    required this.tint,
+    this.last = false,
+  });
   final String label;
   final Color tint;
   final bool last;
@@ -442,21 +446,24 @@ class CoverRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 11),
       decoration: BoxDecoration(
-        border:
-            last ? null : Border(bottom: BorderSide(color: c.line)),
+        border: last ? null : Border(bottom: BorderSide(color: c.line)),
       ),
       child: Row(
         children: [
           Container(
             width: 8,
             height: 8,
-            decoration:
-                BoxDecoration(color: tint, borderRadius: BorderRadius.circular(3)),
+            decoration: BoxDecoration(
+              color: tint,
+              borderRadius: BorderRadius.circular(3),
+            ),
           ),
           const SizedBox(width: 9),
           Expanded(
-            child: Text(label,
-                style: TextStyle(color: c.muted, fontSize: 12.5)),
+            child: Text(
+              label,
+              style: TextStyle(color: c.muted, fontSize: 12.5),
+            ),
           ),
           Icon(Icons.check_rounded, size: 16, color: c.up),
         ],
@@ -490,12 +497,18 @@ class ClassChips extends StatelessWidget {
               child: RichText(
                 text: TextSpan(
                   style: TextStyle(
-                      fontFamily: fructaFonts.mono, fontSize: 10, color: c.muted),
+                    fontFamily: fructaFonts.mono,
+                    fontSize: 10,
+                    color: c.muted,
+                  ),
                   children: [
                     TextSpan(
-                        text: cl.code,
-                        style: TextStyle(
-                            color: c.text, fontWeight: FontWeight.w600)),
+                      text: cl.code,
+                      style: TextStyle(
+                        color: c.text,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                     TextSpan(text: '  ${cl.label}'),
                   ],
                 ),
@@ -534,11 +547,12 @@ Future<void> _open(Uri uri) async {
 
 void openTel(String phone) =>
     _open(Uri.parse('tel:${phone.replaceAll(RegExp(r'\s'), '')}'));
-void openWhatsApp(String number) =>
-    _open(Uri.parse('https://wa.me/${number.replaceAll(RegExp(r'[^0-9]'), '')}'));
+void openWhatsApp(String number) => _open(
+  Uri.parse('https://wa.me/${number.replaceAll(RegExp(r'[^0-9]'), '')}'),
+);
 void openMail(String email) => _open(Uri.parse('mailto:$email'));
-void openWeb(String site) => _open(
-    Uri.parse(site.startsWith('http') ? site : 'https://$site'));
+void openWeb(String site) =>
+    _open(Uri.parse(site.startsWith('http') ? site : 'https://$site'));
 
 String kes(num v) => 'KES ${withCommas(v.round())}';
 

@@ -157,34 +157,40 @@ class LearnLadderInput {
   }
 
   Map<String, dynamic> toMap() => {
-        'streak': streak,
-        'best': best,
-        'lastDay': lastDay,
-        'next': nextLessonTitle,
-        'unit': unitTitle,
-        'unitDone': unitDone,
-        'unitTotal': unitTotal,
-        'nextUnit': nextUnitTitle,
-        'days7': daysActive7,
-        'hook': hook,
-      };
+    'streak': streak,
+    'best': best,
+    'lastDay': lastDay,
+    'next': nextLessonTitle,
+    'unit': unitTitle,
+    'unitDone': unitDone,
+    'unitTotal': unitTotal,
+    'nextUnit': nextUnitTitle,
+    'days7': daysActive7,
+    'hook': hook,
+  };
 
   static LearnLadderInput fromMap(Map<dynamic, dynamic> m) => LearnLadderInput(
-        streak: (m['streak'] as num?)?.toInt() ?? 0,
-        best: (m['best'] as num?)?.toInt() ?? 0,
-        lastDay: m['lastDay'] as String?,
-        nextLessonTitle: m['next'] as String?,
-        unitTitle: m['unit'] as String?,
-        unitDone: (m['unitDone'] as num?)?.toInt() ?? 0,
-        unitTotal: (m['unitTotal'] as num?)?.toInt() ?? 0,
-        nextUnitTitle: m['nextUnit'] as String?,
-        daysActive7: (m['days7'] as num?)?.toInt() ?? 0,
-        hook: m['hook'] as String?,
-      );
+    streak: (m['streak'] as num?)?.toInt() ?? 0,
+    best: (m['best'] as num?)?.toInt() ?? 0,
+    lastDay: m['lastDay'] as String?,
+    nextLessonTitle: m['next'] as String?,
+    unitTitle: m['unit'] as String?,
+    unitDone: (m['unitDone'] as num?)?.toInt() ?? 0,
+    unitTotal: (m['unitTotal'] as num?)?.toInt() ?? 0,
+    nextUnitTitle: m['nextUnit'] as String?,
+    daysActive7: (m['days7'] as num?)?.toInt() ?? 0,
+    hook: m['hook'] as String?,
+  );
 }
 
 class _Rung {
-  const _Rung(this.id, this.when, this.title, this.body, {this.repeatDaily = false});
+  const _Rung(
+    this.id,
+    this.when,
+    this.title,
+    this.body, {
+    this.repeatDaily = false,
+  });
   final int id;
   final DateTime when;
   final String title;
@@ -270,13 +276,8 @@ class LearnReminder {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
-    DateTime at(int addDays, int hour, int minute) => DateTime(
-          today.year,
-          today.month,
-          today.day + addDays,
-          hour,
-          minute,
-        );
+    DateTime at(int addDays, int hour, int minute) =>
+        DateTime(today.year, today.month, today.day + addDays, hour, minute);
 
     final streak = input.liveStreak;
     final next = input.nextLessonTitle;
@@ -348,8 +349,8 @@ class LearnReminder {
         input.hook != null
             ? 'A two minute lesson explains what moves it.'
             : hasPath
-                ? 'Two minutes on $next while you are here.'
-                : 'Open Fructa to see where yields landed this week.',
+            ? 'Two minutes on $next while you are here.'
+            : 'Open Fructa to see where yields landed this week.',
       ),
 
       // Evergreen tail. The only repeating rung, and the reason it may repeat
@@ -522,12 +523,13 @@ class _LearnReminderCardState extends ConsumerState<LearnReminderCard> {
                 ),
                 _Toggle(
                   value: prefs.enabled,
-                  onChanged: (v) =>
-                      ref.read(learnReminderProvider.notifier).setEnabled(
-                            v,
-                            content: ref.read(learnProvider),
-                            progress: ref.read(learnProgressProvider),
-                          ),
+                  onChanged: (v) => ref
+                      .read(learnReminderProvider.notifier)
+                      .setEnabled(
+                        v,
+                        content: ref.read(learnProvider),
+                        progress: ref.read(learnProgressProvider),
+                      ),
                 ),
               ],
             ),

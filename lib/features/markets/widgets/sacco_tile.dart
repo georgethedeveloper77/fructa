@@ -133,9 +133,14 @@ class _SaccoTileState extends ConsumerState<SaccoTile> {
                                       horizontal: 4,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: widget.rank! <= 3 ? c.accent : c.s2,
+                                      color: widget.rank! <= 3
+                                          ? c.accent
+                                          : c.s2,
                                       borderRadius: BorderRadius.circular(6),
-                                      border: Border.all(color: c.s1, width: 1.5),
+                                      border: Border.all(
+                                        color: c.s1,
+                                        width: 1.5,
+                                      ),
                                     ),
                                     child: Text(
                                       '${widget.rank}',

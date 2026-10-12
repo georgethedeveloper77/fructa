@@ -171,16 +171,19 @@ class MarketContextCard extends ConsumerWidget {
                 Row(
                   children: [
                     _Legend(
-                        color: seriesColor(0),
-                        label: t('markets.context.legendMmf')),
+                      color: seriesColor(0),
+                      label: t('markets.context.legendMmf'),
+                    ),
                     const SizedBox(width: 14),
                     _Legend(
-                        color: seriesColor(1),
-                        label: t('markets.context.legendTbill')),
+                      color: seriesColor(1),
+                      label: t('markets.context.legendTbill'),
+                    ),
                     const SizedBox(width: 14),
                     _Legend(
-                        color: c.down,
-                        label: t('markets.context.legendInflation')),
+                      color: c.down,
+                      label: t('markets.context.legendInflation'),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -189,12 +192,14 @@ class MarketContextCard extends ConsumerWidget {
                 Row(
                   children: [
                     _Bench(
-                        label: t('markets.context.benchInflation'),
-                        value: cfg.inflationPct),
+                      label: t('markets.context.benchInflation'),
+                      value: cfg.inflationPct,
+                    ),
                     _Div(),
                     _Bench(
-                        label: t('markets.context.benchCbr'),
-                        value: cfg.cbrPct),
+                      label: t('markets.context.benchCbr'),
+                      value: cfg.cbrPct,
+                    ),
                     _Div(),
                     _Bench(
                       label: t('markets.context.benchTbill91'),

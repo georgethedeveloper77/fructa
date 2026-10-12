@@ -77,7 +77,8 @@ class _MarketAllocationDonutState extends ConsumerState<MarketAllocationDonut> {
     // The card is dated by the market size when we have it, since that is the
     // figure the headline numbers come from.
     final asOf = size?.asOf ?? cfg.marketAsOf;
-    final source = size?.source ?? cfg.marketSource ?? 'CMA CIS Quarterly Report';
+    final source =
+        size?.source ?? cfg.marketSource ?? 'CMA CIS Quarterly Report';
 
     final funds = ref.watch(ratesProvider).value ?? const <Fund>[];
     final tracked = funds.where((f) => f.retail).length;

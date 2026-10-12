@@ -5,7 +5,7 @@ class RateHistory {
   const RateHistory({required this.asOf, required this.rate});
 
   factory RateHistory.fromJson(Map<String, dynamic> j) => RateHistory(
-        asOf: j['as_of'] as String,
-        rate: (j['rate'] as num).toDouble(),
-      );
+    asOf: j['as_of'] as String,
+    rate: (j['rate'] as num).toDouble(),
+  );
 }

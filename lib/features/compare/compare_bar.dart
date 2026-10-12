@@ -23,7 +23,11 @@ class CompareBar extends StatelessWidget {
 
     return Container(
       padding: EdgeInsets.fromLTRB(
-          16, 12, 16, 12 + MediaQuery.of(context).padding.bottom),
+        16,
+        12,
+        16,
+        12 + MediaQuery.of(context).padding.bottom,
+      ),
       decoration: BoxDecoration(
         color: c.accent,
         boxShadow: [
@@ -62,9 +66,7 @@ class CompareBar extends StatelessWidget {
               ),
             ),
             child: Text(
-              canCompare
-                  ? t('markets.sort.compare')
-                  : t('compare.min2'),
+              canCompare ? t('markets.sort.compare') : t('compare.min2'),
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
           ),

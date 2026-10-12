@@ -39,7 +39,7 @@ extension on _Sort {
 }
 
 class _StocksPageState extends ConsumerState<StocksPage> {
-  String _sector = '';  // empty = the All tab, resolved against i18n at build
+  String _sector = ''; // empty = the All tab, resolved against i18n at build
   _Sort _sort = _Sort.movers;
 
   @override
@@ -50,7 +50,9 @@ class _StocksPageState extends ConsumerState<StocksPage> {
 
     // No licensed prices means nothing to rank by day move, so the control is
     // not offered at all rather than offered and dead.
-    final sort = (!pricesLive && _sort == _Sort.movers) ? _Sort.dividend : _sort;
+    final sort = (!pricesLive && _sort == _Sort.movers)
+        ? _Sort.dividend
+        : _sort;
 
     final sectors = <String>[t('stocks.sectorAll')];
     for (final s in stocks) {
@@ -61,24 +63,24 @@ class _StocksPageState extends ConsumerState<StocksPage> {
     }
 
     final rows =
-        stocks
-            .where((s) => _sector.isEmpty || s.sector == _sector)
-            .toList()
-          ..sort((a, b) => switch (sort) {
-            _Sort.movers => _cmpNullableDesc(
-              a.changePct,
-              b.changePct,
-              a.name,
-              b.name,
-            ),
-            _Sort.dividend => _cmpNullableDesc(
-              a.dpsLatest,
-              b.dpsLatest,
-              a.name,
-              b.name,
-            ),
-            _Sort.alpha => a.name.compareTo(b.name),
-          });
+        stocks.where((s) => _sector.isEmpty || s.sector == _sector).toList()
+          ..sort(
+            (a, b) => switch (sort) {
+              _Sort.movers => _cmpNullableDesc(
+                a.changePct,
+                b.changePct,
+                a.name,
+                b.name,
+              ),
+              _Sort.dividend => _cmpNullableDesc(
+                a.dpsLatest,
+                b.dpsLatest,
+                a.name,
+                b.name,
+              ),
+              _Sort.alpha => a.name.compareTo(b.name),
+            },
+          );
 
     return Scaffold(
       backgroundColor: c.bg,

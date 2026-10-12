@@ -148,39 +148,39 @@ class RealReturnBar extends StatelessWidget {
                       // nothing.
                       Positioned.fill(
                         child: ClipRRect(
-                        borderRadius: BorderRadius.circular(7),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            if (kept > 0)
-                              Expanded(
-                                flex: flex(kept),
-                                child: DecoratedBox(
-                                  decoration: BoxDecoration(
-                                    gradient: barFill(keep),
+                          borderRadius: BorderRadius.circular(7),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              if (kept > 0)
+                                Expanded(
+                                  flex: flex(kept),
+                                  child: DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      gradient: barFill(keep),
+                                    ),
                                   ),
                                 ),
-                              ),
-                            if (tax > 0)
-                              Expanded(
-                                flex: flex(tax),
-                                child: DecoratedBox(
-                                  decoration: BoxDecoration(
-                                    gradient: barFill(taxColor),
+                              if (tax > 0)
+                                Expanded(
+                                  flex: flex(tax),
+                                  child: DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      gradient: barFill(taxColor),
+                                    ),
                                   ),
                                 ),
-                              ),
-                            if (infl > 0)
-                              Expanded(
-                                flex: flex(infl),
-                                child: DecoratedBox(
-                                  decoration: BoxDecoration(
-                                    gradient: barFill(inflColor),
+                              if (infl > 0)
+                                Expanded(
+                                  flex: flex(infl),
+                                  child: DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      gradient: barFill(inflColor),
+                                    ),
                                   ),
                                 ),
-                              ),
-                          ],
-                        ),
+                            ],
+                          ),
                         ),
                       ),
                       // Where the fund's gross yield ran out. Only drawn when
@@ -261,10 +261,7 @@ class _Key extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 7),
-        Text(
-          label,
-          style: TextStyle(color: c.faint, fontSize: 11),
-        ),
+        Text(label, style: TextStyle(color: c.faint, fontSize: 11)),
         const SizedBox(width: 6),
         Text(
           '${value.abs().toStringAsFixed(2)}%',

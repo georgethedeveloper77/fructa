@@ -412,8 +412,18 @@ List<FlSpot> _reveal(List<FlSpot> spots, double t) {
 }
 
 const _monthAbbr = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
 ];
 
 String _mon(int m) => (m >= 1 && m <= 12) ? _monthAbbr[m - 1] : '';

@@ -1234,7 +1234,10 @@ class _Position extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _end(c, t('insure.pos.cheapest', {'v': withCommas(lo.round())})),
+                _end(
+                  c,
+                  t('insure.pos.cheapest', {'v': withCommas(lo.round())}),
+                ),
                 _end(c, t('insure.pos.dearest', {'v': withCommas(hi.round())})),
               ],
             ),
@@ -1262,9 +1265,8 @@ class _Position extends StatelessWidget {
                       ),
                     ),
                     TextSpan(
-                      text: ' ${t('insure.pos.overTail', {
-                        'v': withCommas(under.round()),
-                      })}',
+                      text:
+                          ' ${t('insure.pos.overTail', {'v': withCommas(under.round())})}',
                     ),
                   ],
                 ],
@@ -1315,7 +1317,8 @@ class _Terms extends StatelessWidget {
       case _MotorMode(:final cls, :final cover):
         rows.add((
           k: t('insure.terms.cover'),
-          v: '${t('insure.class.${cls.key}')}, '
+          v:
+              '${t('insure.class.${cls.key}')}, '
               '${t('insure.cover.${cover.key}')}',
           sub: null,
         ));
@@ -1416,10 +1419,7 @@ class _Standing extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        InsureH2(
-          t('insure.standing.title'),
-          small: t('insure.standing.small'),
-        ),
+        InsureH2(t('insure.standing.title'), small: t('insure.standing.small')),
         _FactCard(rows: rows, okColor: i.canWriteNewBusiness ? c.up : c.down),
       ],
     );

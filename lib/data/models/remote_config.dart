@@ -21,7 +21,8 @@ class MarketFundType {
 /// percentages, not per-class AUM.
 class MarketAssetClass {
   const MarketAssetClass(this.clazz, this.share);
-  final String clazz; // gok | fixed_deposits | cash | unlisted | listed | offshore | other_cis | alternative
+  final String
+  clazz; // gok | fixed_deposits | cash | unlisted | listed | offshore | other_cis | alternative
   final double share; // percent of total market assets
 }
 

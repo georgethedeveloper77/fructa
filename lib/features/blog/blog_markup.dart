@@ -83,10 +83,12 @@ class _MarkdownViewState extends State<MarkdownView> {
 
       if (_rule.hasMatch(trimmed)) {
         flushPara();
-        blocks.add(Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Divider(color: c.line, height: 1),
-        ));
+        blocks.add(
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Divider(color: c.line, height: 1),
+          ),
+        );
         continue;
       }
 
@@ -137,9 +139,7 @@ class _MarkdownViewState extends State<MarkdownView> {
 
   Widget _paragraph(fructaColors c, String text) => Padding(
     padding: const EdgeInsets.only(bottom: 14),
-    child: RichText(
-      text: TextSpan(children: _spans(c, text, _bodyStyle(c))),
-    ),
+    child: RichText(text: TextSpan(children: _spans(c, text, _bodyStyle(c)))),
   );
 
   Widget _headingWidget(fructaColors c, int level, String text) {
@@ -228,38 +228,46 @@ class _MarkdownViewState extends State<MarkdownView> {
         spans.add(TextSpan(text: text.substring(idx, m.start), style: base));
       }
       if (m.group(1) != null) {
-        spans.add(TextSpan(
-          text: m.group(1),
-          style: base.copyWith(fontWeight: FontWeight.w700),
-        ));
-      } else if (m.group(2) != null) {
-        spans.add(TextSpan(
-          text: m.group(2),
-          style: base.copyWith(
-            fontFamily: fructaFonts.mono,
-            fontSize: base.fontSize! - 1.5,
-            backgroundColor: c.s2,
+        spans.add(
+          TextSpan(
+            text: m.group(1),
+            style: base.copyWith(fontWeight: FontWeight.w700),
           ),
-        ));
+        );
+      } else if (m.group(2) != null) {
+        spans.add(
+          TextSpan(
+            text: m.group(2),
+            style: base.copyWith(
+              fontFamily: fructaFonts.mono,
+              fontSize: base.fontSize! - 1.5,
+              backgroundColor: c.s2,
+            ),
+          ),
+        );
       } else if (m.group(3) != null) {
         final label = m.group(3)!;
         final url = m.group(4)!;
         final rec = TapGestureRecognizer()..onTap = () => widget.onTapLink(url);
         _recognizers.add(rec);
-        spans.add(TextSpan(
-          text: label,
-          style: base.copyWith(
-            color: c.accentInk,
-            decoration: TextDecoration.underline,
-            decorationColor: c.accentInk.withValues(alpha: 0.5),
+        spans.add(
+          TextSpan(
+            text: label,
+            style: base.copyWith(
+              color: c.accentInk,
+              decoration: TextDecoration.underline,
+              decorationColor: c.accentInk.withValues(alpha: 0.5),
+            ),
+            recognizer: rec,
           ),
-          recognizer: rec,
-        ));
+        );
       } else if (m.group(5) != null) {
-        spans.add(TextSpan(
-          text: m.group(5),
-          style: base.copyWith(fontStyle: FontStyle.italic),
-        ));
+        spans.add(
+          TextSpan(
+            text: m.group(5),
+            style: base.copyWith(fontStyle: FontStyle.italic),
+          ),
+        );
       }
       idx = m.end;
     }

@@ -101,7 +101,9 @@ class Tax {
   /// Deprecated rather than deleted so `flutter analyze` LISTS every remaining
   /// call site instead of the build simply failing at the first one. Work the
   /// list, then delete both of these.
-  @Deprecated('Use Tax.surviving(netOf:, taxFree:, whtPct:) with the config rate')
+  @Deprecated(
+    'Use Tax.surviving(netOf:, taxFree:, whtPct:) with the config rate',
+  )
   static const double wht = defaultWhtPct / 100;
 
   /// Legacy. Prefer [apply], which asks whether tax is owed at all.

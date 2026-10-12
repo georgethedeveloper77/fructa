@@ -8,8 +8,18 @@ import '../../data/snapshot_providers.dart';
 import 'blog_post_page.dart';
 
 const _months = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
 ];
 
 String _date(DateTime? d) =>
@@ -66,9 +76,9 @@ class _PostCard extends StatelessWidget {
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => BlogPostPage(post: post)),
-      ),
+      onTap: () => Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => BlogPostPage(post: post))),
       child: Container(
         margin: const EdgeInsets.only(bottom: 14),
         clipBehavior: Clip.antiAlias,

@@ -196,9 +196,7 @@ class _PulsePainter extends CustomPainter {
       ..lineTo(0, size.height)
       ..close();
     canvas.save();
-    canvas.clipRect(
-      Rect.fromLTRB(0, 0, tipX <= 0 ? 0.001 : tipX, size.height),
-    );
+    canvas.clipRect(Rect.fromLTRB(0, 0, tipX <= 0 ? 0.001 : tipX, size.height));
     canvas.drawPath(
       area,
       Paint()

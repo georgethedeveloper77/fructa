@@ -153,7 +153,11 @@ class MarketYieldCurvePage extends ConsumerWidget {
                     'yieldCurve.explainer',
                     'These are the rates the government pays to borrow for 3, 6, and 12 months. The 91-day bill is the risk-free rate every money market fund is measured against: a fund is only doing its job if it beats it. An upward curve is normal and means the market expects steady conditions.',
                   ),
-                  style: TextStyle(color: c.muted, fontSize: 12.5, height: 1.55),
+                  style: TextStyle(
+                    color: c.muted,
+                    fontSize: 12.5,
+                    height: 1.55,
+                  ),
                 ),
                 if (asOf != null) ...[
                   const SizedBox(height: 10),

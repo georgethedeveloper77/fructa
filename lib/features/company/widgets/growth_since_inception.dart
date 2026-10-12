@@ -40,8 +40,7 @@ class GrowthSinceInception extends StatelessWidget {
   /// picks its own base for the same fact. These match the bases the Kenyan
   /// sheets actually print, so the figure on the card reconciles with the figure
   /// on the PDF a reader may have open beside it.
-  static double baseFor(String currency) =>
-      currency == 'KES' ? 1000000 : 10000;
+  static double baseFor(String currency) => currency == 'KES' ? 1000000 : 10000;
 
   @override
   Widget build(BuildContext context) {
@@ -151,15 +150,30 @@ class GrowthSinceInception extends StatelessWidget {
     final d = DateTime.tryParse(iso);
     if (d == null) return iso;
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return '${months[d.month - 1]} ${d.year}';
   }
 }
 
 class _Row extends StatelessWidget {
-  const _Row({required this.k, required this.v, this.vColor, this.strong = false});
+  const _Row({
+    required this.k,
+    required this.v,
+    this.vColor,
+    this.strong = false,
+  });
 
   final String k;
   final String v;
@@ -214,7 +228,8 @@ class _CurvePainter extends CustomPainter {
     }
     final span = (hi - lo) == 0 ? 1.0 : (hi - lo);
     double x(int i) => i / (points.length - 1) * size.width;
-    double y(double v) => size.height - 6 - (v - lo) / span * (size.height - 18);
+    double y(double v) =>
+        size.height - 6 - (v - lo) / span * (size.height - 18);
 
     // Progressive reveal along the path, matching the sweep the other charts
     // use, so the whole page animates in one language.
@@ -234,10 +249,7 @@ class _CurvePainter extends CustomPainter {
         ..shader = LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [
-            colour.withValues(alpha: 0.24),
-            colour.withValues(alpha: 0),
-          ],
+          colors: [colour.withValues(alpha: 0.24), colour.withValues(alpha: 0)],
         ).createShader(Offset.zero & size),
     );
 

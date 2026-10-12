@@ -7,8 +7,18 @@ import '../../data/models/post.dart';
 import 'blog_markup.dart';
 
 const _months = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
 ];
 
 String _date(DateTime? d) =>
@@ -20,9 +30,9 @@ class BlogPostPage extends StatelessWidget {
   final Post post;
 
   void _openLink(BuildContext context, String url) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => InAppWebPage(url: url)),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => InAppWebPage(url: url)));
   }
 
   @override

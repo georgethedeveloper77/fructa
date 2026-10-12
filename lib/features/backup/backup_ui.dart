@@ -26,7 +26,9 @@ Future<void> runLaunchTasks(BuildContext context, WidgetRef ref) async {
         if (r != null && !r.isEmpty && context.mounted) {
           await _showFoundSheet(context, ref, r);
         }
-      } catch (_) {/* offline or transient, stay silent */}
+      } catch (_) {
+        /* offline or transient, stay silent */
+      }
     }
   }
   if (context.mounted) await _maybePromptUpdate(context);
@@ -63,25 +65,31 @@ Future<void> _maybePromptUpdate(BuildContext context) async {
       await InAppUpdate.startFlexibleUpdate(); // downloads in the background
       await InAppUpdate.completeFlexibleUpdate(); // installs on confirm
     }
-  } catch (_) {/* not installed from Play, or offline, so ignore */}
+  } catch (_) {
+    /* not installed from Play, or offline, so ignore */
+  }
 }
 
 // ── Shared chrome ───────────────────────────────────────────────────────────
 
 Widget _grabber(BuildContext context) => Center(
-      child: Container(
-        width: 40,
-        height: 4,
-        margin: const EdgeInsets.only(bottom: 18),
-        decoration: BoxDecoration(
-          color: context.c.line2,
-          borderRadius: BorderRadius.circular(2),
-        ),
-      ),
-    );
+  child: Container(
+    width: 40,
+    height: 4,
+    margin: const EdgeInsets.only(bottom: 18),
+    decoration: BoxDecoration(
+      color: context.c.line2,
+      borderRadius: BorderRadius.circular(2),
+    ),
+  ),
+);
 
-Widget _primaryBtn(BuildContext context,
-        {required String label, required VoidCallback? onTap, bool busy = false}) {
+Widget _primaryBtn(
+  BuildContext context, {
+  required String label,
+  required VoidCallback? onTap,
+  bool busy = false,
+}) {
   final c = context.c;
   return SizedBox(
     width: double.infinity,
@@ -105,8 +113,18 @@ Widget _primaryBtn(BuildContext context,
 String _fmtWhen(DateTime? d) {
   if (d == null) return '';
   const m = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
   final l = d.toLocal();
   final hh = l.hour.toString().padLeft(2, '0');
@@ -157,73 +175,96 @@ class _BackupSheetState extends ConsumerState<_BackupSheet> {
     return SafeArea(
       child: Padding(
         padding: EdgeInsets.fromLTRB(
-            22, 14, 22, 22 + MediaQuery.of(context).viewInsets.bottom),
+          22,
+          14,
+          22,
+          22 + MediaQuery.of(context).viewInsets.bottom,
+        ),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _grabber(context),
-              Row(children: [
-                Icon(Icons.cloud_upload_outlined, color: c.accent, size: 22),
-              const SizedBox(width: 10),
-              Text(t('settings.data.backup'),
-                  style: TextStyle(
-                      color: c.text, fontSize: 18, fontWeight: FontWeight.w700)),
-            ]),
-            const SizedBox(height: 8),
-            Text(
-              t('backup.body'),
-              style: TextStyle(color: c.muted, fontSize: 13, height: 1.5),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              decoration: BoxDecoration(
-                color: c.s2,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: c.line2),
-              ),
-              child: Row(
+              Row(
                 children: [
-                  Expanded(
-                    child: Text(
-                      _code ?? '\u2026',
-                      style: TextStyle(
+                  Icon(Icons.cloud_upload_outlined, color: c.accent, size: 22),
+                  const SizedBox(width: 10),
+                  Text(
+                    t('settings.data.backup'),
+                    style: TextStyle(
+                      color: c.text,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                t('backup.body'),
+                style: TextStyle(color: c.muted, fontSize: 13, height: 1.5),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
+                decoration: BoxDecoration(
+                  color: c.s2,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: c.line2),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _code ?? '\u2026',
+                        style: TextStyle(
                           color: c.text,
                           fontFamily: fructaFonts.mono,
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
-                          letterSpacing: 1.5),
+                          letterSpacing: 1.5,
+                        ),
+                      ),
                     ),
-                  ),
-                  IconButton(
-                    onPressed: _code == null
-                        ? null
-                        : () {
-                            Clipboard.setData(ClipboardData(text: _code!));
-                            _toast(context, t('backup.codeCopied'));
-                          },
-                    icon: Icon(Icons.copy_rounded, color: c.muted, size: 20),
-                  ),
-                ],
+                    IconButton(
+                      onPressed: _code == null
+                          ? null
+                          : () {
+                              Clipboard.setData(ClipboardData(text: _code!));
+                              _toast(context, t('backup.codeCopied'));
+                            },
+                      icon: Icon(Icons.copy_rounded, color: c.muted, size: 20),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            if (last != null) ...[
-              const SizedBox(height: 10),
-              Row(children: [
-                Icon(Icons.check_circle_outline, size: 14, color: c.up),
-                const SizedBox(width: 6),
-                Text(t('backup.lastBackup', {'when': _fmtWhen(last)}),
-                    style: TextStyle(color: c.faint, fontSize: 11.5)),
-              ]),
+              if (last != null) ...[
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Icon(Icons.check_circle_outline, size: 14, color: c.up),
+                    const SizedBox(width: 6),
+                    Text(
+                      t('backup.lastBackup', {'when': _fmtWhen(last)}),
+                      style: TextStyle(color: c.faint, fontSize: 11.5),
+                    ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 18),
+              _primaryBtn(
+                context,
+                label: t('backup.now'),
+                onTap: _backupNow,
+                busy: _busy,
+              ),
+              const CloudBackupSection(mode: CloudMode.backup),
             ],
-            const SizedBox(height: 18),
-            _primaryBtn(context,
-                label: t('backup.now'), onTap: _backupNow, busy: _busy),
-            const CloudBackupSection(mode: CloudMode.backup),
-          ],
           ),
         ),
       ),
@@ -271,8 +312,7 @@ class _RestoreSheetState extends ConsumerState<_RestoreSheet> {
       await svc.adoptCode(code);
       ref.invalidate(holdingsProvider);
       if (mounted) {
-        _toast(context,
-            t('backup.restored', {'n': '${r.holdings.length}'}));
+        _toast(context, t('backup.restored', {'n': '${r.holdings.length}'}));
         Navigator.of(context).pop();
       }
     } catch (_) {
@@ -288,52 +328,76 @@ class _RestoreSheetState extends ConsumerState<_RestoreSheet> {
     return SafeArea(
       child: Padding(
         padding: EdgeInsets.fromLTRB(
-            22, 14, 22, 22 + MediaQuery.of(context).viewInsets.bottom),
+          22,
+          14,
+          22,
+          22 + MediaQuery.of(context).viewInsets.bottom,
+        ),
         child: SingleChildScrollView(
           child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _grabber(context),
-            Row(children: [
-              Icon(Icons.settings_backup_restore, color: c.accent, size: 22),
-              const SizedBox(width: 10),
-              Text(t('settings.data.restore'),
-                  style: TextStyle(
-                      color: c.text, fontSize: 18, fontWeight: FontWeight.w700)),
-            ]),
-            const SizedBox(height: 8),
-            Text(t('backup.restoreBody'),
-                style: TextStyle(color: c.muted, fontSize: 13, height: 1.5)),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _ctrl,
-              autocorrect: false,
-              textCapitalization: TextCapitalization.characters,
-              style: TextStyle(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _grabber(context),
+              Row(
+                children: [
+                  Icon(
+                    Icons.settings_backup_restore,
+                    color: c.accent,
+                    size: 22,
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    t('settings.data.restore'),
+                    style: TextStyle(
+                      color: c.text,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                t('backup.restoreBody'),
+                style: TextStyle(color: c.muted, fontSize: 13, height: 1.5),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _ctrl,
+                autocorrect: false,
+                textCapitalization: TextCapitalization.characters,
+                style: TextStyle(
                   color: c.text,
                   fontFamily: fructaFonts.mono,
                   fontSize: 17,
-                  letterSpacing: 1.2),
-              decoration: InputDecoration(
-                hintText: t('backup.codeHint'),
-                hintStyle: TextStyle(color: c.faint),
-                filled: true,
-                fillColor: c.s2,
-                errorText: _error,
-                enabledBorder: OutlineInputBorder(
+                  letterSpacing: 1.2,
+                ),
+                decoration: InputDecoration(
+                  hintText: t('backup.codeHint'),
+                  hintStyle: TextStyle(color: c.faint),
+                  filled: true,
+                  fillColor: c.s2,
+                  errorText: _error,
+                  enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: c.line2)),
-                focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: c.line2),
+                  ),
+                  focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: c.accent, width: 1.5)),
+                    borderSide: BorderSide(color: c.accent, width: 1.5),
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            _primaryBtn(context,
-                label: t('backup.restore'), onTap: _restore, busy: _busy),
-            const CloudBackupSection(mode: CloudMode.restore),
-          ],
+              const SizedBox(height: 16),
+              _primaryBtn(
+                context,
+                label: t('backup.restore'),
+                onTap: _restore,
+                busy: _busy,
+              ),
+              const CloudBackupSection(mode: CloudMode.restore),
+            ],
           ),
         ),
       ),
@@ -344,71 +408,94 @@ class _RestoreSheetState extends ConsumerState<_RestoreSheet> {
 // ── Launch "backup found" sheet ─────────────────────────────────────────────
 
 Future<void> _showFoundSheet(
-    BuildContext context, WidgetRef ref, RestoreResult r) {
+  BuildContext context,
+  WidgetRef ref,
+  RestoreResult r,
+) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     builder: (sheetCtx) {
       final c = sheetCtx.c;
       var busy = false;
-      return StatefulBuilder(builder: (sheetCtx, setSheet) {
-        Future<void> doRestore() async {
-          setSheet(() => busy = true);
-          await ref.read(backupServiceProvider).applyRestore(r.holdings);
-          ref.invalidate(holdingsProvider);
-          if (sheetCtx.mounted) Navigator.of(sheetCtx).pop();
-        }
+      return StatefulBuilder(
+        builder: (sheetCtx, setSheet) {
+          Future<void> doRestore() async {
+            setSheet(() => busy = true);
+            await ref.read(backupServiceProvider).applyRestore(r.holdings);
+            ref.invalidate(holdingsProvider);
+            if (sheetCtx.mounted) Navigator.of(sheetCtx).pop();
+          }
 
-        final vars = {
-          'n': '${r.holdings.length}',
-          'when': _fmtWhen(r.updatedAt),
-          if (r.deviceLabel != null) 'device': r.deviceLabel!,
-        };
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(22, 14, 22, 22),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _grabber(sheetCtx),
-                Row(children: [
-                  Icon(Icons.cloud_done_outlined, color: c.accent, size: 22),
-                  const SizedBox(width: 10),
-                  Text(t('backup.foundTitle'),
-                      style: TextStyle(
+          final vars = {
+            'n': '${r.holdings.length}',
+            'when': _fmtWhen(r.updatedAt),
+            if (r.deviceLabel != null) 'device': r.deviceLabel!,
+          };
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(22, 14, 22, 22),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _grabber(sheetCtx),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.cloud_done_outlined,
+                        color: c.accent,
+                        size: 22,
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        t('backup.foundTitle'),
+                        style: TextStyle(
                           color: c.text,
                           fontSize: 18,
-                          fontWeight: FontWeight.w700)),
-                ]),
-                const SizedBox(height: 8),
-                Text(
-                  t(
-                    r.deviceLabel != null
-                        ? 'backup.foundBodyFrom'
-                        : 'backup.foundBody',
-                    vars,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
                   ),
-                  style: TextStyle(color: c.muted, fontSize: 13.5, height: 1.5),
-                ),
-                const SizedBox(height: 18),
-                _primaryBtn(sheetCtx,
-                    label: t('backup.restore'), onTap: doRestore, busy: busy),
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: TextButton(
-                    onPressed:
-                        busy ? null : () => Navigator.of(sheetCtx).pop(),
-                    style: TextButton.styleFrom(foregroundColor: c.muted),
-                    child: Text(t('common.notNow')),
+                  const SizedBox(height: 8),
+                  Text(
+                    t(
+                      r.deviceLabel != null
+                          ? 'backup.foundBodyFrom'
+                          : 'backup.foundBody',
+                      vars,
+                    ),
+                    style: TextStyle(
+                      color: c.muted,
+                      fontSize: 13.5,
+                      height: 1.5,
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 18),
+                  _primaryBtn(
+                    sheetCtx,
+                    label: t('backup.restore'),
+                    onTap: doRestore,
+                    busy: busy,
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: TextButton(
+                      onPressed: busy
+                          ? null
+                          : () => Navigator.of(sheetCtx).pop(),
+                      style: TextButton.styleFrom(foregroundColor: c.muted),
+                      child: Text(t('common.notNow')),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        );
-      });
+          );
+        },
+      );
     },
   );
 }
@@ -428,22 +515,31 @@ class _UpdateSheet extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _grabber(context),
-            Row(children: [
-              Icon(Icons.system_update, color: c.accent, size: 22),
-              const SizedBox(width: 10),
-              Text(t('update.title'),
+            Row(
+              children: [
+                Icon(Icons.system_update, color: c.accent, size: 22),
+                const SizedBox(width: 10),
+                Text(
+                  t('update.title'),
                   style: TextStyle(
-                      color: c.text, fontSize: 18, fontWeight: FontWeight.w700)),
-            ]),
+                    color: c.text,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 8),
             Text(
               t('update.body'),
               style: TextStyle(color: c.muted, fontSize: 13.5, height: 1.5),
             ),
             const SizedBox(height: 18),
-            _primaryBtn(context,
-                label: t('update.cta'),
-                onTap: () => Navigator.of(context).pop(true)),
+            _primaryBtn(
+              context,
+              label: t('update.cta'),
+              onTap: () => Navigator.of(context).pop(true),
+            ),
             const SizedBox(height: 8),
             SizedBox(
               width: double.infinity,

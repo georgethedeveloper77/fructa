@@ -41,8 +41,10 @@ class TbillResult {
 /// and Treasury bills (bought at a discount).
 class BondEngine {
   /// One semi-annual coupon on [faceValue] at an annual [couponRatePercent].
-  static double semiAnnualCouponGross(double faceValue, double couponRatePercent) =>
-      faceValue * (couponRatePercent / 100.0) / 2.0;
+  static double semiAnnualCouponGross(
+    double faceValue,
+    double couponRatePercent,
+  ) => faceValue * (couponRatePercent / 100.0) / 2.0;
 
   /// Net coupon. IFBs are [taxFree] → net equals gross.
   static double semiAnnualCouponNet(
@@ -52,8 +54,12 @@ class BondEngine {
     double whtPct = Tax.defaultWhtPct,
   }) {
     final gross = semiAnnualCouponGross(faceValue, couponRatePercent);
-    return Tax.apply(gross,
-        netOf: _taxStillDue, taxFree: taxFree, whtPct: whtPct);
+    return Tax.apply(
+      gross,
+      netOf: _taxStillDue,
+      taxFree: taxFree,
+      whtPct: whtPct,
+    );
   }
 
   /// Full semi-annual coupon schedule; the final payment returns the principal.
@@ -67,19 +73,25 @@ class BondEngine {
   }) {
     final periods = tenorYears * 2;
     final coupon = semiAnnualCouponGross(faceValue, couponRatePercent);
-    final couponNet = Tax.apply(coupon,
-        netOf: _taxStillDue, taxFree: taxFree, whtPct: whtPct);
+    final couponNet = Tax.apply(
+      coupon,
+      netOf: _taxStillDue,
+      taxFree: taxFree,
+      whtPct: whtPct,
+    );
     final out = <CouponPayment>[];
     for (var i = 1; i <= periods; i++) {
       final isLast = i == periods;
       // DateTime normalizes month overflow (e.g. month 18 -> next year).
       final date = DateTime(start.year, start.month + i * 6, start.day);
-      out.add(CouponPayment(
-        date: date,
-        gross: coupon + (isLast ? faceValue : 0),
-        net: couponNet + (isLast ? faceValue : 0),
-        isPrincipal: isLast,
-      ));
+      out.add(
+        CouponPayment(
+          date: date,
+          gross: coupon + (isLast ? faceValue : 0),
+          net: couponNet + (isLast ? faceValue : 0),
+          isPrincipal: isLast,
+        ),
+      );
     }
     return out;
   }
@@ -102,8 +114,12 @@ class BondEngine {
     return TbillResult(
       price: price,
       grossInterest: gross,
-      netInterest: Tax.apply(gross,
-          netOf: _taxStillDue, taxFree: taxFree, whtPct: whtPct),
+      netInterest: Tax.apply(
+        gross,
+        netOf: _taxStillDue,
+        taxFree: taxFree,
+        whtPct: whtPct,
+      ),
     );
   }
 }

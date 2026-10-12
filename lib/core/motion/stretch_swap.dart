@@ -53,8 +53,10 @@ class _StretchSwapState extends State<StretchSwap>
     TweenSequenceItem(tween: Tween(begin: 0.72, end: 1.07), weight: 55),
     TweenSequenceItem(tween: Tween(begin: 1.07, end: 1.0), weight: 45),
   ]);
-  static final _op = Tween<double>(begin: 0.25, end: 1.0)
-      .chain(CurveTween(curve: const Interval(0, 0.55)));
+  static final _op = Tween<double>(
+    begin: 0.25,
+    end: 1.0,
+  ).chain(CurveTween(curve: const Interval(0, 0.55)));
 
   @override
   void initState() {

@@ -74,10 +74,11 @@ class CompanyContact extends StatelessWidget {
           child: Text(
             t('company.contact').toUpperCase(),
             style: TextStyle(
-                color: c.faint,
-                fontSize: 11,
-                letterSpacing: 0.9,
-                fontWeight: FontWeight.w600),
+              color: c.faint,
+              fontSize: 11,
+              letterSpacing: 0.9,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
         Padding(
@@ -102,9 +103,13 @@ class CompanyContact extends StatelessWidget {
                   fg: c.muted,
                   label: t('company.website'),
                   value: co.website!,
-                  onTap: () => _open(Uri.parse(co.website!.startsWith('http')
-                      ? co.website!
-                      : 'https://${co.website!}')),
+                  onTap: () => _open(
+                    Uri.parse(
+                      co.website!.startsWith('http')
+                          ? co.website!
+                          : 'https://${co.website!}',
+                    ),
+                  ),
                 ),
               ],
             ],
@@ -174,19 +179,25 @@ class _ContactTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label,
-                      style: TextStyle(
-                          color: c.faint,
-                          fontSize: 9,
-                          letterSpacing: 0.7,
-                          fontWeight: FontWeight.w600)),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: c.faint,
+                      fontSize: 9,
+                      letterSpacing: 0.7,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   const SizedBox(height: 2),
-                  Text(value,
-                      style: TextStyle(
-                          color: c.text,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          fontFamily: fructaFonts.mono)),
+                  Text(
+                    value,
+                    style: TextStyle(
+                      color: c.text,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: fructaFonts.mono,
+                    ),
+                  ),
                 ],
               ),
             ),

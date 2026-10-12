@@ -57,9 +57,9 @@ class StockPage extends ConsumerWidget {
         actions: [
           IconButton(
             tooltip: t('nav.alerts'),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const AlertsPage()),
-            ),
+            onPressed: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const AlertsPage())),
             icon: Icon(Icons.notifications_none, color: c.muted),
           ),
           // Following a stock buys exactly one thing: the book-closure alert.
@@ -85,10 +85,7 @@ class StockPage extends ConsumerWidget {
                   gradient: RadialGradient(
                     center: const Alignment(0.2, -0.3),
                     radius: 0.85,
-                    colors: [
-                      tint.withValues(alpha: 0.20),
-                      Colors.transparent,
-                    ],
+                    colors: [tint.withValues(alpha: 0.20), Colors.transparent],
                   ),
                 ),
               ),
@@ -317,8 +314,7 @@ class StockPage extends ConsumerWidget {
     final cells = <(String, String)>[
       if (s.divYield != null)
         (t('stocks.stat.divYield'), '${s.divYield!.toStringAsFixed(1)}%'),
-      if (s.marketCap != null)
-        (t('stocks.stat.marketCap'), _cap(s.marketCap!)),
+      if (s.marketCap != null) (t('stocks.stat.marketCap'), _cap(s.marketCap!)),
       if (s.pe != null)
         (t('stocks.stat.pe'), s.pe!.toStringAsFixed(1))
       else if (s.dpsLatest != null)
@@ -332,8 +328,7 @@ class StockPage extends ConsumerWidget {
         child: Row(
           children: [
             for (var i = 0; i < cells.length; i++) ...[
-              if (i > 0)
-                Container(width: 1, color: c.line),
+              if (i > 0) Container(width: 1, color: c.line),
               Expanded(
                 child: Padding(
                   padding: EdgeInsets.only(left: i == 0 ? 0 : 16, right: 8),
@@ -790,8 +785,18 @@ class StockPage extends ConsumerWidget {
     final d = DateTime.tryParse(iso);
     if (d == null) return iso;
     const m = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return '${d.day} ${m[d.month - 1]}';
   }
@@ -917,7 +922,10 @@ class StockPage extends ConsumerWidget {
                                     : t('stocks.dividend.fy', {
                                         'y': '${rows[i].financialYear}',
                                       }),
-                                style: TextStyle(color: c.faint, fontSize: 12.5),
+                                style: TextStyle(
+                                  color: c.faint,
+                                  fontSize: 12.5,
+                                ),
                               ),
                             ],
                           ),
@@ -1068,9 +1076,9 @@ class StockPage extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 2, 20, 0),
             child: GestureDetector(
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const BrokersPage()),
-              ),
+              onTap: () => Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const BrokersPage())),
               child: Row(
                 children: [
                   Text(
@@ -1090,5 +1098,4 @@ class StockPage extends ConsumerWidget {
       ],
     );
   }
-
 }

@@ -98,7 +98,8 @@ class LocalNotify {
     // by name via `existing_android_channel_id`.
     final androidImpl = _plugin
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
+          AndroidFlutterLocalNotificationsPlugin
+        >();
 
     await androidImpl?.createNotificationChannel(
       const AndroidNotificationChannel(
@@ -133,35 +134,34 @@ class LocalNotify {
     required String description,
     required Importance importance,
     required Priority priority,
-  }) =>
-      NotificationDetails(
-        android: AndroidNotificationDetails(
-          id,
-          name,
-          channelDescription: description,
-          importance: importance,
-          priority: priority,
-          icon: _androidIcon,
-          color: _accent,
-        ),
-        iOS: const DarwinNotificationDetails(),
-      );
+  }) => NotificationDetails(
+    android: AndroidNotificationDetails(
+      id,
+      name,
+      channelDescription: description,
+      importance: importance,
+      priority: priority,
+      icon: _androidIcon,
+      color: _accent,
+    ),
+    iOS: const DarwinNotificationDetails(),
+  );
 
   static NotificationDetails get _rateDetails => _details(
-        id: channelId,
-        name: channelName,
-        description: channelDescription,
-        importance: Importance.high,
-        priority: Priority.high,
-      );
+    id: channelId,
+    name: channelName,
+    description: channelDescription,
+    importance: Importance.high,
+    priority: Priority.high,
+  );
 
   static NotificationDetails get _learnDetails => _details(
-        id: learnChannelId,
-        name: learnChannelName,
-        description: learnChannelDescription,
-        importance: Importance.defaultImportance,
-        priority: Priority.defaultPriority,
-      );
+    id: learnChannelId,
+    name: learnChannelName,
+    description: learnChannelDescription,
+    importance: Importance.defaultImportance,
+    priority: Priority.defaultPriority,
+  );
 
   static Future<void> show({
     required int id,
@@ -184,11 +184,11 @@ class LocalNotify {
   /// it exercises permission, channel and icon while cutting the server, the
   /// tags and FCM entirely out of the picture.
   static Future<void> test() => show(
-        id: 424242,
-        title: 'Fructa alerts are working',
-        body: 'This is what a rate alert will look like on this phone.',
-        target: 'alerts',
-      );
+    id: 424242,
+    title: 'Fructa alerts are working',
+    body: 'This is what a rate alert will look like on this phone.',
+    target: 'alerts',
+  );
 
   // ---------------------------------------------------------------------------
   // Scheduling
@@ -221,8 +221,7 @@ class LocalNotify {
         // Inexact avoids the exact-alarm permission on Android 12+; none of
         // these need to fire to the second.
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-        matchDateTimeComponents:
-            repeatDaily ? DateTimeComponents.time : null,
+        matchDateTimeComponents: repeatDaily ? DateTimeComponents.time : null,
       );
     } catch (_) {
       // A scheduling hiccup must never reach the widget that triggered it.

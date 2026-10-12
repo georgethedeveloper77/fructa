@@ -22,12 +22,12 @@ class LearnHomePage extends ConsumerWidget {
   /// Level names, lowest to highest. Not `const`: the copy comes from the
   /// lang file, so it is resolved per build rather than baked in.
   static List<String> get _levelTitles => [
-        t('learn.level1'),
-        t('learn.level2'),
-        t('learn.level3'),
-        t('learn.level4'),
-        t('learn.level5'),
-      ];
+    t('learn.level1'),
+    t('learn.level2'),
+    t('learn.level3'),
+    t('learn.level4'),
+    t('learn.level5'),
+  ];
 
   LearnUnit? _unitById(LearnContent c, String? id) {
     if (id == null) return null;
@@ -57,9 +57,12 @@ class LearnHomePage extends ConsumerWidget {
       );
     }
 
-    final unlocked = content.units.where((u) => _unlocked(content, u, progress));
-    final locked =
-        content.units.where((u) => !_unlocked(content, u, progress)).toList();
+    final unlocked = content.units.where(
+      (u) => _unlocked(content, u, progress),
+    );
+    final locked = content.units
+        .where((u) => !_unlocked(content, u, progress))
+        .toList();
 
     return Scaffold(
       backgroundColor: c.bg,
@@ -74,8 +77,7 @@ class LearnHomePage extends ConsumerWidget {
             titles: _levelTitles,
             nextLocked: locked.isEmpty ? null : locked.first,
           ),
-          for (final u in unlocked)
-            _UnitPath(unit: u, progress: progress),
+          for (final u in unlocked) _UnitPath(unit: u, progress: progress),
           if (locked.isNotEmpty) _UpNext(units: locked),
         ],
       ),
@@ -83,11 +85,11 @@ class LearnHomePage extends ConsumerWidget {
   }
 
   PreferredSizeWidget _bar(BuildContext context) => AppBar(
-        backgroundColor: context.c.bg,
-        surfaceTintColor: Colors.transparent,
-        foregroundColor: context.c.text,
-        elevation: 0,
-      );
+    backgroundColor: context.c.bg,
+    surfaceTintColor: Colors.transparent,
+    foregroundColor: context.c.text,
+    elevation: 0,
+  );
 }
 
 /// The path list, restoring where the learner last was.
@@ -136,20 +138,20 @@ class _RestoringListState extends State<_RestoringList> {
 
   @override
   Widget build(BuildContext context) => ListView(
-        controller: _ctrl,
-        padding: const EdgeInsets.only(bottom: 40),
-        children: widget.children,
-      );
+    controller: _ctrl,
+    padding: const EdgeInsets.only(bottom: 40),
+    children: widget.children,
+  );
 }
 
 // accent name to palette (central fructaAccent colours)
 fructaAccent _accent(String? name) => switch (name) {
-      'sky' => fructaAccent.sky,
-      'emerald' => fructaAccent.emerald,
-      'iris' => fructaAccent.iris,
-      'amber' => fructaAccent.gold,
-      _ => fructaAccent.gold,
-    };
+  'sky' => fructaAccent.sky,
+  'emerald' => fructaAccent.emerald,
+  'iris' => fructaAccent.iris,
+  'amber' => fructaAccent.gold,
+  _ => fructaAccent.gold,
+};
 
 // ── Header ───────────────────────────────────────────────────────────────────
 class _Header extends StatelessWidget {
@@ -169,22 +171,33 @@ class _Header extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(t('learn.kicker'),
-                    style: TextStyle(
-                        color: c.faint,
-                        fontSize: 11,
-                        letterSpacing: 1.6,
-                        fontWeight: FontWeight.w600)),
+                Text(
+                  t('learn.kicker'),
+                  style: TextStyle(
+                    color: c.faint,
+                    fontSize: 11,
+                    letterSpacing: 1.6,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text(t('learn.title'),
-                    style: TextStyle(
-                        color: c.text,
-                        fontSize: 23,
-                        fontWeight: FontWeight.w700)),
+                Text(
+                  t('learn.title'),
+                  style: TextStyle(
+                    color: c.text,
+                    fontSize: 23,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ],
             ),
           ),
-          _stat(context, Icons.local_fire_department_rounded, '$streak', c.accent),
+          _stat(
+            context,
+            Icons.local_fire_department_rounded,
+            '$streak',
+            c.accent,
+          ),
           const SizedBox(width: 8),
           _stat(context, Icons.bolt_rounded, '$xp', c.up),
         ],
@@ -201,16 +214,21 @@ class _Header extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: c.line2),
       ),
-      child: Row(children: [
-        Icon(icon, size: 15, color: color),
-        const SizedBox(width: 5),
-        Text(v,
+      child: Row(
+        children: [
+          Icon(icon, size: 15, color: color),
+          const SizedBox(width: 5),
+          Text(
+            v,
             style: TextStyle(
-                color: color,
-                fontFamily: fructaFonts.mono,
-                fontSize: 14,
-                fontWeight: FontWeight.w700)),
-      ]),
+              color: color,
+              fontFamily: fructaFonts.mono,
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -238,20 +256,20 @@ class _LevelHero extends StatelessWidget {
     final level = (pct >= 1)
         ? 4
         : (pct >= 0.66)
-            ? 3
-            : (pct >= 0.33)
-                ? 2
-                : (pct > 0)
-                    ? 1
-                    : 0;
+        ? 3
+        : (pct >= 0.33)
+        ? 2
+        : (pct > 0)
+        ? 1
+        : 0;
     final sky = fructaAccent.sky.color;
     final iris = fructaAccent.iris.color;
 
     final headline = pct >= 1
         ? "You've cleared every lesson."
         : (done == 0
-            ? 'Start with the basics of how money grows.'
-            : "You're getting the hang of yields.");
+              ? 'Start with the basics of how money grows.'
+              : "You're getting the hang of yields.");
     final sub = nextLocked != null
         ? 'Finish this unit to unlock ${nextLocked!.title}.'
         : (pct >= 1 ? 'More units are on the way.' : 'Keep the streak going.');
@@ -272,49 +290,63 @@ class _LevelHero extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-              t('learn.level', {
-                'n': '${level + 1}',
-                'title': titles[level],
-              }).toUpperCase(),
-              style: TextStyle(
-                  color: sky,
-                  fontSize: 11,
-                  letterSpacing: 0.8,
-                  fontWeight: FontWeight.w700)),
+            t('learn.level', {
+              'n': '${level + 1}',
+              'title': titles[level],
+            }).toUpperCase(),
+            style: TextStyle(
+              color: sky,
+              fontSize: 11,
+              letterSpacing: 0.8,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
           const SizedBox(height: 4),
-          Text(headline,
-              style: TextStyle(
-                  color: c.text, fontSize: 17, fontWeight: FontWeight.w700)),
+          Text(
+            headline,
+            style: TextStyle(
+              color: c.text,
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
           const SizedBox(height: 3),
           Text(sub, style: TextStyle(color: c.muted, fontSize: 12.5)),
           const SizedBox(height: 12),
           ClipRRect(
             borderRadius: BorderRadius.circular(5),
-            child: Stack(children: [
-              Container(height: 8, color: c.s3),
-              TweenAnimationBuilder<double>(
-                tween: Tween(begin: 0, end: pct.clamp(0.0, 1.0)),
-                duration: const Duration(milliseconds: 700),
-                curve: Curves.easeOutCubic,
-                builder: (_, v, _) => FractionallySizedBox(
-                  widthFactor: v,
-                  child: Container(
-                    height: 8,
-                    decoration: BoxDecoration(
-                        gradient: LinearGradient(colors: [sky, iris])),
+            child: Stack(
+              children: [
+                Container(height: 8, color: c.s3),
+                TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0, end: pct.clamp(0.0, 1.0)),
+                  duration: const Duration(milliseconds: 700),
+                  curve: Curves.easeOutCubic,
+                  builder: (_, v, _) => FractionallySizedBox(
+                    widthFactor: v,
+                    child: Container(
+                      height: 8,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(colors: [sky, iris]),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ]),
+              ],
+            ),
           ),
           const SizedBox(height: 6),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('$done of $total lessons',
-                  style: TextStyle(color: c.faint, fontSize: 11)),
-              Text('${(pct * 100).round()}%',
-                  style: TextStyle(color: c.faint, fontSize: 11)),
+              Text(
+                '$done of $total lessons',
+                style: TextStyle(color: c.faint, fontSize: 11),
+              ),
+              Text(
+                '${(pct * 100).round()}%',
+                style: TextStyle(color: c.faint, fontSize: 11),
+              ),
             ],
           ),
         ],
@@ -346,20 +378,30 @@ class _UnitPath extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('$done of ${lessons.length} done'.toUpperCase(),
-                  style: TextStyle(
-                      color: acc.color,
-                      fontSize: 11,
-                      letterSpacing: 0.8,
-                      fontWeight: FontWeight.w700)),
+              Text(
+                '$done of ${lessons.length} done'.toUpperCase(),
+                style: TextStyle(
+                  color: acc.color,
+                  fontSize: 11,
+                  letterSpacing: 0.8,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               const SizedBox(height: 3),
-              Text(unit.title,
-                  style: TextStyle(
-                      color: c.text, fontSize: 18, fontWeight: FontWeight.w700)),
+              Text(
+                unit.title,
+                style: TextStyle(
+                  color: c.text,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               if (unit.subtitle != null) ...[
                 const SizedBox(height: 3),
-                Text(unit.subtitle!,
-                    style: TextStyle(color: c.muted, fontSize: 12.5)),
+                Text(
+                  unit.subtitle!,
+                  style: TextStyle(color: c.muted, fontSize: 12.5),
+                ),
               ],
             ],
           ),
@@ -455,13 +497,14 @@ class _LessonNodeState extends State<_LessonNode>
   @override
   Widget build(BuildContext context) {
     final c = context.c;
-    final ringColor =
-        widget.done ? c.up : (widget.unlocked ? widget.accent : c.s3);
+    final ringColor = widget.done
+        ? c.up
+        : (widget.unlocked ? widget.accent : c.s3);
     final faceColors = widget.done
         ? [c.up, c.up.withValues(alpha: 0.72)]
         : (widget.unlocked
-            ? [widget.accent, widget.accent.withValues(alpha: 0.72)]
-            : [c.s3, c.s3]);
+              ? [widget.accent, widget.accent.withValues(alpha: 0.72)]
+              : [c.s3, c.s3]);
     final iconColor = widget.done
         ? c.bg
         : (widget.unlocked ? widget.ink : c.faint);
@@ -483,9 +526,10 @@ class _LessonNodeState extends State<_LessonNode>
         boxShadow: _active
             ? [
                 BoxShadow(
-                    color: widget.accent.withValues(alpha: 0.32),
-                    blurRadius: 22,
-                    spreadRadius: 1)
+                  color: widget.accent.withValues(alpha: 0.32),
+                  blurRadius: 22,
+                  spreadRadius: 1,
+                ),
               ]
             : null,
       ),
@@ -506,9 +550,10 @@ class _LessonNodeState extends State<_LessonNode>
     return InkWell(
       onTap: (widget.done || widget.unlocked)
           ? () => Navigator.of(context).push(
-                MaterialPageRoute(
-                    builder: (_) => LessonPlayer(lesson: widget.lesson)),
-              )
+              MaterialPageRoute(
+                builder: (_) => LessonPlayer(lesson: widget.lesson),
+              ),
+            )
           : null,
       borderRadius: BorderRadius.circular(40),
       child: Padding(
@@ -536,9 +581,10 @@ class _LessonNodeState extends State<_LessonNode>
                 widget.lesson.title,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    color: (widget.done || widget.unlocked) ? c.text : c.faint,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600),
+                  color: (widget.done || widget.unlocked) ? c.text : c.faint,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ],
@@ -595,12 +641,15 @@ class _UpNext extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(t('learn.upNext'),
-              style: TextStyle(
-                  color: c.faint,
-                  fontSize: 11,
-                  letterSpacing: 1.2,
-                  fontWeight: FontWeight.w600)),
+          Text(
+            t('learn.upNext'),
+            style: TextStyle(
+              color: c.faint,
+              fontSize: 11,
+              letterSpacing: 1.2,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const SizedBox(height: 12),
           for (final u in units)
             Container(
@@ -611,38 +660,48 @@ class _UpNext extends StatelessWidget {
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: c.line2),
               ),
-              child: Row(children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: c.s3,
-                    borderRadius: BorderRadius.circular(12),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: c.s3,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.auto_graph_rounded,
+                      color: _accent(u.accent).color,
+                      size: 22,
+                    ),
                   ),
-                  child: Icon(Icons.auto_graph_rounded,
-                      color: _accent(u.accent).color, size: 22),
-                ),
-                const SizedBox(width: 13),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(u.title,
+                  const SizedBox(width: 13),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          u.title,
                           style: TextStyle(
-                              color: c.text,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600)),
-                      if (u.subtitle != null) ...[
-                        const SizedBox(height: 2),
-                        Text(u.subtitle!,
-                            style: TextStyle(color: c.muted, fontSize: 12)),
+                            color: c.text,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        if (u.subtitle != null) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            u.subtitle!,
+                            style: TextStyle(color: c.muted, fontSize: 12),
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
-                ),
-                Icon(Icons.lock_rounded, color: c.faint, size: 16),
-              ]),
+                  Icon(Icons.lock_rounded, color: c.faint, size: 16),
+                ],
+              ),
             ),
         ],
       ),
@@ -673,9 +732,14 @@ class _Empty extends StatelessWidget {
               child: Icon(Icons.school_outlined, color: c.accent, size: 34),
             ),
             const SizedBox(height: 18),
-            Text(t('learn.soonTitle'),
-                style: TextStyle(
-                    color: c.text, fontSize: 18, fontWeight: FontWeight.w700)),
+            Text(
+              t('learn.soonTitle'),
+              style: TextStyle(
+                color: c.text,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
             const SizedBox(height: 8),
             Text(
               t('learn.soonBody'),

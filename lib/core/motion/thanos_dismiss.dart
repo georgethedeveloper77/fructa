@@ -8,7 +8,8 @@ import 'package:flutter/widgets.dart';
 import 'motion.dart';
 
 /// Signature for building a dismissible card; call [snap] to dissolve it.
-typedef ThanosBuilder = Widget Function(BuildContext context, VoidCallback snap);
+typedef ThanosBuilder =
+    Widget Function(BuildContext context, VoidCallback snap);
 
 /// Dissolves its child into dust, left to right, then closes the gap.
 ///
@@ -208,7 +209,10 @@ class _DustPainter extends CustomPainter {
       canvas.save();
       canvas.translate(pos.dx + half, pos.dy + half);
       canvas.rotate(g.spin * e);
-      canvas.drawRect(Rect.fromCenter(center: Offset.zero, width: s, height: s), paint);
+      canvas.drawRect(
+        Rect.fromCenter(center: Offset.zero, width: s, height: s),
+        paint,
+      );
       canvas.restore();
     }
   }

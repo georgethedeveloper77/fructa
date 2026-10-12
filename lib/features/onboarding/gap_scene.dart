@@ -289,7 +289,10 @@ class _GapSceneState extends ConsumerState<GapScene> {
                               const SizedBox(width: 10),
                               Text(
                                 'Getting today\u2019s rates',
-                                style: TextStyle(color: c.muted, fontSize: 13.5),
+                                style: TextStyle(
+                                  color: c.muted,
+                                  fontSize: 13.5,
+                                ),
                               ),
                             ],
                           ),

@@ -31,8 +31,7 @@ class MotorCoverSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final classes =
-        MotorClass.values.where(availableClasses.contains).toList();
+    final classes = MotorClass.values.where(availableClasses.contains).toList();
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
@@ -67,7 +66,10 @@ class MotorCoverSelector extends StatelessWidget {
             Text(
               t('insure.tpoUnpublished'),
               style: TextStyle(
-                  color: context.c.faint, fontSize: 11, height: 1.4),
+                color: context.c.faint,
+                fontSize: 11,
+                height: 1.4,
+              ),
             ),
           ],
         ],
@@ -82,12 +84,12 @@ class _Label extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Text(
-        text.toUpperCase(),
-        style: TextStyle(
-          color: context.c.faint,
-          fontSize: 9.5,
-          letterSpacing: 0.9,
-          fontWeight: FontWeight.w700,
-        ),
-      );
+    text.toUpperCase(),
+    style: TextStyle(
+      color: context.c.faint,
+      fontSize: 9.5,
+      letterSpacing: 0.9,
+      fontWeight: FontWeight.w700,
+    ),
+  );
 }

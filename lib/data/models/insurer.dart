@@ -276,7 +276,11 @@ class Insurer {
   /// Null is load-bearing. Callers must drop the insurer from the comparison,
   /// never coerce to 0, or we would show a company as "cheapest" precisely
   /// because we do not know what it charges.
-  double? quote(num value, {required MotorClass cls, required CoverType cover}) {
+  double? quote(
+    num value, {
+    required MotorClass cls,
+    required CoverType cover,
+  }) {
     final t = tariff.forClass(cls);
     if (t == null) return null;
     return cover == CoverType.tpo
@@ -296,8 +300,7 @@ class Insurer {
   /// silent accusation) since older rows may predate the trust fields.
   bool get canWriteNewBusiness =>
       licenseStatus == null || licenseStatus == 'active';
-  bool get underStatutoryManagement =>
-      licenseStatus == 'statutory_management';
+  bool get underStatutoryManagement => licenseStatus == 'statutory_management';
 
   /// Any trust datum worth rendering. Nothing seeded means the panel hides.
   bool get hasTrustData =>
@@ -399,8 +402,9 @@ class Insurer {
     travelCover: j['travel_cover'] as String?,
     licenseStatus: j['license_status'] as String?,
     licenseYear: (j['license_year'] as num?)?.toInt(),
-    iraClassCodes:
-        ((j['ira_class_codes'] as List?) ?? const []).map((v) => '$v').toList(),
+    iraClassCodes: ((j['ira_class_codes'] as List?) ?? const [])
+        .map((v) => '$v')
+        .toList(),
     financialRating: j['financial_rating'] as String?,
     ratingAgency: j['rating_agency'] as String?,
     ratingOutlook: j['rating_outlook'] as String?,

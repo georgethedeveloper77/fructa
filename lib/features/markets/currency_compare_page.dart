@@ -76,8 +76,12 @@ class _CurrencyComparePageState extends ConsumerState<CurrencyComparePage> {
       ),
       body: base == null || series == null
           ? _empty(c)
-          : _body(c, base.copyWith(stance: _stance, years: _years.toDouble()),
-              series.mean, pair),
+          : _body(
+              c,
+              base.copyWith(stance: _stance, years: _years.toDouble()),
+              series.mean,
+              pair,
+            ),
     );
   }
 
@@ -181,10 +185,7 @@ class _CurrencyComparePageState extends ConsumerState<CurrencyComparePage> {
         ],
 
         _Assumptions(fxCase: fxCase, pair: pair),
-        NoteCard(
-          t('markets.fx.cmp.disclaimer'),
-          title: t('common.goodToKnow'),
-        ),
+        NoteCard(t('markets.fx.cmp.disclaimer'), title: t('common.goodToKnow')),
       ],
     );
   }
@@ -655,7 +656,9 @@ class _Race extends StatelessWidget {
                     ? 'markets.fx.cmp.raceUsd'
                     : 'markets.fx.cmp.raceKes',
                 {
-                  'amt': withCommas((last.kesPath - last.usdPath).abs().round()),
+                  'amt': withCommas(
+                    (last.kesPath - last.usdPath).abs().round(),
+                  ),
                 },
               ),
               style: TextStyle(color: c.muted, fontSize: 12, height: 1.55),
@@ -689,7 +692,9 @@ class _RacePainter extends CustomPainter {
       hi = math.max(hi, math.max(p.kesPath, p.usdPath));
     }
     if (!lo.isFinite || !hi.isFinite) return;
-    final pad = (hi - lo) == 0 ? math.max(hi.abs() * 0.05, 1.0) : (hi - lo) * 0.1;
+    final pad = (hi - lo) == 0
+        ? math.max(hi.abs() * 0.05, 1.0)
+        : (hi - lo) * 0.1;
     lo -= pad;
     hi += pad;
     final span = (hi - lo) == 0 ? 1.0 : (hi - lo);

@@ -39,8 +39,7 @@ class MoneyCurrencyTabs extends ConsumerWidget {
           final ccy = items[i];
           final on = ccy == selected;
           return GestureDetector(
-            onTap: () =>
-                ref.read(marketMoneyCcyProvider.notifier).state = ccy,
+            onTap: () => ref.read(marketMoneyCcyProvider.notifier).state = ccy,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 140),
               alignment: Alignment.center,
@@ -49,7 +48,8 @@ class MoneyCurrencyTabs extends ConsumerWidget {
                 color: on ? c.accentSoft : Colors.transparent,
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(
-                    color: on ? c.accent.withValues(alpha: 0.4) : c.line),
+                  color: on ? c.accent.withValues(alpha: 0.4) : c.line,
+                ),
               ),
               child: Text(
                 ccy ?? 'All',

@@ -63,7 +63,10 @@ class _YieldsInfoSheet extends ConsumerWidget {
               _Point(
                 icon: Icons.percent,
                 color: c.accent,
-                title: cfg.string('yields.info.grossTitle', 'Gross, before tax'),
+                title: cfg.string(
+                  'yields.info.grossTitle',
+                  'Gross, before tax',
+                ),
                 body: cfg.string(
                   'yields.info.grossBody',
                   'Published rates are gross effective annual yields, exactly as each fund manager reports them.',

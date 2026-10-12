@@ -280,7 +280,8 @@ class Push {
     // written by anything else is never touched.
     for (final k in remote.keys) {
       if (want.containsKey(k)) continue;
-      final ours = k.startsWith('follow_') ||
+      final ours =
+          k.startsWith('follow_') ||
           k == 'digest_weekly' ||
           _muteKeys.contains(k);
       if (ours) OneSignal.User.removeTag(k);

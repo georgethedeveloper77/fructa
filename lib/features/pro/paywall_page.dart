@@ -236,7 +236,10 @@ class _PaywallPageState extends ConsumerState<PaywallPage> {
                 cfg.string('legal.terms_url', 'https://fructa.africa/terms'),
               ),
               onPrivacy: () => _open(
-                cfg.string('legal.privacy_url', 'https://fructa.africa/privacy'),
+                cfg.string(
+                  'legal.privacy_url',
+                  'https://fructa.africa/privacy',
+                ),
               ),
             ),
           ],
@@ -345,7 +348,10 @@ class _TopBar extends StatelessWidget {
                   )
                 : const Text(
                     'Restore purchases',
-                    style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
           ),
         ],
@@ -788,7 +794,10 @@ class _BottomBar extends StatelessWidget {
               TextButton(
                 onPressed: onTerms,
                 style: TextButton.styleFrom(foregroundColor: c.muted),
-                child: const Text('Terms of Use', style: TextStyle(fontSize: 12)),
+                child: const Text(
+                  'Terms of Use',
+                  style: TextStyle(fontSize: 12),
+                ),
               ),
               Text('\u00b7', style: TextStyle(color: c.faint)),
               TextButton(

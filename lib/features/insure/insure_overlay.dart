@@ -115,43 +115,39 @@ class InsureOverlay extends ConsumerWidget {
     // Stagger re-runs SingleTickerProviderStateMixin._updateTickerModeNotifier,
     // the method in the crash trace. Unkeyed, the list updates children in
     // place and never calls it.
-    return _shell(
-      context,
-      [
-        DisplayHeader(title: t('insure.title')),
-        _SpreadHero(quotes: quotes, insurers: insurers),
-        if (quotes.length >= 2) _DistributionStrip(quotes: quotes),
-        for (var k = 0; k < types.length; k++)
-          Stagger(
-            index: k,
-            child: _CategoryRow(
-              type: types[k],
-              insurers: insurers,
-              onTap: () => _openType(context, types[k]),
-            ),
-          ),
+    return _shell(context, [
+      DisplayHeader(title: t('insure.title')),
+      _SpreadHero(quotes: quotes, insurers: insurers),
+      if (quotes.length >= 2) _DistributionStrip(quotes: quotes),
+      for (var k = 0; k < types.length; k++)
         Stagger(
-          index: types.length,
-          child: _DirectoryCard(
+          index: k,
+          child: _CategoryRow(
+            type: types[k],
             insurers: insurers,
-            flagged: flagged,
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const InsurerDirectoryPage()),
-            ),
+            onTap: () => _openType(context, types[k]),
           ),
         ),
-        if (quotes.length >= 2) ...[
-          _SectionHead(
-            title: t('insure.proof.title'),
-            small: t('insure.proof.sub'),
+      Stagger(
+        index: types.length,
+        child: _DirectoryCard(
+          insurers: insurers,
+          flagged: flagged,
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const InsurerDirectoryPage()),
           ),
-          _SpreadChart(quotes: quotes),
-        ],
-        _CombinedRatioChart(rc: rc),
-        _Notice(text: rcText(rc, 'insure.disc.home')),
+        ),
+      ),
+      if (quotes.length >= 2) ...[
+        _SectionHead(
+          title: t('insure.proof.title'),
+          small: t('insure.proof.sub'),
+        ),
+        _SpreadChart(quotes: quotes),
       ],
-      trailing: const _LivePill(),
-    );
+      _CombinedRatioChart(rc: rc),
+      _Notice(text: rcText(rc, 'insure.disc.home')),
+    ], trailing: const _LivePill());
   }
 
   Widget _shell(
@@ -651,15 +647,9 @@ class _SecondaryCard extends StatelessWidget {
                     ),
                     if (sub.isNotEmpty) ...[
                       const SizedBox(height: 3),
-                      Text(
-                        sub,
-                        style: TextStyle(color: c.faint, fontSize: 11),
-                      ),
+                      Text(sub, style: TextStyle(color: c.faint, fontSize: 11)),
                     ],
-                    if (child != null) ...[
-                      const SizedBox(height: 10),
-                      child!,
-                    ],
+                    if (child != null) ...[const SizedBox(height: 10), child!],
                   ],
                 ),
               ),
@@ -731,11 +721,12 @@ class _LogoWall extends StatelessWidget {
     final c = context.c;
     // Lead with the ones we can price: they are the ones with real marks, and a
     // wall of monograms says nothing.
-    final ranked = [...insurers]..sort((a, b) {
-      final pa = (a.hasMotor || a.hasTravel) ? 0 : 1;
-      final pb = (b.hasMotor || b.hasTravel) ? 0 : 1;
-      return pa.compareTo(pb);
-    });
+    final ranked = [...insurers]
+      ..sort((a, b) {
+        final pa = (a.hasMotor || a.hasTravel) ? 0 : 1;
+        final pb = (b.hasMotor || b.hasTravel) ? 0 : 1;
+        return pa.compareTo(pb);
+      });
     final shown = ranked.take(_cap).toList();
     final extra = insurers.length - shown.length;
     final slots = shown.length + (extra > 0 ? 1 : 0);
@@ -810,10 +801,7 @@ class _SectionHead extends StatelessWidget {
           ),
           const SizedBox(width: 9),
           Flexible(
-            child: Text(
-              small,
-              style: TextStyle(color: c.faint, fontSize: 11),
-            ),
+            child: Text(small, style: TextStyle(color: c.faint, fontSize: 11)),
           ),
         ],
       ),
@@ -848,8 +836,8 @@ class _SpreadChart extends StatelessWidget {
               color: k == 0
                   ? c.accent
                   : k == last
-                      ? c.down
-                      : c.line2,
+                  ? c.down
+                  : c.line2,
               highlight: k == 0 || k == last,
             ),
         ],
@@ -915,8 +903,8 @@ class _CombinedRatioChart extends StatelessWidget {
               color: r.value >= 110
                   ? c.down
                   : r.value >= 100
-                      ? c.accent
-                      : c.up,
+                  ? c.accent
+                  : c.up,
               highlight: r.value >= 110,
             ),
         ],

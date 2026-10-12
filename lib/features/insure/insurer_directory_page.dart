@@ -107,9 +107,7 @@ class _InsurerDirectoryPageState extends ConsumerState<InsurerDirectoryPage> {
         .map((i) => i.licenseYear)
         .whereType<int>()
         .toList(growable: false);
-    final year = years.isEmpty
-        ? null
-        : years.reduce((a, b) => a > b ? a : b);
+    final year = years.isEmpty ? null : years.reduce((a, b) => a > b ? a : b);
 
     return InsureScaffold(
       navTitle: t('insure.dir.title'),
@@ -167,7 +165,11 @@ class _InsurerDirectoryPageState extends ConsumerState<InsurerDirectoryPage> {
           )
         else
           for (var k = 0; k < shown.length; k++)
-            _InsurerRow(insurer: shown[k], index: k, onTap: () => _open(shown[k])),
+            _InsurerRow(
+              insurer: shown[k],
+              index: k,
+              onTap: () => _open(shown[k]),
+            ),
         if (shown.isNotEmpty) InsureFoot(t('insure.dir.foot')),
       ],
     );

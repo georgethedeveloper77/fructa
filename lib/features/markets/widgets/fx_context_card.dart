@@ -39,9 +39,7 @@ class FxContextSection extends ConsumerWidget {
       // answers it for the stance the reader is in, over the horizon they have,
       // and shows what the same bet did every time it could have been placed.
       onTap: () => Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => const CurrencyComparePage(),
-        ),
+        MaterialPageRoute<void>(builder: (_) => const CurrencyComparePage()),
       ),
     );
   }
@@ -219,8 +217,8 @@ class FxContextCard extends StatelessWidget {
     // it.
     final span = years >= 1
         ? (years == 1
-            ? t('markets.fx.spanYearOne')
-            : t('markets.fx.spanYears', {'n': '$years'}))
+              ? t('markets.fx.spanYearOne')
+              : t('markets.fx.spanYears', {'n': '$years'}))
         : t('markets.fx.spanMonths', {'n': '$months'});
     return Row(
       children: [
@@ -264,32 +262,32 @@ class FxContextCard extends StatelessWidget {
   /// asking this question have never been told.
   Widget _hurdles(fructaColors c, Color tint, double hold, double buy) {
     Widget cell(String label, double value, bool accent) => Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  color: c.faint,
-                  fontSize: 9.5,
-                  letterSpacing: 0.6,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                value.toStringAsFixed(2),
-                style: TextStyle(
-                  color: accent ? tint : c.text,
-                  fontFamily: fructaFonts.mono,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w600,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
-              ),
-            ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: c.faint,
+              fontSize: 9.5,
+              letterSpacing: 0.6,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-        );
+          const SizedBox(height: 4),
+          Text(
+            value.toStringAsFixed(2),
+            style: TextStyle(
+              color: accent ? tint : c.text,
+              fontFamily: fructaFonts.mono,
+              fontSize: 17,
+              fontWeight: FontWeight.w600,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+        ],
+      ),
+    );
 
     return Column(
       children: [
@@ -339,10 +337,12 @@ class FxContextCard extends StatelessWidget {
     var at = 0;
     for (final m in re.allMatches(src)) {
       if (m.start > at) out.add(TextSpan(text: src.substring(at, m.start)));
-      out.add(TextSpan(
-        text: m.group(1),
-        style: TextStyle(color: strong, fontWeight: FontWeight.w600),
-      ));
+      out.add(
+        TextSpan(
+          text: m.group(1),
+          style: TextStyle(color: strong, fontWeight: FontWeight.w600),
+        ),
+      );
       at = m.end;
     }
     if (at < src.length) out.add(TextSpan(text: src.substring(at)));

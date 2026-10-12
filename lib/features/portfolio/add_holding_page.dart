@@ -42,13 +42,13 @@ const _typeOrder = ['mmf', 'fixed_income', 'equity', 'balanced', 'special'];
 /// lang file has not seen yet, rather than rendering blank.
 String _typeLabel(String type) => t('fundType.$type');
 IconData _typeIcon(String type) => switch (type) {
-      'mmf' => Icons.savings_outlined,
-      'fixed_income' => Icons.account_balance_outlined,
-      'equity' => Icons.trending_up_rounded,
-      'balanced' => Icons.balance_rounded,
-      'special' => Icons.workspace_premium_outlined,
-      _ => Icons.category_outlined,
-    };
+  'mmf' => Icons.savings_outlined,
+  'fixed_income' => Icons.account_balance_outlined,
+  'equity' => Icons.trending_up_rounded,
+  'balanced' => Icons.balance_rounded,
+  'special' => Icons.workspace_premium_outlined,
+  _ => Icons.category_outlined,
+};
 int _ccyRank(String x) => x == 'KES' ? 0 : (x == 'USD' ? 1 : 2);
 
 class _AddHoldingPageState extends ConsumerState<AddHoldingPage> {
@@ -68,8 +68,7 @@ class _AddHoldingPageState extends ConsumerState<AddHoldingPage> {
   double? get _amount => double.tryParse(_balance.text.replaceAll(',', ''));
 
   bool _match(Fund f, String q) =>
-      f.name.toLowerCase().contains(q) ||
-      f.manager.toLowerCase().contains(q);
+      f.name.toLowerCase().contains(q) || f.manager.toLowerCase().contains(q);
 
   Future<void> _save() async {
     final f = _fund;
@@ -82,11 +81,7 @@ class _AddHoldingPageState extends ConsumerState<AddHoldingPage> {
     // The conversion event. Deliberately carries no amount: a balance is the
     // most sensitive number this app holds and the on-device promise is the
     // product's differentiator, so it does not leave the phone.
-    Analytics.addHolding(
-      fundId: f.id,
-      currency: f.currency,
-      kind: 'fund',
-    );
+    Analytics.addHolding(fundId: f.id, currency: f.currency, kind: 'fund');
     Analytics.setHoldingsBucket(ref.read(holdingsProvider).length);
 
     if (mounted) Navigator.of(context).pop();
@@ -105,15 +100,16 @@ class _AddHoldingPageState extends ConsumerState<AddHoldingPage> {
     // type then KES-before-USD. No legacy category, no empty buckets.
     final buckets = <_Bucket>[];
     for (final t in _typeOrder) {
-      final ccys = retail
-          .where((f) => f.fundType == t)
-          .map((f) => f.currency)
-          .toSet()
-          .toList()
-        ..sort((a, b) {
-          final d = _ccyRank(a) - _ccyRank(b);
-          return d != 0 ? d : a.compareTo(b);
-        });
+      final ccys =
+          retail
+              .where((f) => f.fundType == t)
+              .map((f) => f.currency)
+              .toSet()
+              .toList()
+            ..sort((a, b) {
+              final d = _ccyRank(a) - _ccyRank(b);
+              return d != 0 ? d : a.compareTo(b);
+            });
       for (final ccy in ccys) {
         buckets.add((type: t, currency: ccy));
       }
@@ -124,12 +120,16 @@ class _AddHoldingPageState extends ConsumerState<AddHoldingPage> {
     final matches = active == null
         ? const <Fund>[]
         : (pool
-            .where((f) =>
-                f.fundType == active.type &&
-                f.currency == active.currency &&
-                (q.isEmpty || _match(f, q)))
-            .toList()
-          ..sort((a, b) => (b.currentRate ?? 0).compareTo(a.currentRate ?? 0)));
+              .where(
+                (f) =>
+                    f.fundType == active.type &&
+                    f.currency == active.currency &&
+                    (q.isEmpty || _match(f, q)),
+              )
+              .toList()
+            ..sort(
+              (a, b) => (b.currentRate ?? 0).compareTo(a.currentRate ?? 0),
+            ));
 
     // The "two or three" rule: only the top 3 until the user searches.
     final shown = (q.isEmpty ? matches.take(3) : matches.take(12)).toList();
@@ -184,11 +184,13 @@ class _AddHoldingPageState extends ConsumerState<AddHoldingPage> {
                 fillColor: c.s2,
                 contentPadding: const EdgeInsets.symmetric(vertical: 14),
                 enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide(color: c.line2)),
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(color: c.line2),
+                ),
                 focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide(color: c.accent, width: 1.5)),
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(color: c.accent, width: 1.5),
+                ),
               ),
             ),
           ),
@@ -200,12 +202,15 @@ class _AddHoldingPageState extends ConsumerState<AddHoldingPage> {
                 children: [
                   Icon(Icons.trending_up_rounded, size: 15, color: c.accent),
                   const SizedBox(width: 6),
-                  Text(t('portfolio.add.topRates'),
-                      style: TextStyle(
-                          color: c.muted,
-                          fontSize: 10.5,
-                          letterSpacing: 1,
-                          fontWeight: FontWeight.w600)),
+                  Text(
+                    t('portfolio.add.topRates'),
+                    style: TextStyle(
+                      color: c.muted,
+                      fontSize: 10.5,
+                      letterSpacing: 1,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -245,9 +250,12 @@ class _AddHoldingPageState extends ConsumerState<AddHoldingPage> {
                     disabledForegroundColor: c.muted,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                     textStyle: const TextStyle(
-                        fontSize: 14.5, fontWeight: FontWeight.w700),
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   child: Text(t('portfolio.add.cta')),
                 ),
@@ -265,23 +273,25 @@ class _AddHoldingPageState extends ConsumerState<AddHoldingPage> {
     for (var i = 0; i < buckets.length; i += 2) {
       final left = buckets[i];
       final right = (i + 1 < buckets.length) ? buckets[i + 1] : null;
-      rows.add(Padding(
-        padding: const EdgeInsets.only(bottom: 11),
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(child: _typeCardFor(left, active, retail)),
-              const SizedBox(width: 11),
-              Expanded(
-                child: right != null
-                    ? _typeCardFor(right, active, retail)
-                    : const SizedBox.shrink(),
-              ),
-            ],
+      rows.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 11),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(child: _typeCardFor(left, active, retail)),
+                const SizedBox(width: 11),
+                Expanded(
+                  child: right != null
+                      ? _typeCardFor(right, active, retail)
+                      : const SizedBox.shrink(),
+                ),
+              ],
+            ),
           ),
         ),
-      ));
+      );
     }
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -296,9 +306,14 @@ class _AddHoldingPageState extends ConsumerState<AddHoldingPage> {
     return _TypeCard(
       icon: _typeIcon(b.type),
       title: _typeLabel(b.type),
-      sub: t(n == 1 ? 'portfolio.add.cardSubOne' : 'portfolio.add.cardSub',
-          {'ccy': b.currency, 'n': '$n'}),
-      active: active != null && active.type == b.type && active.currency == b.currency,
+      sub: t(n == 1 ? 'portfolio.add.cardSubOne' : 'portfolio.add.cardSub', {
+        'ccy': b.currency,
+        'n': '$n',
+      }),
+      active:
+          active != null &&
+          active.type == b.type &&
+          active.currency == b.currency,
       onTap: () => setState(() {
         _bucket = b;
         _fund = null;
@@ -323,33 +338,41 @@ class _AddHoldingPageState extends ConsumerState<AddHoldingPage> {
           color: active ? c.accentSoft : c.s2,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-              color: active ? c.accent : c.line2, width: active ? 1.5 : 1),
+            color: active ? c.accent : c.line2,
+            width: active ? 1.5 : 1,
+          ),
         ),
         child: Row(
           children: [
             FundLogo(
-                domain: f.logoDomain,
-                logoUrl: logoUrl,
-                brandColor: brand,
-                seed: f.manager,
-                size: 40),
+              domain: f.logoDomain,
+              logoUrl: logoUrl,
+              brandColor: brand,
+              seed: f.manager,
+              size: 40,
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(f.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          color: c.text,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500)),
+                  Text(
+                    f.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: c.text,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                   const SizedBox(height: 2),
-                  Text(f.manager,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: c.muted, fontSize: 11)),
+                  Text(
+                    f.manager,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: c.muted, fontSize: 11),
+                  ),
                 ],
               ),
             ),
@@ -359,12 +382,15 @@ class _AddHoldingPageState extends ConsumerState<AddHoldingPage> {
             ],
             const SizedBox(width: 10),
             if (f.currentRate != null)
-              Text('${f.currentRate!.toStringAsFixed(2)}%',
-                  style: TextStyle(
-                      color: brand,
-                      fontFamily: fructaFonts.mono,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700)),
+              Text(
+                '${f.currentRate!.toStringAsFixed(2)}%',
+                style: TextStyle(
+                  color: brand,
+                  fontFamily: fructaFonts.mono,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
           ],
         ),
       ),
@@ -398,8 +424,11 @@ class _AddHoldingPageState extends ConsumerState<AddHoldingPage> {
           controller: _balance,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           inputFormatters: [ThousandsInputFormatter(decimals: decimals)],
-          style:
-              TextStyle(color: c.text, fontSize: 22, fontFamily: fructaFonts.mono),
+          style: TextStyle(
+            color: c.text,
+            fontSize: 22,
+            fontFamily: fructaFonts.mono,
+          ),
           onChanged: (_) => setState(() {}),
           decoration: InputDecoration(
             prefixText: '${f.currency}  ',
@@ -409,11 +438,13 @@ class _AddHoldingPageState extends ConsumerState<AddHoldingPage> {
             filled: true,
             fillColor: c.s2,
             enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: c.line2)),
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: c.line2),
+            ),
             focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: c.accent, width: 1.5)),
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: c.accent, width: 1.5),
+            ),
           ),
         ),
         if (amt > 0 && rate > 0) ...[
@@ -428,21 +459,27 @@ class _AddHoldingPageState extends ConsumerState<AddHoldingPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(t('portfolio.add.inYear'),
-                    style: TextStyle(
-                        color: c.muted,
-                        fontFamily: fructaFonts.mono,
-                        fontSize: 9.5,
-                        letterSpacing: 1,
-                        fontWeight: FontWeight.w600)),
+                Text(
+                  t('portfolio.add.inYear'),
+                  style: TextStyle(
+                    color: c.muted,
+                    fontFamily: fructaFonts.mono,
+                    fontSize: 9.5,
+                    letterSpacing: 1,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const SizedBox(height: 4),
-                Text('${money(f.currency, yearEnd)}$kesNote',
-                    style: TextStyle(
-                        color: c.text,
-                        fontFamily: fructaFonts.mono,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.5)),
+                Text(
+                  '${money(f.currency, yearEnd)}$kesNote',
+                  style: TextStyle(
+                    color: c.text,
+                    fontFamily: fructaFonts.mono,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.5,
+                  ),
+                ),
                 const SizedBox(height: 2),
                 Row(
                   children: [
@@ -450,14 +487,16 @@ class _AddHoldingPageState extends ConsumerState<AddHoldingPage> {
                     const SizedBox(width: 4),
                     Flexible(
                       child: Text(
-                          t('portfolio.add.gainAt', {
-                            'gain': money(f.currency, gain),
-                            'rate': rate.toStringAsFixed(2),
-                          }),
-                          style: TextStyle(
-                              color: c.up,
-                              fontFamily: fructaFonts.mono,
-                              fontSize: 12)),
+                        t('portfolio.add.gainAt', {
+                          'gain': money(f.currency, gain),
+                          'rate': rate.toStringAsFixed(2),
+                        }),
+                        style: TextStyle(
+                          color: c.up,
+                          fontFamily: fructaFonts.mono,
+                          fontSize: 12,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -504,7 +543,9 @@ class _TypeCard extends StatelessWidget {
           color: active ? c.accentSoft : c.s2,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-              color: active ? c.accent : c.line2, width: active ? 1.6 : 1),
+            color: active ? c.accent : c.line2,
+            width: active ? 1.6 : 1,
+          ),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -518,20 +559,30 @@ class _TypeCard extends StatelessWidget {
                 color: active ? c.accent.withValues(alpha: 0.18) : c.s3,
                 borderRadius: BorderRadius.circular(11),
               ),
-              child:
-                  Icon(icon, color: active ? c.accentInk : c.muted, size: 21),
+              child: Icon(
+                icon,
+                color: active ? c.accentInk : c.muted,
+                size: 21,
+              ),
             ),
             const SizedBox(height: 12),
-            Text(title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                    color: c.text, fontSize: 14.5, fontWeight: FontWeight.w600)),
+            Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: c.text,
+                fontSize: 14.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const SizedBox(height: 3),
-            Text(sub,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: c.muted, fontSize: 11.5)),
+            Text(
+              sub,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: c.muted, fontSize: 11.5),
+            ),
           ],
         ),
       ),
@@ -556,18 +607,25 @@ class _StepLabel extends StatelessWidget {
             width: 22,
             height: 22,
             alignment: Alignment.center,
-            decoration:
-                BoxDecoration(color: c.accent, shape: BoxShape.circle),
-            child: Text(n,
-                style: TextStyle(
-                    color: c.onAccent,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700)),
+            decoration: BoxDecoration(color: c.accent, shape: BoxShape.circle),
+            child: Text(
+              n,
+              style: TextStyle(
+                color: c.onAccent,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
           const SizedBox(width: 10),
-          Text(label,
-              style: TextStyle(
-                  color: c.text, fontSize: 15, fontWeight: FontWeight.w600)),
+          Text(
+            label,
+            style: TextStyle(
+              color: c.text,
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );
@@ -584,28 +642,31 @@ class _Spark extends StatelessWidget {
   Widget build(BuildContext context) {
     final lo = data.reduce((a, b) => a < b ? a : b);
     final hi = data.reduce((a, b) => a > b ? a : b);
-    return LineChart(LineChartData(
-      minX: 0,
-      maxX: (data.length - 1).toDouble(),
-      minY: lo,
-      maxY: hi + (hi - lo) * 0.08,
-      gridData: const FlGridData(show: false),
-      titlesData: const FlTitlesData(show: false),
-      borderData: FlBorderData(show: false),
-      lineTouchData: const LineTouchData(enabled: false),
-      lineBarsData: [
-        LineChartBarData(
-          spots: [
-            for (var i = 0; i < data.length; i++) FlSpot(i.toDouble(), data[i]),
-          ],
-          isCurved: true,
-          curveSmoothness: 0.3,
-          color: color,
-          barWidth: 1.8,
-          dotData: const FlDotData(show: false),
-        ),
-      ],
-    ));
+    return LineChart(
+      LineChartData(
+        minX: 0,
+        maxX: (data.length - 1).toDouble(),
+        minY: lo,
+        maxY: hi + (hi - lo) * 0.08,
+        gridData: const FlGridData(show: false),
+        titlesData: const FlTitlesData(show: false),
+        borderData: FlBorderData(show: false),
+        lineTouchData: const LineTouchData(enabled: false),
+        lineBarsData: [
+          LineChartBarData(
+            spots: [
+              for (var i = 0; i < data.length; i++)
+                FlSpot(i.toDouble(), data[i]),
+            ],
+            isCurved: true,
+            curveSmoothness: 0.3,
+            color: color,
+            barWidth: 1.8,
+            dotData: const FlDotData(show: false),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -620,39 +681,41 @@ class _GrowthChart extends StatelessWidget {
     if (series.length < 2) return const SizedBox.shrink();
     final lo = series.reduce((a, b) => a < b ? a : b);
     final hi = series.reduce((a, b) => a > b ? a : b);
-    return LineChart(LineChartData(
-      minX: 0,
-      maxX: (series.length - 1).toDouble(),
-      minY: lo,
-      maxY: hi + (hi - lo) * 0.05,
-      gridData: const FlGridData(show: false),
-      titlesData: const FlTitlesData(show: false),
-      borderData: FlBorderData(show: false),
-      lineTouchData: const LineTouchData(enabled: false),
-      lineBarsData: [
-        LineChartBarData(
-          spots: [
-            for (var i = 0; i < series.length; i++)
-              FlSpot(i.toDouble(), series[i]),
-          ],
-          isCurved: true,
-          curveSmoothness: 0.28,
-          color: color,
-          barWidth: 2,
-          dotData: const FlDotData(show: false),
-          belowBarData: BarAreaData(
-            show: true,
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                color.withValues(alpha: 0.20),
-                color.withValues(alpha: 0.0),
-              ],
+    return LineChart(
+      LineChartData(
+        minX: 0,
+        maxX: (series.length - 1).toDouble(),
+        minY: lo,
+        maxY: hi + (hi - lo) * 0.05,
+        gridData: const FlGridData(show: false),
+        titlesData: const FlTitlesData(show: false),
+        borderData: FlBorderData(show: false),
+        lineTouchData: const LineTouchData(enabled: false),
+        lineBarsData: [
+          LineChartBarData(
+            spots: [
+              for (var i = 0; i < series.length; i++)
+                FlSpot(i.toDouble(), series[i]),
+            ],
+            isCurved: true,
+            curveSmoothness: 0.28,
+            color: color,
+            barWidth: 2,
+            dotData: const FlDotData(show: false),
+            belowBarData: BarAreaData(
+              show: true,
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  color.withValues(alpha: 0.20),
+                  color.withValues(alpha: 0.0),
+                ],
+              ),
             ),
           ),
-        ),
-      ],
-    ));
+        ],
+      ),
+    );
   }
 }

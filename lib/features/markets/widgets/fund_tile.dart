@@ -138,7 +138,9 @@ class _FundTileState extends ConsumerState<FundTile> {
     // point with a realized period return, and the ONE thing that must never
     // happen on a list is that figure printing as a bare percentage beside a
     // column of annual yields. It gets its period stamped underneath instead.
-    final headline = f.headlineWith(ref.watch(latestPeriodReturnProvider(f.id)));
+    final headline = f.headlineWith(
+      ref.watch(latestPeriodReturnProvider(f.id)),
+    );
 
     final meta = '${_typeLabel(f)} \u00b7 ${f.currency}';
 

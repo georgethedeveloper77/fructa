@@ -205,106 +205,104 @@ class _ChartState extends State<_Chart> with SingleTickerProviderStateMixin {
         );
         return LineChart(
           LineChartData(
-        minX: 0,
-        maxX: (n - 1).toDouble(),
-        minY: minY,
-        maxY: maxY,
-        gridData: FlGridData(
-          show: true,
-          drawVerticalLine: false,
-          horizontalInterval: yStep,
-          getDrawingHorizontalLine: (_) => FlLine(
-            color: c.line,
-            strokeWidth: 1,
-          ),
-        ),
-        borderData: FlBorderData(show: false),
-        titlesData: FlTitlesData(
-          show: true,
-          topTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
-          leftTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
-          rightTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              interval: yStep,
-              reservedSize: 44,
-              getTitlesWidget: (value, meta) {
-                if (value <= minY || value >= maxY) {
-                  return const SizedBox.shrink();
-                }
-                return Padding(
-                  padding: const EdgeInsets.only(left: 6),
-                  child: Text(
-                    value.toStringAsFixed(2),
-                    style: labelStyle,
-                    textAlign: TextAlign.left,
-                  ),
-                );
-              },
-            ),
-          ),
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              interval: xStep,
-              reservedSize: 22,
-              getTitlesWidget: (value, meta) {
-                final i = value.round();
-                if (i < 0 || i >= n) return const SizedBox.shrink();
-                final d = DateTime.tryParse(points[i].asOf);
-                if (d == null) return const SizedBox.shrink();
-                return Padding(
-                  padding: const EdgeInsets.only(top: 6),
-                  child: Text(_tick(d, spanDays), style: labelStyle),
-                );
-              },
-            ),
-          ),
-        ),
-        lineTouchData: LineTouchData(
-          touchTooltipData: LineTouchTooltipData(
-            getTooltipColor: (_) => c.s2,
-            getTooltipItems: (touched) => touched.map((s) {
-              final p = points[s.x.round().clamp(0, points.length - 1)];
-              return LineTooltipItem(
-                '${p.asOf}\n${p.rate.toStringAsFixed(2)}%',
-                TextStyle(
-                  color: c.text,
-                  fontSize: 12,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
-              );
-            }).toList(),
-          ),
-        ),
-        lineBarsData: [
-          LineChartBarData(
-            spots: visible,
-            isCurved: true,
-            curveSmoothness: 0.28,
-            color: color,
-            barWidth: 2.4,
-            dotData: FlDotData(show: points.length <= 6),
-            belowBarData: BarAreaData(
+            minX: 0,
+            maxX: (n - 1).toDouble(),
+            minY: minY,
+            maxY: maxY,
+            gridData: FlGridData(
               show: true,
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  color.withValues(alpha: 0.25),
-                  color.withValues(alpha: 0.0),
-                ],
+              drawVerticalLine: false,
+              horizontalInterval: yStep,
+              getDrawingHorizontalLine: (_) =>
+                  FlLine(color: c.line, strokeWidth: 1),
+            ),
+            borderData: FlBorderData(show: false),
+            titlesData: FlTitlesData(
+              show: true,
+              topTitles: const AxisTitles(
+                sideTitles: SideTitles(showTitles: false),
+              ),
+              leftTitles: const AxisTitles(
+                sideTitles: SideTitles(showTitles: false),
+              ),
+              rightTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  interval: yStep,
+                  reservedSize: 44,
+                  getTitlesWidget: (value, meta) {
+                    if (value <= minY || value >= maxY) {
+                      return const SizedBox.shrink();
+                    }
+                    return Padding(
+                      padding: const EdgeInsets.only(left: 6),
+                      child: Text(
+                        value.toStringAsFixed(2),
+                        style: labelStyle,
+                        textAlign: TextAlign.left,
+                      ),
+                    );
+                  },
+                ),
+              ),
+              bottomTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  interval: xStep,
+                  reservedSize: 22,
+                  getTitlesWidget: (value, meta) {
+                    final i = value.round();
+                    if (i < 0 || i >= n) return const SizedBox.shrink();
+                    final d = DateTime.tryParse(points[i].asOf);
+                    if (d == null) return const SizedBox.shrink();
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Text(_tick(d, spanDays), style: labelStyle),
+                    );
+                  },
+                ),
               ),
             ),
+            lineTouchData: LineTouchData(
+              touchTooltipData: LineTouchTooltipData(
+                getTooltipColor: (_) => c.s2,
+                getTooltipItems: (touched) => touched.map((s) {
+                  final p = points[s.x.round().clamp(0, points.length - 1)];
+                  return LineTooltipItem(
+                    '${p.asOf}\n${p.rate.toStringAsFixed(2)}%',
+                    TextStyle(
+                      color: c.text,
+                      fontSize: 12,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+            lineBarsData: [
+              LineChartBarData(
+                spots: visible,
+                isCurved: true,
+                curveSmoothness: 0.28,
+                color: color,
+                barWidth: 2.4,
+                dotData: FlDotData(show: points.length <= 6),
+                belowBarData: BarAreaData(
+                  show: true,
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      color.withValues(alpha: 0.25),
+                      color.withValues(alpha: 0.0),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-      duration: Duration.zero,
-    );
+          duration: Duration.zero,
+        );
       },
     );
   }

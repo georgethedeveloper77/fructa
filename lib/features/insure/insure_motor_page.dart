@@ -82,8 +82,7 @@ class _InsureMotorPageState extends ConsumerState<InsureMotorPage> {
         for (final cls in MotorClass.values)
           if (i.writesClass(cls)) cls,
     };
-    final tpoAvailable =
-        all.any((i) => i.offers(_cls, CoverType.tpo));
+    final tpoAvailable = all.any((i) => i.offers(_cls, CoverType.tpo));
 
     // Only insurers that actually publish a price for this class and cover.
     // An insurer that does not write PSV, or does not publish TPO, is absent
@@ -91,19 +90,17 @@ class _InsureMotorPageState extends ConsumerState<InsureMotorPage> {
     final motor = all.where((i) => i.offers(_cls, _cover)).toList();
 
     if (motor.isEmpty) {
-      return _shell(
-        [
-          _head(0),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(32, 48, 32, 0),
-            child: Text(
-              t('insure.emptyMotor'),
-              textAlign: TextAlign.center,
-              style: TextStyle(color: c.muted, height: 1.6),
-            ),
+      return _shell([
+        _head(0),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(32, 48, 32, 0),
+          child: Text(
+            t('insure.emptyMotor'),
+            textAlign: TextAlign.center,
+            style: TextStyle(color: c.muted, height: 1.6),
           ),
-        ],
-      );
+        ),
+      ]);
     }
 
     final sorted = _sorted(motor);
@@ -223,7 +220,6 @@ class _InsureMotorPageState extends ConsumerState<InsureMotorPage> {
     );
   }
 
-
   /// The rate mechanics line, DERIVED from the quote rather than read off a
   /// column.
   ///
@@ -246,40 +242,35 @@ class _InsureMotorPageState extends ConsumerState<InsureMotorPage> {
     Insurer best,
     double Function(Insurer) landed,
     double dearest,
-  ) =>
-      InsureQuoteRow(
-        name: i.name,
-        logoDomain: i.logoDomain,
-        brand: insurerBrand(context, i),
-        rateLabel: _rateLabel(i),
-        meta: i.excessLabel.isEmpty
-            ? null
-            : t('insure.excessShort', {'v': i.excessLabel}),
-        priceText: withCommas(landed(i).round()),
-        priceUnit: t('insure.perYear'),
-        barFraction: dearest <= 0 ? null : landed(i) / dearest,
-        best: i.id == best.id,
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => InsurerDetailPage.motor(
-              i,
-              value: _value,
-              cls: _cls,
-              cover: _cover,
-            ),
-          ),
-        ),
-      );
+  ) => InsureQuoteRow(
+    name: i.name,
+    logoDomain: i.logoDomain,
+    brand: insurerBrand(context, i),
+    rateLabel: _rateLabel(i),
+    meta: i.excessLabel.isEmpty
+        ? null
+        : t('insure.excessShort', {'v': i.excessLabel}),
+    priceText: withCommas(landed(i).round()),
+    priceUnit: t('insure.perYear'),
+    barFraction: dearest <= 0 ? null : landed(i) / dearest,
+    best: i.id == best.id,
+    onTap: () => Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) =>
+            InsurerDetailPage.motor(i, value: _value, cls: _cls, cover: _cover),
+      ),
+    ),
+  );
 
   Widget _shell(List<Widget> children) =>
       InsureScaffold(navTitle: t('insure.motor'), children: children);
 }
 
 SignalTone _tone(String tag) => switch (tag.toUpperCase()) {
-      'STRENGTH' => SignalTone.positive,
-      'WATCH' => SignalTone.negative,
-      _ => SignalTone.neutral,
-    };
+  'STRENGTH' => SignalTone.positive,
+  'WATCH' => SignalTone.negative,
+  _ => SignalTone.neutral,
+};
 
 /// Vehicle value input: its own card with a slider AND a typed field, two-way
 /// synced. The field drives the slider; the slider reformats the field when it
@@ -361,12 +352,15 @@ class _VehicleValueCardState extends State<_VehicleValueCard> {
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: on ? Colors.transparent : c.line),
             ),
-            child: Text(_short(v),
-                style: TextStyle(
-                    color: on ? c.accent : c.muted,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    fontFamily: fructaFonts.mono)),
+            child: Text(
+              _short(v),
+              style: TextStyle(
+                color: on ? c.accent : c.muted,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                fontFamily: fructaFonts.mono,
+              ),
+            ),
           ),
         ),
       );
@@ -386,18 +380,24 @@ class _VehicleValueCardState extends State<_VehicleValueCard> {
           Row(
             children: [
               Expanded(
-                child: Text(t('insure.yourCar'),
-                    style: TextStyle(
-                        color: c.faint,
-                        fontSize: 9,
-                        letterSpacing: 0.8,
-                        fontWeight: FontWeight.w600)),
-              ),
-              Text(t('insure.coverType'),
+                child: Text(
+                  t('insure.yourCar'),
                   style: TextStyle(
-                      color: c.faint,
-                      fontSize: 10.5,
-                      fontFamily: fructaFonts.mono)),
+                    color: c.faint,
+                    fontSize: 9,
+                    letterSpacing: 0.8,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Text(
+                t('insure.coverType'),
+                style: TextStyle(
+                  color: c.faint,
+                  fontSize: 10.5,
+                  fontFamily: fructaFonts.mono,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -414,17 +414,21 @@ class _VehicleValueCardState extends State<_VehicleValueCard> {
                 color: c.s2,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                    color: _focused ? c.accent : c.line,
-                    width: _focused ? 1.5 : 1),
+                  color: _focused ? c.accent : c.line,
+                  width: _focused ? 1.5 : 1,
+                ),
               ),
               child: Row(
                 children: [
-                  Text('KES',
-                      style: TextStyle(
-                          color: c.faint,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          fontFamily: fructaFonts.mono)),
+                  Text(
+                    'KES',
+                    style: TextStyle(
+                      color: c.faint,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: fructaFonts.mono,
+                    ),
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: TextField(
@@ -458,8 +462,11 @@ class _VehicleValueCardState extends State<_VehicleValueCard> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Icon(Icons.edit_outlined,
-                      size: 16, color: _focused ? c.accent : c.faint),
+                  Icon(
+                    Icons.edit_outlined,
+                    size: 16,
+                    color: _focused ? c.accent : c.faint,
+                  ),
                 ],
               ),
             ),
@@ -474,17 +481,23 @@ class _VehicleValueCardState extends State<_VehicleValueCard> {
           ),
           Row(
             children: [
-              Text('KES ${_short(_kMinValue)}',
-                  style: TextStyle(
-                      color: c.faint,
-                      fontSize: 10,
-                      fontFamily: fructaFonts.mono)),
+              Text(
+                'KES ${_short(_kMinValue)}',
+                style: TextStyle(
+                  color: c.faint,
+                  fontSize: 10,
+                  fontFamily: fructaFonts.mono,
+                ),
+              ),
               const Spacer(),
-              Text('KES ${_short(_kMaxValue)}',
-                  style: TextStyle(
-                      color: c.faint,
-                      fontSize: 10,
-                      fontFamily: fructaFonts.mono)),
+              Text(
+                'KES ${_short(_kMaxValue)}',
+                style: TextStyle(
+                  color: c.faint,
+                  fontSize: 10,
+                  fontFamily: fructaFonts.mono,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 13),
@@ -501,4 +514,3 @@ class _VehicleValueCardState extends State<_VehicleValueCard> {
     );
   }
 }
-

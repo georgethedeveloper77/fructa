@@ -31,7 +31,8 @@ class LearnProgress {
 
   bool isDone(String lessonId) => completed.contains(lessonId);
 
-  bool get completedToday => lastDay != null && lastDay == _dayStr(DateTime.now());
+  bool get completedToday =>
+      lastDay != null && lastDay == _dayStr(DateTime.now());
 
   /// How many of the last seven calendar days, today included, had a
   /// completion.
@@ -155,10 +156,10 @@ class LearnResume {
   static Box get _box => Hive.box('settings');
 
   static Future<void> save(String lessonId, int step) => _box.put(_key, {
-        'lesson': lessonId,
-        'step': step,
-        'at': DateTime.now().toIso8601String(),
-      });
+    'lesson': lessonId,
+    'step': step,
+    'at': DateTime.now().toIso8601String(),
+  });
 
   static Future<void> clear() => _box.delete(_key);
 

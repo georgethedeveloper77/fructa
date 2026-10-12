@@ -181,7 +181,6 @@ class TopRateScene extends ConsumerWidget {
       ),
     );
   }
-
 }
 
 /// Manager mark, fund name, and the terms a reader checks next.
@@ -244,11 +243,7 @@ class _FundIdentity extends ConsumerWidget {
               Text(
                 _meta(),
                 softWrap: true,
-                style: TextStyle(
-                  color: c.faint,
-                  fontSize: 12.5,
-                  height: 1.4,
-                ),
+                style: TextStyle(color: c.faint, fontSize: 12.5, height: 1.4),
               ),
             ],
           ),
@@ -359,7 +354,11 @@ class _UnderRate extends StatelessWidget {
     if (taxFree) {
       return Text(
         'Tax free, so this is what you keep',
-        style: TextStyle(color: c.up, fontSize: 13.5, fontWeight: FontWeight.w600),
+        style: TextStyle(
+          color: c.up,
+          fontSize: 13.5,
+          fontWeight: FontWeight.w600,
+        ),
       );
     }
 
@@ -541,7 +540,9 @@ class _Facts extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.only(top: 18),
-      decoration: BoxDecoration(border: Border(top: BorderSide(color: c.line))),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: c.line)),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -571,7 +572,11 @@ class _Facts extends StatelessWidget {
                   Text(
                     items[i].v,
                     softWrap: true,
-                    style: TextStyle(color: c.faint, fontSize: 11.5, height: 1.3),
+                    style: TextStyle(
+                      color: c.faint,
+                      fontSize: 11.5,
+                      height: 1.3,
+                    ),
                   ),
                 ],
               ),
