@@ -149,6 +149,15 @@ export const CONSUMERS: Record<string, Consumer[]> = {
     { surface: "Landing", where: "Market donut" },
   ],
   "market.asset_classes": [{ surface: "App", where: "Markets context card" }],
+  "statements.enabled": [
+    { surface: "App", where: "Portfolio and Pro, Check a statement" },
+    { surface: "App", where: "Statement-day reminder push" },
+  ],
+  "statements.managers": [
+    { surface: "App", where: "Statement reader, manager detection" },
+    { surface: "App", where: "Locked PDF, password hint" },
+    { surface: "App", where: "Statement-day reminder push, 08:00 EAT" },
+  ],
   "search.placeholder": [{ surface: "App", where: "Search field" }],
   "search.suggestions": [{ surface: "App", where: "Search, empty state chips" }],
 };

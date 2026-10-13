@@ -186,15 +186,13 @@ abstract final class StatementParser {
     }
 
     final sum = _summation.firstMatch(flat);
-    final printed = sum == null
-        ? null
-        : sum
-              .group(1)!
-              .trim()
-              .split(' ')
-              .where((x) => x.isNotEmpty)
-              .map((x) => double.parse(x.replaceAll(',', '')))
-              .toList();
+    final printed = sum
+        ?.group(1)!
+        .trim()
+        .split(' ')
+        .where((x) => x.isNotEmpty)
+        .map((x) => double.parse(x.replaceAll(',', '')))
+        .toList();
 
     return StatementData(
       printedTotals: printed,

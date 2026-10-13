@@ -123,6 +123,42 @@ export const CONFIG_SCHEMA: Record<string, Field> = {
     help: "Shows the insurance spotlight on Markets and enables the Insure tab.",
   },
 
+  "statements.enabled": {
+    kind: "flag",
+    group: "Feature flags",
+    label: "Statement check live",
+    help: "Shows Check a statement in Portfolio and Pro, and lets the statement-day reminder send. Leave off until the reader ships in a store build.",
+  },
+
+  // Statements, what the app needs to read each manager's PDF. Read on the
+  // device only: no statement, password or balance ever reaches the server.
+  "statements.managers": {
+    kind: "table",
+    group: "Statements",
+    label: "Fund managers we read",
+    help: "One row per manager. Match is a case-insensitive pattern found in the statement text. Password hint is shown on the locked-PDF screen. Release day is the day of the month statements usually arrive; the reminder push goes out that morning to users who hold or have checked that manager.",
+    rowsKey: "managers",
+    addLabel: "Add manager",
+    columns: [
+      { key: "key", label: "Key", type: "text" },
+      { key: "name", label: "Name", type: "text" },
+      { key: "match", label: "Match", type: "text" },
+      { key: "password_hint", label: "Password hint", type: "text" },
+      { key: "release_day", label: "Release day", type: "number" },
+    ],
+    seed: {
+      managers: [
+        {
+          key: "lofty_corban",
+          name: "Lofty-Corban",
+          match: "lofty[\\s-]*corban",
+          password_hint: "Usually your member number",
+          release_day: 5,
+        },
+      ],
+    },
+  },
+
   // Search.
   "search.placeholder": {
     kind: "text",
@@ -197,6 +233,7 @@ export const GROUP_ORDER = [
   "Benchmarks",
   "Feature flags",
   "Market (CMA)",
+  "Statements",
   "Search",
   "Onboarding",
   "Learn",
