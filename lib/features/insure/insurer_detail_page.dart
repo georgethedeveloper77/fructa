@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/category_colors.dart';
 import '../../core/format.dart';
 import '../../core/i18n.dart';
 import '../../core/series_colors.dart';
@@ -435,7 +436,6 @@ bool _hasContact(Insurer i) =>
 /// WhatsApp's own green, matching [WhatsAppMark]'s default. A brand colour, so
 /// it is the documented data-colour exception to theme-only tokens, and it is
 /// named once here rather than repeated as a literal at each use.
-const Color _whatsAppGreen = Color(0xFF25D366);
 
 class _ContactGrid extends StatelessWidget {
   const _ContactGrid({required this.insurer});
@@ -462,8 +462,8 @@ class _ContactGrid extends StatelessWidget {
       if (i.whatsapp != null)
         _ContactTile(
           whatsApp: true,
-          fg: _whatsAppGreen,
-          bg: _whatsAppGreen.withValues(alpha: 0.13),
+          fg: whatsAppGreen,
+          bg: whatsAppGreen.withValues(alpha: 0.13),
           label: t('insure.contact.whatsapp'),
           value: t('insure.contact.chatNow'),
           onTap: () => openWhatsApp(i.whatsapp!),

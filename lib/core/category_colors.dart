@@ -66,3 +66,8 @@ const assetClassColors = <String, Color>{
 
 Color assetClassColor(String? k) =>
     assetClassColors[k] ?? const Color(0xFF8A92A3);
+
+/// WhatsApp's brand green for "chat on WhatsApp" buttons. A brand colour, like
+/// a manager's logo colour: it is data, not a theme token, so it lives here
+/// beside the other data palettes instead of as raw hex in each feature.
+const whatsAppGreen = Color(0xFF25D366);

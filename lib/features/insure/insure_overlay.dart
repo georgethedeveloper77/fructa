@@ -160,7 +160,7 @@ class InsureOverlay extends ConsumerWidget {
       backgroundColor: c.bg,
       appBar: AppBar(
         backgroundColor: c.bg,
-        surfaceTintColor: Colors.transparent,
+        surfaceTintColor: c.bg.withValues(alpha: 0),
         foregroundColor: c.text,
         elevation: 0,
         leading: IconButton(

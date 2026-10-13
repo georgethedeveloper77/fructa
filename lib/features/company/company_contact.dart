@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/category_colors.dart';
 import '../../core/i18n.dart';
 import '../../core/theme.dart';
 import '../../core/widgets/kit.dart';
@@ -48,8 +49,8 @@ class CompanyContact extends StatelessWidget {
       if (co.whatsapp != null)
         _ContactTile(
           whatsApp: true,
-          bg: const Color(0x2225D366),
-          fg: const Color(0xFF25D366),
+          bg: whatsAppGreen.withValues(alpha: 0.13),
+          fg: whatsAppGreen,
           label: t('company.whatsapp'),
           value: co.whatsapp!,
           onTap: () =>

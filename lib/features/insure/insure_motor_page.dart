@@ -350,7 +350,9 @@ class _VehicleValueCardState extends State<_VehicleValueCard> {
             decoration: BoxDecoration(
               color: on ? c.accentSoft : c.s2,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: on ? Colors.transparent : c.line),
+              border: Border.all(
+                color: on ? c.line.withValues(alpha: 0) : c.line,
+              ),
             ),
             child: Text(
               _short(v),
