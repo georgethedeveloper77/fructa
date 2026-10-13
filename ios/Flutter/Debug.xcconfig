@@ -1,2 +1,4 @@
-#include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"
 #include "Generated.xcconfig"
+
+// Flutter 3.44+ ships arm64-only simulator engines; Intel simulators are unsupported.
+EXCLUDED_ARCHS[sdk=iphonesimulator*] = x86_64
