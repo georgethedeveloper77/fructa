@@ -1,20 +1,21 @@
 /* =========================================================================
-   fructa Admin — v2 design system  (type scale bumped for readability)
+   Fructa Admin, v2 design system  (type scale bumped for readability)
    Ported from fructa_admin_v2.html. Plain CSS so it drops in on Tailwind v3/v4.
    Import ABOVE Tailwind utilities in globals.css; wrap the admin shell in
    .admin. Fonts: Inter + Space Grotesk (--mono).
    ========================================================================= */
 
 :root {
-  --bg:#0B0C0F; --panel:#0F1114; --raise:#13161B; --raise2:#191D24;
-  --line:#1D2129; --line2:#282D37;
-  --text:#EEF0F4; --muted:#8B93A2; --faint:#575E6C;
-  --gold:#E7B24C; --gold-ink:#191204; --gold-soft:rgba(231,178,76,.10);
-  --ok:#3DDC97; --ok-soft:rgba(61,220,151,.10);
-  --warn:#F0B542; --warn-soft:rgba(240,181,66,.11);
-  --bad:#FF6B6B; --bad-soft:rgba(255,107,107,.10);
-  --blue:#4E8FE8; --violet:#9A8BF3; --teal:#2FB5A0;
-  --mono:'Space Grotesk';
+  /* Admin names, app values: every token reads tokens.css (= theme.dart). */
+  --bg:var(--fx-bg); --panel:var(--fx-s1); --raise:var(--fx-s2); --raise2:var(--fx-s3);
+  --line:var(--fx-line); --line2:var(--fx-line2);
+  --text:var(--fx-text); --muted:var(--fx-muted); --faint:var(--fx-faint);
+  --gold:var(--fx-accent); --gold-ink:var(--fx-on-accent); --gold-soft:var(--fx-accent-soft);
+  --ok:var(--fx-up); --ok-soft:rgba(61,220,151,.10);
+  --warn:var(--fx-warn); --warn-soft:rgba(240,181,66,.11);
+  --bad:var(--fx-down); --bad-soft:rgba(255,107,107,.10);
+  --blue:var(--fx-data-fi); --violet:var(--fx-data-equity); --teal:var(--fx-data-special);
+  --mono:var(--fx-mono);
 }
 
 /* ------- base ------- */
@@ -22,7 +23,7 @@
 .admin {
   background: var(--bg);
   color: var(--text);
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--fx-sans);
   font-size: 14.5px;
   line-height: 1.5;
   min-height: 100vh;

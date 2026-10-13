@@ -61,7 +61,7 @@ export default function HeroTerminal({ charts }: { charts: LandingCharts }) {
             ? {
                 show: true,
                 formatter: (p: LabelParams) => `${Number(p.value).toFixed(2)}${tab.unit}`,
-                color: '#1A1206',
+                color: t.onGold,
                 backgroundColor: t.gold,
                 padding: [3, 6],
                 borderRadius: 4,

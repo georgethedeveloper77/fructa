@@ -49,14 +49,14 @@ echarts.use([
 export type LabelParams = { value: unknown };
 
 export type Tokens = {
-  gold: string; s2: string; s3: string; s4: string;
+  gold: string; onGold: string; s2: string; s3: string; s4: string;
   ink: string; mute: string; faint: string;
   grid: string; line: string; up: string; down: string;
   panel: string; mono: string; sans: string;
 };
 
 const VARS: Record<keyof Tokens, string> = {
-  gold: '--fl-gold', s2: '--fl-s2', s3: '--fl-s3', s4: '--fl-s4',
+  gold: '--fl-gold', onGold: '--fl-on-gold', s2: '--fl-s2', s3: '--fl-s3', s4: '--fl-s4',
   ink: '--fl-ink', mute: '--fl-mute', faint: '--fl-faint',
   grid: '--fl-grid', line: '--fl-line', up: '--fl-up', down: '--fl-down',
   panel: '--fl-panel', mono: '--fl-mono', sans: '--fl-sans',

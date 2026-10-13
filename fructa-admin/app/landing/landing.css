@@ -1,33 +1,26 @@
 /* Fructa landing, scoped under .fl so it never touches admin/Tailwind styles. */
 
 .fl{
-  --fl-bg:#060709; --fl-panel:#0D0F13; --fl-panel2:#12151A; --fl-raise:#0E1116;
+  /* Landing names, app values: read from tokens.css (= theme.dart). */
+  --fl-bg:var(--fx-bg); --fl-panel:var(--fx-s1); --fl-panel2:var(--fx-s2); --fl-raise:var(--fx-s1);
   --fl-line:rgba(255,255,255,.07); --fl-line2:rgba(255,255,255,.12);
-  --fl-ink:#F4F5F7; --fl-mute:#9BA1AC; --fl-faint:#5A616C;
-  --fl-gold:#E7B24C; --fl-gold-ink:#E7B24C;
-  --fl-up:#3DDC97; --fl-down:#FF6B6B;
-  --fl-grid:rgba(255,255,255,.055); --fl-s2:#6EA8FE; --fl-s3:#58C6A6; --fl-s4:#9A8BF3;
+  --fl-ink:var(--fx-text); --fl-mute:var(--fx-muted); --fl-faint:var(--fx-faint);
+  --fl-gold:var(--fx-accent); --fl-gold-ink:var(--fx-accent-ink); --fl-on-gold:var(--fx-on-accent);
+  --fl-up:var(--fx-up); --fl-down:var(--fx-down);
+  --fl-grid:rgba(255,255,255,.055); --fl-s2:var(--fx-data-fi); --fl-s3:var(--fx-data-special); --fl-s4:var(--fx-data-equity);
   --fl-shadow:0 40px 90px -40px rgba(0,0,0,.9);
   background:var(--fl-bg); color:var(--fl-ink); min-height:100vh;
   font-family:var(--fl-sans),system-ui,sans-serif; font-size:16px; line-height:1.55;
   -webkit-font-smoothing:antialiased;
 }
 @media (prefers-color-scheme: light){ html:not([data-theme]) .fl{
-  --fl-bg:#F5F7FA; --fl-panel:#FFFFFF; --fl-panel2:#EEF1F5; --fl-raise:#FFFFFF;
   --fl-line:rgba(12,14,18,.09); --fl-line2:rgba(12,14,18,.15);
-  --fl-ink:#0C0E12; --fl-mute:#576070; --fl-faint:#98A0AC;
-  --fl-gold:#E7B24C; --fl-gold-ink:#A9781A;
-  --fl-up:#12A46A; --fl-down:#DD463F;
-  --fl-grid:rgba(12,14,18,.07); --fl-s2:#2C6FE0; --fl-s3:#159A7C; --fl-s4:#6B5BD6;
+  --fl-grid:rgba(12,14,18,.07);
   --fl-shadow:0 30px 70px -40px rgba(20,30,55,.35);
 }}
 html[data-theme="light"] .fl{
-  --fl-bg:#F5F7FA; --fl-panel:#FFFFFF; --fl-panel2:#EEF1F5; --fl-raise:#FFFFFF;
   --fl-line:rgba(12,14,18,.09); --fl-line2:rgba(12,14,18,.15);
-  --fl-ink:#0C0E12; --fl-mute:#576070; --fl-faint:#98A0AC;
-  --fl-gold:#E7B24C; --fl-gold-ink:#A9781A;
-  --fl-up:#12A46A; --fl-down:#DD463F;
-  --fl-grid:rgba(12,14,18,.07); --fl-s2:#2C6FE0; --fl-s3:#159A7C; --fl-s4:#6B5BD6;
+  --fl-grid:rgba(12,14,18,.07);
   --fl-shadow:0 30px 70px -40px rgba(20,30,55,.35);
 }
 

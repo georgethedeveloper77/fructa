@@ -1,0 +1,95 @@
+/* =========================================================================
+   Fructa design tokens: the ONE place colours are defined for the web.
+
+   Mirrors lib/core/theme.dart (fructaColors) value for value, so the app,
+   the admin and fructa.africa render the same colours. Change a value here
+   and in theme.dart together, never one alone.
+
+   --fx-*        theme tokens (dark default, light under the rules below)
+   --fx-data-*   data palette (fund types, categories), same in both modes;
+                 the *-ink variants are the light-mode text versions
+   ========================================================================= */
+
+:root {
+  /* surfaces */
+  --fx-bg: #060709;
+  --fx-s1: #0D0F13;
+  --fx-s2: #13161C;
+  --fx-s3: #1A1E26;
+  --fx-line: #1B1F27;
+  --fx-line2: #282D37;
+
+  /* text */
+  --fx-text: #F3F5F8;
+  --fx-muted: #9AA2B2;
+  --fx-faint: #7A8290;
+
+  /* signal */
+  --fx-up: #3DDC97;
+  --fx-down: #FF6B6B;
+  --fx-warn: #F0B542;
+
+  /* accent (Gold) */
+  --fx-accent: #E7B24C;
+  --fx-on-accent: #191204;
+  --fx-accent-ink: #E7B24C;
+  --fx-accent-soft: rgba(231, 178, 76, 0.14);
+
+  /* data palette (lib/core/category_colors.dart) */
+  --fx-data-mmf: #E7B24C;
+  --fx-data-fi: #4E8FE8;
+  --fx-data-special: #2FB5A0;
+  --fx-data-equity: #9A8BF3;
+  --fx-data-balanced: #E7784C;
+  --fx-data-tbill: #4FD0B5;
+
+  /* type: filled by next/font in app/layout.tsx */
+  --fx-sans: var(--font-inter), "Inter", system-ui, sans-serif;
+  --fx-mono: var(--font-mono), "Space Grotesk", ui-monospace, monospace;
+}
+
+/* Light, as theme.dart's light scheme. Opt-in per surface: the admin stays
+   dark; the public site (.fl) and any .fx-auto surface follow the visitor's
+   system setting, or a data-theme flag on <html>. */
+@media (prefers-color-scheme: light) {
+  html:not([data-theme]) .fx-auto,
+  html:not([data-theme]) .fl {
+    --fx-bg: #F4F6FA;
+    --fx-s1: #FFFFFF;
+    --fx-s2: #EEF1F6;
+    --fx-s3: #E4E9F0;
+    --fx-line: #E1E5EC;
+    --fx-line2: #CDD4DE;
+    --fx-text: #0E1116;
+    --fx-muted: #5A6472;
+    --fx-faint: #7C8492;
+    --fx-up: #12A46B;
+    --fx-down: #E5484D;
+    --fx-accent-ink: #8C6E35;
+    --fx-accent-soft: rgba(231, 178, 76, 0.16);
+    --fx-data-fi: #2F6FC9;
+    --fx-data-special: #0F8070;
+    --fx-data-equity: #6450D0;
+    --fx-data-tbill: #0E8C73;
+  }
+}
+html[data-theme="light"] .fx-auto,
+html[data-theme="light"] .fl {
+  --fx-bg: #F4F6FA;
+  --fx-s1: #FFFFFF;
+  --fx-s2: #EEF1F6;
+  --fx-s3: #E4E9F0;
+  --fx-line: #E1E5EC;
+  --fx-line2: #CDD4DE;
+  --fx-text: #0E1116;
+  --fx-muted: #5A6472;
+  --fx-faint: #7C8492;
+  --fx-up: #12A46B;
+  --fx-down: #E5484D;
+  --fx-accent-ink: #8C6E35;
+  --fx-accent-soft: rgba(231, 178, 76, 0.16);
+  --fx-data-fi: #2F6FC9;
+  --fx-data-special: #0F8070;
+  --fx-data-equity: #6450D0;
+  --fx-data-tbill: #0E8C73;
+}

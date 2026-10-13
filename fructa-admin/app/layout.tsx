@@ -1,7 +1,17 @@
 import { GoogleAnalytics } from "@next/third-parties/google";
+import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
 export const metadata = { title: "Fructa Admin" };
+
+/**
+ * The app's two faces, self-hosted by next/font (no request to Google at
+ * runtime, no layout shift). Exposed as CSS variables that tokens.css reads
+ * through --fx-sans / --fx-mono. Before this the admin named "Inter" without
+ * loading it, so every page fell back to the system font.
+ */
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
+const mono = Space_Grotesk({ subsets: ["latin"], variable: "--font-mono", display: "swap" });
 
 /**
  * GA4 measurement id. Set NEXT_PUBLIC_GA_ID in apphosting.yaml with BUILD
@@ -16,7 +26,7 @@ const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${inter.variable} ${mono.variable}`}>
       {/*
         Browser extensions (ColorZilla writes cz-shortcut-listen, Grammarly and
         LastPass do the same thing) mutate <body> before React hydrates, which
