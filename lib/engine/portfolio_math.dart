@@ -73,9 +73,30 @@ class PortfolioMath {
     var value = 0.0;
     var earliest = now;
 
+    // A statement-confirmed balance replaces the estimate up to its date: the
+    // anchor balance (interest already in it, tax already out) accrues from
+    // the anchor day, and only movements after it are layered on top.
+    final anchor = holding.anchor;
+    DateTime? anchorDate;
+    if (anchor != null && !now.isBefore(anchor.date)) {
+      anchorDate = anchor.date;
+      final raw = now.difference(anchor.date).inDays;
+      final days = raw < 0 ? 0 : raw;
+      value += (ratePercent == null || ratePercent <= 0)
+          ? anchor.balance
+          : AccrualEngine.accrue(
+              anchor.balance,
+              ratePercent,
+              days,
+              net: !taxFree,
+            );
+    }
+
     for (final t in lots) {
       principal += t.amount;
       if (t.date.isBefore(earliest)) earliest = t.date;
+      // Already inside the anchor balance.
+      if (anchorDate != null && !t.date.isAfter(anchorDate)) continue;
 
       final raw = now.difference(t.date).inDays;
       final days = raw < 0 ? 0 : raw;

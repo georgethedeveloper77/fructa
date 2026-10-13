@@ -219,6 +219,47 @@ class HoldingsNotifier extends Notifier<List<Holding>> {
     }
   }
 
+  /// Dated deposit (positive) or withdrawal (negative). False when refused
+  /// (no holding, or a withdrawal larger than the balance).
+  Future<bool> addTxn(String fundId, double amount, DateTime date) async {
+    final ok = await _repo.addTxn(fundId, amount, date);
+    state = _repo.all();
+    return ok;
+  }
+
+  Future<void> removeTxn(String fundId, Txn txn) async {
+    await _repo.removeTxn(fundId, txn);
+    state = _repo.all();
+  }
+
+  /// Makes a matched statement the source of truth for a holding.
+  Future<void> applyStatement({
+    required String fundId,
+    required String currency,
+    required HoldingKind kind,
+    required List<Txn> flows,
+    required BalanceAnchor anchor,
+    bool keepYourEntries = true,
+  }) async {
+    await _repo.applyStatement(
+      fundId: fundId,
+      currency: currency,
+      kind: kind,
+      flows: flows,
+      anchor: anchor,
+      keepYourEntries: keepYourEntries,
+    );
+    state = _repo.all();
+    if (kind == HoldingKind.fund) {
+      await ref.read(subscriptionsProvider.notifier).ensureFollow(fundId);
+    }
+  }
+
+  Future<void> clearAnchor(String fundId) async {
+    await _repo.clearAnchor(fundId);
+    state = _repo.all();
+  }
+
   Future<void> remove(String fundId) async {
     await _repo.remove(fundId);
     state = _repo.all();

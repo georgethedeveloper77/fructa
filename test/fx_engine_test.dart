@@ -13,12 +13,12 @@ const _kesNet = 0.0922; // 10.85 * 0.85
 const _usdNet = 0.0374; // 4.40 * 0.85
 
 FxCase _caseFor(FxStance stance, {double years = 1, FxQuote? quote}) => FxCase(
-      quote: quote ?? const FxQuote(mean: _mean),
-      kesNet: _kesNet,
-      usdNet: _usdNet,
-      stance: stance,
-      years: years,
-    );
+  quote: quote ?? const FxQuote(mean: _mean),
+  kesNet: _kesNet,
+  usdNet: _usdNet,
+  stance: stance,
+  years: years,
+);
 
 void main() {
   group('FxQuote', () {
@@ -163,19 +163,21 @@ void main() {
       expect(pts.every((p) => !p.usdAhead), isTrue);
     });
 
-    test('a window past the end of the series throws rather than truncating',
-        () {
-      expect(
-        () => FxEngine.race(
-          fxCase: _caseFor(FxStance.buying),
-          means: rising,
-          start: 6,
-          months: 12,
-          amount: 100000,
-        ),
-        throwsRangeError,
-      );
-    });
+    test(
+      'a window past the end of the series throws rather than truncating',
+      () {
+        expect(
+          () => FxEngine.race(
+            fxCase: _caseFor(FxStance.buying),
+            means: rising,
+            start: 6,
+            months: 12,
+            amount: 100000,
+          ),
+          throwsRangeError,
+        );
+      },
+    );
   });
 
   group('rollingRecord', () {
