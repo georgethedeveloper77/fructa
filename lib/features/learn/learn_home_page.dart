@@ -86,7 +86,7 @@ class LearnHomePage extends ConsumerWidget {
 
   PreferredSizeWidget _bar(BuildContext context) => AppBar(
     backgroundColor: context.c.bg,
-    surfaceTintColor: Colors.transparent,
+    surfaceTintColor: context.c.bg.withValues(alpha: 0),
     foregroundColor: context.c.text,
     elevation: 0,
   );

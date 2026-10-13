@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/app_root.dart';
+import '../../app/main_scaffold.dart';
 import '../../core/theme_controller.dart';
 import 'alerts_scene.dart';
 import 'appearance_scene.dart';
@@ -17,8 +18,8 @@ import 'top_rate_scene.dart';
 /// the Play Store listing leads with. gap then turns that rate into a figure in
 /// the user's own money.
 ///
-/// The persona ('rates' | 'learn') is persisted so Markets can pin the Learn
-/// primer for a 'learn' user once Phase 4 ships. "I just want the rates" skips
+/// The persona ('rates' | 'learn') is persisted. It picks the first tab after
+/// onboarding and shows the Learn primer on Today for a 'learn' user. "I just want the rates" skips
 /// straight to the alerts opt-in from either opening stage. Completing flips the
 /// persisted `onboarded` flag, which rebuilds AppRoot into the main scaffold.
 ///
@@ -47,7 +48,17 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
   void _setPersona(String p) =>
       ref.read(settingsBoxProvider).put('onboarding_persona', p);
 
-  void _complete() => ref.read(onboardedProvider.notifier).complete();
+  /// Finishes onboarding and picks the first tab from the persona: a user who
+  /// asked for the rates opens on the live Markets list; everyone else opens
+  /// on Today, where the Learn primer is waiting for a 'learn' user.
+  void _complete() {
+    final persona =
+        ref.read(settingsBoxProvider).get('onboarding_persona') as String?;
+    ref.read(selectedTabProvider.notifier).state = persona == 'rates'
+        ? AppTab.markets
+        : AppTab.today;
+    ref.read(onboardedProvider.notifier).complete();
+  }
 
   /// Advance to [next], remembering where we came from for back.
   void _advance(_Stage next) {

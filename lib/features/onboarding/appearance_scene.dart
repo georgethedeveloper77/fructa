@@ -308,7 +308,7 @@ class _Swatch extends StatelessWidget {
           color: color,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: selected ? c.text : Colors.transparent,
+            color: selected ? c.text : c.text.withValues(alpha: 0),
             width: 2,
           ),
         ),

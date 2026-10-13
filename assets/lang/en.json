@@ -856,5 +856,7 @@
   "markets.row.noMove": "No change",
   "markets.row.taxFreeShort": "Tax-free",
   "markets.row.week": "7 days",
-  "markets.row.open": "Open fund"
+  "markets.row.open": "Open fund",
+  "today.learn.title": "New here? Start with a 2 minute primer",
+  "today.learn.body": "What a rate means, and what you actually keep."
 }

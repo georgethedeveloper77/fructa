@@ -8,6 +8,7 @@ import '../../core/i18n.dart';
 import '../../core/motion/motion.dart';
 import '../../core/rate_basis.dart';
 import '../../core/theme.dart';
+import '../../core/theme_controller.dart';
 import '../../core/widgets/fund_logo.dart';
 import '../../core/widgets/rate_basis_toggle.dart';
 import '../../data/models/fund.dart';
@@ -15,8 +16,11 @@ import '../../data/models/market_event.dart';
 import '../../data/pro/pro_providers.dart';
 import '../../data/providers.dart';
 import '../../data/snapshot_providers.dart';
+import '../../app/app_root.dart';
 import '../alerts/alerts_page.dart';
 import '../company/company_page.dart';
+import '../learn/learn_home_page.dart';
+import '../learn/learn_progress.dart';
 import '../markets/market_page.dart';
 import '../markets/search_overlay.dart';
 import '../markets/widgets/market_allocation_donut.dart';
@@ -69,6 +73,7 @@ class TodayPage extends ConsumerWidget {
               if (leaders.length > 1)
                 _CategoryChips(leaders: leaders, selected: hero?.category),
               if (hero != null) _HeroCard(leader: hero),
+              const _LearnPrimer(),
               if (mode == TodayMode.newcomer && !dismissed.contains('start'))
                 const _StartCard(),
               if (mode == TodayMode.viewer) const _RecentSection(),
@@ -1062,6 +1067,96 @@ class _SparkPainter extends CustomPainter {
       old.line != line ||
       old.bench != bench ||
       old.benchColor != benchColor;
+}
+
+// ── Learn primer: for users who chose "explain it as I go" ─────────────────
+/// Shown to a 'learn' persona until they finish a lesson or dismiss it. Moved
+/// here from Markets so a new user meets it on the first screen they see.
+/// Dismissal keeps the key Markets used, so anyone who closed it there stays
+/// closed.
+class _LearnPrimer extends ConsumerWidget {
+  const _LearnPrimer();
+
+  static const _key = 'learn_primer_dismissed';
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final box = ref.watch(settingsBoxProvider);
+    final hidden =
+        ref.watch(onboardingPersonaProvider) != 'learn' ||
+        ref.watch(todayDismissalsProvider).contains('learn') ||
+        (box.get(_key, defaultValue: false) as bool) ||
+        ref.watch(learnProvider).isEmpty ||
+        ref.watch(learnProgressProvider).completed.isNotEmpty;
+    if (hidden) return const SizedBox.shrink();
+
+    final c = context.c;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: ThanosDismiss(
+        onDismissed: () {
+          box.put(_key, true);
+          ref.read(todayDismissalsProvider.notifier).dismiss('learn');
+        },
+        builder: (context, snap) => Material(
+          color: c.accentSoft,
+          borderRadius: BorderRadius.circular(18),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(18),
+            onTap: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const LearnHomePage())),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 4, 12),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: c.s1,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.school_rounded,
+                      color: c.accentInk,
+                      size: 21,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          t('today.learn.title'),
+                          style: TextStyle(
+                            color: c.text,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          t('today.learn.body'),
+                          style: TextStyle(color: c.muted, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: t('today.dismiss'),
+                    onPressed: snap,
+                    icon: Icon(Icons.close_rounded, size: 18, color: c.faint),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 // ── New user: two first steps, dismissible with Thanos ──────────────────────

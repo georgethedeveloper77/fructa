@@ -605,7 +605,9 @@ class _Option extends StatelessWidget {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: dotIcon == null ? Colors.transparent : dotColor,
+                  color: dotIcon == null
+                      ? dotColor.withValues(alpha: 0)
+                      : dotColor,
                   border: Border.all(color: dotColor, width: 2),
                 ),
                 child: dotIcon == null
@@ -613,9 +615,9 @@ class _Option extends StatelessWidget {
                     : Icon(
                         dotIcon,
                         size: 14,
-                        color: state == _OptState.correct
-                            ? const Color(0xFF04120C)
-                            : const Color(0xFF1A0605),
+                        // Ink on the filled dot: the page colour in dark mode
+                        // (bright fill, dark mark), a white surface in light.
+                        color: c.isDark ? c.bg : c.s1,
                       ),
               ),
               const SizedBox(width: 12),
