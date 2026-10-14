@@ -109,9 +109,33 @@ final proProvider = NotifierProvider<ProController, ProState>(
   ProController.new,
 );
 
+/// Debug builds only: a switch in You that unlocks Pro locally, so reports,
+/// statements and the wrap can be tested before a store purchase syncs.
+/// Release builds ignore it entirely.
+class DebugProNotifier extends Notifier<bool> {
+  static const _key = 'debug_pro';
+
+  @override
+  bool build() =>
+      kDebugMode &&
+      (ref.read(settingsBoxProvider).get(_key, defaultValue: false) as bool);
+
+  Future<void> set(bool on) async {
+    if (!kDebugMode) return;
+    state = on;
+    await ref.read(settingsBoxProvider).put(_key, on);
+  }
+}
+
+final debugProProvider = NotifierProvider<DebugProNotifier, bool>(
+  DebugProNotifier.new,
+);
+
 /// Shorthand for gates that only need the yes or no.
 final isProProvider = Provider<bool>(
-  (ref) => ref.watch(proProvider.select((s) => s.active)),
+  (ref) =>
+      ref.watch(debugProProvider) ||
+      ref.watch(proProvider.select((s) => s.active)),
 );
 
 /// Whether any Pro surface is shown at all.

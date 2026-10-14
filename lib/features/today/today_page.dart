@@ -13,7 +13,6 @@ import '../../core/widgets/fund_logo.dart';
 import '../../core/widgets/rate_basis_toggle.dart';
 import '../../data/models/fund.dart';
 import '../../data/models/market_event.dart';
-import '../../data/pro/pro_providers.dart';
 import '../../data/providers.dart';
 import '../../data/snapshot_providers.dart';
 import '../../app/app_root.dart';
@@ -26,12 +25,12 @@ import '../markets/search_overlay.dart';
 import '../markets/widgets/market_allocation_donut.dart';
 import '../markets/widgets/market_pulse.dart';
 import '../portfolio/add_holding_page.dart';
-import '../pro/pro_widgets.dart';
-import '../pro/weekly_report.dart';
 import '../settings/following_page.dart';
 import '../statements/statement_controller.dart';
 import '../statements/statement_pages.dart';
 import '../../data/statements/statement_store.dart';
+import '../wrap/wrap_viewer.dart';
+import 'portfolio_bubble.dart';
 import 'today_providers.dart';
 import 'today_state.dart';
 
@@ -53,49 +52,64 @@ class TodayPage extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: c.bg,
-      body: SafeArea(
-        bottom: false,
-        child: RefreshIndicator(
-          color: c.accent,
-          backgroundColor: c.s1,
-          onRefresh: () => ref.read(ratesProvider.notifier).refresh(),
-          child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.only(bottom: 120),
-            children: [
-              const _TopBar(),
-              _Greeting(mode: mode),
-              if (hero != null && leaders.length > 1)
-                _LeaderTicker(
-                  leaders: [
-                    for (final l in leaders)
-                      if (l.category != hero.category) l,
-                  ],
-                ),
-              if (mode == TodayMode.investor) const _PortfolioLine(),
-              _StatementLine(mode: mode),
-              if (leaders.length > 1)
-                _CategoryChips(leaders: leaders, selected: hero?.category),
-              if (hero != null) _HeroCard(leader: hero),
-              const _LearnPrimer(),
-              if (mode == TodayMode.newcomer && !dismissed.contains('start'))
-                const _StartCard(),
-              if (mode == TodayMode.viewer) const _RecentSection(),
-              if (mode == TodayMode.follower || mode == TodayMode.investor)
-                const _FollowingSection(),
-              if (mode == TodayMode.follower && !dismissed.contains('nudge'))
-                const _AddNudge(),
-              if (mode == TodayMode.follower || mode == TodayMode.investor)
-                const _WeeklyReportCard(),
-              if (events.isNotEmpty)
-                _EventsSection(events: events.take(eventCount).toList()),
-              // Kenya's fund market: context, so it sits after the user's own
-              // modules and the news, never above them.
-              const MarketAllocationDonut(),
-              const _TbillRow(),
-            ],
+      body: Stack(
+        children: [
+          SafeArea(
+            bottom: false,
+            child: RefreshIndicator(
+              color: c.accent,
+              backgroundColor: c.s1,
+              onRefresh: () => ref.read(ratesProvider.notifier).refresh(),
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.only(bottom: 120),
+                children: [
+                  const _TopBar(),
+                  _Greeting(mode: mode),
+                  if (hero != null && leaders.length > 1)
+                    _LeaderTicker(
+                      leaders: [
+                        for (final l in leaders)
+                          if (l.category != hero.category) l,
+                      ],
+                    ),
+                  _StatementLine(mode: mode),
+                  if (leaders.length > 1)
+                    _CategoryChips(leaders: leaders, selected: hero?.category),
+                  if (hero != null) _HeroCard(leader: hero),
+                  const _LearnPrimer(),
+                  if (mode == TodayMode.newcomer &&
+                      !dismissed.contains('start'))
+                    const _StartCard(),
+                  if (mode == TodayMode.viewer) const _RecentSection(),
+                  if (mode == TodayMode.follower || mode == TodayMode.investor)
+                    const _FollowingSection(),
+                  if (mode == TodayMode.follower &&
+                      !dismissed.contains('nudge'))
+                    const _AddNudge(),
+                  // The Weekly wrap replaces the weekly report card: market stories
+                  // for everyone, the user's own week after them (Pro).
+                  const WeeklyWrapCard(),
+                  if (events.isNotEmpty)
+                    _EventsSection(events: events.take(eventCount).toList()),
+                  // Kenya's fund market: context, so it sits after the user's own
+                  // modules and the news, never above them.
+                  const MarketAllocationDonut(),
+                  const _TbillRow(),
+                ],
+              ),
+            ),
           ),
-        ),
+          // The book's day, docked bottom right, popped on demand. Sits above
+          // the nav bar, which the scaffold draws over the body.
+          if (mode == TodayMode.investor)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: MediaQuery.paddingOf(context).bottom + 16,
+              child: const PortfolioBubble(),
+            ),
+        ],
       ),
     );
   }
@@ -488,90 +502,6 @@ class _LeaderTickerState extends ConsumerState<_LeaderTicker>
           physics: const NeverScrollableScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 9),
           child: Row(children: items),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Investor: one line, no amounts, opens Portfolio ─────────────────────────
-class _PortfolioLine extends ConsumerWidget {
-  const _PortfolioLine();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final c = context.c;
-    final pct = ref.watch(portfolioGainPctProvider);
-    final n = ref.watch(holdingsProvider).length;
-    final color = pct == null ? c.muted : c.delta(pct);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-      child: Material(
-        color: c.s1,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: c.line),
-        ),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () =>
-              ref.read(selectedTabProvider.notifier).state = AppTab.portfolio,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
-            child: Row(
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: pct == null ? c.s2 : c.deltaSoft(pct),
-                    borderRadius: BorderRadius.circular(11),
-                  ),
-                  child: Icon(
-                    Icons.trending_up_rounded,
-                    size: 19,
-                    color: color,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        t('today.portfolio'),
-                        style: TextStyle(
-                          color: c.text,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        t(
-                          n == 1
-                              ? 'today.portfolioSubOne'
-                              : 'today.portfolioSubMany',
-                          {'n': '$n'},
-                        ),
-                        style: TextStyle(color: c.muted, fontSize: 13),
-                      ),
-                    ],
-                  ),
-                ),
-                if (pct != null)
-                  Text(
-                    _signedPct(pct),
-                    style: fructaFonts.numeric(
-                      color: color,
-                      size: 16,
-                      weight: FontWeight.w600,
-                    ),
-                  ),
-                Icon(Icons.chevron_right, color: c.faint),
-              ],
-            ),
-          ),
         ),
       ),
     );
@@ -1676,113 +1606,6 @@ class _AddNudge extends ConsumerWidget {
               ),
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Pro: the weekly report ──────────────────────────────────────────────────
-/// Entry to the weekly report. Carries no figures itself: Today shows no
-/// amounts, and a free user should see what the report is, not its contents.
-/// Hidden entirely while Pro is switched off remotely.
-class _WeeklyReportCard extends ConsumerWidget {
-  const _WeeklyReportCard();
-
-  Future<void> _open(BuildContext context, WidgetRef ref) async {
-    if (!await ensurePro(context, ref, source: 'today_weekly_report')) return;
-    if (!context.mounted) return;
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const WeeklyReportPage()));
-  }
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    if (!ref.watch(proEnabledProvider)) return const SizedBox.shrink();
-    final c = context.c;
-    final isPro = ref.watch(isProProvider);
-    final end = DateTime.now();
-    final start = end.subtract(const Duration(days: 7));
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
-        decoration: BoxDecoration(
-          color: c.s1,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: c.line),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const ProBadge(),
-                const SizedBox(width: 8),
-                Text(
-                  t('today.report.kicker'),
-                  style: TextStyle(
-                    color: c.accentInk,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.8,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  weekRangeLabel(start, end),
-                  style: TextStyle(color: c.muted, fontSize: 12),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Text(
-              t('report.title'),
-              style: TextStyle(
-                color: c.text,
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.4,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              t('today.report.body'),
-              style: TextStyle(color: c.muted, fontSize: 13, height: 1.45),
-            ),
-            const SizedBox(height: 14),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: c.accent,
-                  foregroundColor: c.onAccent,
-                  minimumSize: const Size.fromHeight(46),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-                onPressed: () => _open(context, ref),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    if (!isPro) ...[
-                      const Icon(Icons.lock_outline_rounded, size: 16),
-                      const SizedBox(width: 6),
-                    ],
-                    Text(
-                      t('today.report.cta'),
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
         ),
       ),
     );

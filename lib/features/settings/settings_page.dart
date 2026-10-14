@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -5,6 +6,7 @@ import '../../core/i18n.dart';
 import '../../core/settings_prefs.dart';
 import '../../core/theme.dart';
 import '../../core/widgets/kit.dart';
+import '../../data/pro/pro_providers.dart';
 import '../../data/providers.dart';
 import '../../data/snapshot_providers.dart';
 import '../backup/backup_ui.dart';
@@ -92,6 +94,7 @@ class SettingsPage extends ConsumerWidget {
             // Fructa Pro: status, restore, manage. Renders nothing while the
             // `pro.enabled` remote flag is off.
             const ProSettingsGroup(),
+            if (kDebugMode) const _DebugProSwitch(),
 
             // Learn (D2 stub - honest copy, no fake streaks)
             SettingsGroup(
@@ -350,4 +353,42 @@ String _fmtTime(TimeOfDay t) {
   final m = t.minute.toString().padLeft(2, '0');
   final ap = t.period == DayPeriod.am ? 'AM' : 'PM';
   return '$h:$m $ap';
+}
+
+/// Debug builds only: unlock Pro on this phone for testing.
+class _DebugProSwitch extends ConsumerWidget {
+  const _DebugProSwitch();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.c;
+    final on = ref.watch(debugProProvider);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+      child: Container(
+        decoration: BoxDecoration(
+          color: c.s1,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: c.line),
+        ),
+        child: SwitchListTile.adaptive(
+          value: on,
+          activeTrackColor: c.accent,
+          onChanged: (v) => ref.read(debugProProvider.notifier).set(v),
+          title: Text(
+            'Developer: Pro unlocked',
+            style: TextStyle(
+              color: c.text,
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          subtitle: Text(
+            'Debug builds only. Tests Pro screens without a purchase.',
+            style: TextStyle(color: c.muted, fontSize: 12),
+          ),
+        ),
+      ),
+    );
+  }
 }

@@ -75,6 +75,7 @@ dependencies:
   purchases_flutter: ^10.15.2
   pdfrx: ^2.4.8
   purchases_ui_flutter: ^10.15.2
+  pdf: ^3.13.1
 
 dev_dependencies:
   flutter_test:

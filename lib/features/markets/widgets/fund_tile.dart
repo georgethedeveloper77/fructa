@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/category_colors.dart';
 import '../../../core/i18n.dart';
 import '../../../core/motion/motion.dart';
 import '../../../core/rate_basis.dart';
@@ -8,6 +9,8 @@ import '../../../core/theme.dart';
 import '../../../core/widgets/fund_logo.dart';
 import '../../../data/models/fund.dart';
 import '../../../data/snapshot_providers.dart';
+import '../../wrap/wrap_engine.dart';
+import '../../wrap/wrap_viewer.dart';
 
 /// One fund in the Markets list.
 ///
@@ -117,14 +120,26 @@ class FundTile extends ConsumerWidget {
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: Text(
-                        f.name,
-                        style: TextStyle(
-                          color: c.text,
-                          fontSize: 15,
-                          height: 1.3,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            f.name,
+                            style: TextStyle(
+                              color: c.text,
+                              fontSize: 15,
+                              height: 1.3,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          // A medal from this week's wrap, tap to open its story.
+                          if (!selectable)
+                            if (ref.watch(weeklyWrapProvider).badges[f.id]
+                                case final b?) ...[
+                              const SizedBox(height: 5),
+                              _Badge(badge: b),
+                            ],
+                        ],
                       ),
                     ),
                     if (spark.length >= 2) ...[
@@ -283,4 +298,49 @@ class _Spark extends CustomPainter {
   @override
   bool shouldRepaint(covariant _Spark old) =>
       old.points != points || old.color != color;
+}
+
+/// "Most improved", "Most stable", "Moving up", "Top rate": a fund's place in
+/// this week's wrap. Lasts until the next wrap.
+class _Badge extends StatelessWidget {
+  const _Badge({required this.badge});
+
+  final FundBadge badge;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    final fg = switch (badge.tone) {
+      WrapTone.up || WrapTone.tbill => c.up,
+      WrapTone.down => c.down,
+      WrapTone.info => c.dataInk(fundTypeColor('fixed_income')),
+      WrapTone.accent => c.accentInk,
+    };
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => openWeeklyWrap(context, start: badge.slideIndex),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(6, 3, 8, 3),
+        decoration: BoxDecoration(
+          color: fg.withValues(alpha: c.isDark ? 0.16 : 0.12),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.workspace_premium_outlined, size: 13, color: fg),
+            const SizedBox(width: 4),
+            Text(
+              t(badge.labelKey),
+              style: TextStyle(
+                color: fg,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
