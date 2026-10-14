@@ -16,8 +16,8 @@ class Config {
   // are designed to ship inside the binary: they can read offerings and start
   // purchases, never grant access. Leave the placeholder in and ProService
   // stays dormant, so a build without keys runs exactly as it does today.
-  static const revenueCatAppleKey = 'appl_REPLACE_ME';
-  static const revenueCatGoogleKey = 'goog_REPLACE_ME';
+  static const revenueCatAppleKey = 'appl_DKAYwFhNVvKaIyNdEDCgCKjkxME';
+  static const revenueCatGoogleKey = 'goog_QBZwVPDseNAWKgQVICctkYFeVQT';
 
   /// Entitlement identifier configured in RevenueCat. Every Pro check in the
   /// app asks about this one name, never about a product id, so adding a plan

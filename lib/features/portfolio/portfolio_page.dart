@@ -18,6 +18,7 @@ import '../../data/snapshot_providers.dart';
 import '../../engine/accrual_engine.dart';
 import '../../engine/portfolio_math.dart';
 import '../pro/pro_widgets.dart';
+import '../statements/statement_pages.dart';
 import 'add_holding_page.dart';
 import 'manage_holding_sheet.dart';
 import 'projection_card.dart';
@@ -423,6 +424,9 @@ class _Full extends ConsumerWidget {
             ],
           ),
         ),
+
+        // Statement check: the way to turn estimates into verified balances.
+        const StatementEntryCard(),
 
         // Pro upsell for free users. Renders nothing for subscribers or while
         // the `pro.enabled` remote flag is off.
@@ -858,6 +862,13 @@ class _HoldingRow extends ConsumerWidget {
     } else {
       sub = 'rate unavailable';
     }
+    // Confirmed by a statement, or Fructa's own estimate from your entries.
+    final status = holding.isVerified
+        ? t('ledger.badgeVerified', {
+            'date':
+                '${_months[holding.anchor!.date.month - 1]} ${holding.anchor!.date.day}',
+          })
+        : null;
 
     return InkWell(
       onTap: () => showManageHolding(context, holding, f),
@@ -898,6 +909,19 @@ class _HoldingRow extends ConsumerWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(sub, style: TextStyle(color: c.faint, fontSize: 10.5)),
+                  if (status != null) ...[
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Icon(Icons.verified_rounded, size: 11, color: c.up),
+                        const SizedBox(width: 3),
+                        Text(
+                          status,
+                          style: TextStyle(color: c.up, fontSize: 10.5),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),

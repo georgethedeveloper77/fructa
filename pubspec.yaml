@@ -72,8 +72,9 @@ dependencies:
 
   # Fructa Pro subscriptions: App Store and Google Play billing through
   # RevenueCat (entitlement `pro`). Keys live in core/config.dart.
-  purchases_flutter: ^10.13.1
+  purchases_flutter: ^10.15.2
   pdfrx: ^2.4.8
+  purchases_ui_flutter: ^10.15.2
 
 dev_dependencies:
   flutter_test:

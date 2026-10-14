@@ -108,6 +108,28 @@ class NseSnapshot {
   final String? source;
 }
 
+/// One fund manager whose statements the app reads (`statements.managers`).
+class StatementManagerConfig {
+  const StatementManagerConfig({
+    required this.key,
+    required this.name,
+    required this.match,
+    this.passwordHint,
+    this.releaseDay,
+  });
+
+  /// Stable id, also the push tag suffix (`stmt_<key>`).
+  final String key;
+  final String name;
+
+  /// Case-insensitive pattern found in the statement text.
+  final String match;
+  final String? passwordHint;
+
+  /// Day of the month statements usually arrive.
+  final int? releaseDay;
+}
+
 /// Admin-editable key/value config, published inside the snapshot (`config`).
 /// Every getter takes a baked-in fallback so the app renders correctly with
 /// an old snapshot, an empty table, or a bad value  remote config can only
@@ -140,6 +162,53 @@ class RemoteConfig {
     if (v is! List) return fallback;
     final out = v.whereType<String>().where((s) => s.isNotEmpty).toList();
     return out.isEmpty ? fallback : out;
+  }
+
+  // ── Statements ──────────────────────────────────────────────────────────
+
+  /// Statement check is live (Portfolio entry, Today card, reminders).
+  bool get statementsEnabled => flag('statements.enabled', false);
+
+  /// Managers the admin has described. Rows missing a key, name or pattern are
+  /// skipped; an empty or absent table leaves the parser's built-in list.
+  List<StatementManagerConfig> get statementManagers {
+    final v = _values['statements.managers'];
+    final rows = v is Map ? v['managers'] : null;
+    if (rows is! List) return const [];
+    final out = <StatementManagerConfig>[];
+    for (final r in rows) {
+      if (r is! Map) continue;
+      final key = r['key'];
+      final name = r['name'];
+      final match = r['match'];
+      if (key is! String ||
+          key.isEmpty ||
+          name is! String ||
+          match is! String) {
+        continue;
+      }
+      final day = r['release_day'];
+      out.add(
+        StatementManagerConfig(
+          key: key,
+          name: name,
+          match: match,
+          passwordHint: r['password_hint'] is String
+              ? r['password_hint'] as String
+              : null,
+          releaseDay: day is num ? day.toInt() : null,
+        ),
+      );
+    }
+    return out;
+  }
+
+  /// The admin's entry for [managerKey], if any.
+  StatementManagerConfig? statementManager(String managerKey) {
+    for (final m in statementManagers) {
+      if (m.key == managerKey) return m;
+    }
+    return null;
   }
 
   // ── Benchmarks ──────────────────────────────────────────────────────────

@@ -155,6 +155,16 @@ class Push {
     }
   }
 
+  /// Tag for the statement-day reminder: set when the user holds or has
+  /// checked a statement from [managerKey]. The server sends that manager's
+  /// reminder to `stmt_<key> = 1` (migration 0080).
+  static String statementTagKey(String managerKey) =>
+      'stmt_${_slug(managerKey)}';
+
+  static Future<void> tagStatementManager(String managerKey) async {
+    OneSignal.User.addTags({statementTagKey(managerKey): '1'});
+  }
+
   static Future<void> follow(String fundId) async {
     OneSignal.User.pushSubscription.optIn();
     OneSignal.User.addTags({tagKey(fundId): 'true'});

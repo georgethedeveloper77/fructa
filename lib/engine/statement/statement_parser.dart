@@ -88,10 +88,15 @@ abstract final class StatementParser {
     'dec': 12,
   };
 
-  /// Reads [text], the concatenated page text of one statement.
-  static StatementData parse(String text) {
+  /// Reads [text], the concatenated page text of one statement. [extra] are
+  /// managers described in admin config; they are tried before the built-in
+  /// list so the admin can correct or add a manager without an app release.
+  static StatementData parse(
+    String text, {
+    List<StatementManager> extra = const [],
+  }) {
     final flat = text.replaceAll(RegExp(r'\s+'), ' ');
-    final manager = _manager(flat);
+    final manager = _manager(flat, extra);
 
     final heads = _row.allMatches(flat).toList();
     if (heads.isEmpty) {
@@ -207,8 +212,8 @@ abstract final class StatementParser {
     );
   }
 
-  static StatementManager? _manager(String flat) {
-    for (final m in managers) {
+  static StatementManager? _manager(String flat, List<StatementManager> extra) {
+    for (final m in [...extra, ...managers]) {
       if (m.pattern.hasMatch(flat)) return m;
     }
     return null;
