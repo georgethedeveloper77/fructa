@@ -132,7 +132,24 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
       child: Scaffold(
         backgroundColor: c.bg,
         extendBody: true,
-        body: IndexedStack(index: index, children: _pages),
+        // Hidden tabs stay alive (IndexedStack) but are frozen: their tickers
+        // stop and they leave the semantics tree. Without this, Today's
+        // ticker and bubble kept animating behind Markets or Portfolio, laying
+        // out a subtree the accessibility pass was reading, which tripped
+        // Flutter's '_needsLayout' semantics assertion. Also saves battery.
+        body: IndexedStack(
+          index: index,
+          children: [
+            for (var i = 0; i < _pages.length; i++)
+              TickerMode(
+                enabled: i == index,
+                child: ExcludeSemantics(
+                  excluding: i != index,
+                  child: _pages[i],
+                ),
+              ),
+          ],
+        ),
         bottomNavigationBar: _NavBar(
           index: index,
           onTap: (i) {

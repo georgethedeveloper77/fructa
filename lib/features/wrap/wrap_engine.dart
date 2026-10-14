@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/fund.dart';
+import '../../engine/portfolio_math.dart';
 import '../../data/pro/pro_providers.dart';
 import '../../data/providers.dart';
 import '../../data/snapshot_providers.dart';
@@ -45,6 +46,32 @@ class WrapSlide {
 
   /// Built from the user's own holdings or statements (Pro).
   final bool personal;
+
+  Map<String, dynamic> toMap() => {
+    'tag': tagKey,
+    'title': title,
+    'big': big,
+    'unit': unit,
+    'line': line,
+    'tone': tone.name,
+    'series': series,
+    'fund': fundId,
+    'personal': personal,
+  };
+
+  static WrapSlide fromMap(Map m) => WrapSlide(
+    tagKey: m['tag'] as String,
+    title: m['title'] as String,
+    big: m['big'] as String,
+    unit: m['unit'] as String,
+    line: m['line'] as String,
+    tone: WrapTone.values.byName(m['tone'] as String),
+    series: ((m['series'] as List?) ?? const [])
+        .map((x) => (x as num).toDouble())
+        .toList(),
+    fundId: m['fund'] as String?,
+    personal: (m['personal'] as bool?) ?? false,
+  );
 }
 
 /// A medal on a Markets row, linking back to its story.
@@ -304,8 +331,9 @@ final weeklyWrapProvider = Provider.autoDispose<WeeklyWrap>((ref) {
     final m = cfg.statementManager(s.data.managerKey);
     if (m?.releaseDay != null) {
       var next = DateTime(now.year, now.month, m!.releaseDay!);
-      if (!next.isAfter(now))
+      if (!next.isAfter(now)) {
         next = DateTime(now.year, now.month + 1, m.releaseDay!);
+      }
       final days = next
           .difference(DateTime(now.year, now.month, now.day))
           .inDays;
@@ -337,4 +365,192 @@ final weeklyWrapProvider = Provider.autoDispose<WeeklyWrap>((ref) {
 final wrapPersonalUnlockedProvider = Provider<bool>((ref) {
   if (!ref.watch(proEnabledProvider)) return true;
   return ref.watch(isProProvider);
+});
+
+// ── Month wrap ────────────────────────────────────────────────────────────
+
+/// One holding's month, for the slides and the PDF table.
+class MonthHolding {
+  const MonthHolding(this.name, this.currency, this.earnedKes, this.verified);
+
+  final String name;
+  final String currency;
+  final double earnedKes;
+
+  /// The holding's balance is confirmed by a statement.
+  final bool verified;
+}
+
+/// Last calendar month: what the user's money earned, what their statements
+/// showed, and where the market stood. Pro.
+class MonthWrap {
+  const MonthWrap({
+    required this.from,
+    required this.to,
+    required this.slides,
+    required this.holdings,
+    required this.earnedKes,
+    required this.startKes,
+    required this.topFunds,
+    required this.tbill91,
+  });
+
+  final DateTime from;
+  final DateTime to;
+  final List<WrapSlide> slides;
+  final List<MonthHolding> holdings;
+  final double earnedKes;
+  final double startKes;
+
+  /// The five best KES money market rates now, gross: (name, rate).
+  final List<(String, double)> topFunds;
+  final double tbill91;
+
+  double? get pct => startKes > 0 ? earnedKes / startKes * 100 : null;
+}
+
+const _months = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
+String monthName(DateTime d) => '${_months[d.month - 1]} ${d.year}';
+
+/// Earnings are accrual between the first and last day of the month, the same
+/// method as the weekly report: a deposit made mid-month contributes only the
+/// interest it earned, never its principal.
+final monthWrapProvider = Provider.autoDispose<MonthWrap>((ref) {
+  final now = DateTime.now();
+  final from = DateTime(now.year, now.month - 1, 1);
+  final to = DateTime(
+    now.year,
+    now.month,
+    1,
+  ).subtract(const Duration(seconds: 1));
+  final fx = ref.watch(usdKesProvider);
+  final cfg = ref.watch(remoteConfigProvider);
+
+  final holdings = <MonthHolding>[];
+  var earned = 0.0;
+  var start = 0.0;
+  for (final h in ref.watch(holdingsProvider)) {
+    final s = ref.watch(
+      holdingSubjectProvider((id: h.fundId, sacco: h.isSacco)),
+    );
+    if (s == null) continue;
+    final a = PortfolioMath.value(
+      h,
+      ratePercent: s.ratePercent,
+      taxFree: s.taxFree,
+      usdKes: fx,
+      asOf: from,
+    );
+    final b = PortfolioMath.value(
+      h,
+      ratePercent: s.ratePercent,
+      taxFree: s.taxFree,
+      usdKes: fx,
+      asOf: to,
+    );
+    if (a.valueKes == null || b.valueKes == null) continue;
+    final e = b.valueKes! - a.valueKes!;
+    holdings.add(MonthHolding(s.name, h.currency, e, h.isVerified));
+    earned += e;
+    start += a.valueKes!;
+  }
+  holdings.sort((x, y) => y.earnedKes.compareTo(x.earnedKes));
+
+  final field = _field(ref.watch(ratesProvider).value ?? const <Fund>[])
+    ..sort((a, b) => b.currentRate!.compareTo(a.currentRate!));
+  final top = [for (final f in field.take(5)) (f.name, f.currentRate!)];
+
+  final month = monthName(from);
+  final slides = <WrapSlide>[];
+  if (holdings.isNotEmpty) {
+    final bps = start > 0 ? earned / start * 10000 : null;
+    slides.add(
+      WrapSlide(
+        tagKey: 'wrap.tag.earned',
+        title: 'Interest across your portfolio in $month',
+        big: '+KES ${earned.toStringAsFixed(2)}',
+        unit: bps == null
+            ? 'in $month'
+            : '+${bps.toStringAsFixed(0)} bps on your portfolio',
+        line: holdings.length > 1
+            ? 'Your biggest earner was ${holdings.first.name}.'
+            : 'All of it from ${holdings.first.name}.',
+        tone: WrapTone.up,
+        personal: true,
+      ),
+    );
+  }
+  final statements =
+      (ref.watch(statementsProvider).value ?? const <SavedStatement>[])
+          .where((s) => !s.data.to.isBefore(from))
+          .toList();
+  for (final s in statements.take(2)) {
+    final gap = ref
+        .watch(statementAnalysisProvider(s.id))
+        .value
+        ?.analysis
+        .gapPts;
+    if (gap == null) continue;
+    slides.add(
+      WrapSlide(
+        tagKey: 'wrap.tag.statement',
+        title: '${s.data.managerName} \u00b7 ${s.data.currency}',
+        big: _pts(gap),
+        unit: 'pts a year against its published rate',
+        line: 'From your statement to ${dayLabel(s.data.to)}.',
+        tone: gap <= -0.25 ? WrapTone.down : WrapTone.up,
+        personal: true,
+      ),
+    );
+  }
+  if (top.isNotEmpty) {
+    slides.add(
+      WrapSlide(
+        tagKey: 'wrap.tag.top',
+        title: top.first.$1,
+        big: _pct(top.first.$2),
+        unit: 'the best KES money market rate now, gross',
+        line: holdings.isEmpty
+            ? 'Followed by ${top.skip(1).take(2).map((t) => t.$1).join(' and ')}.'
+            : 'Compare it with what your statement shows you were paid.',
+        tone: WrapTone.accent,
+      ),
+    );
+  }
+  slides.add(
+    WrapSlide(
+      tagKey: 'wrap.tag.tbill',
+      title: '91-day Treasury bill',
+      big: _pct(cfg.tbill91Pct),
+      unit: 'the benchmark every fund is measured against',
+      line:
+          'Money market funds above it are paying you to take a little more risk.',
+      tone: WrapTone.tbill,
+    ),
+  );
+
+  return MonthWrap(
+    from: from,
+    to: to,
+    slides: slides,
+    holdings: holdings,
+    earnedKes: earned,
+    startKes: start,
+    topFunds: top,
+    tbill91: cfg.tbill91Pct,
+  );
 });

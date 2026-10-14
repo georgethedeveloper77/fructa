@@ -17,14 +17,19 @@ import '../../data/providers.dart';
 import '../company/company_page.dart';
 import '../pro/pro_widgets.dart';
 import '../statements/statement_controller.dart';
+import '../reports/report_archive.dart';
 import 'wrap_engine.dart';
 
 /// Opens the Weekly wrap full screen at [start].
 Future<void> openWeeklyWrap(BuildContext context, {int start = 0}) =>
+    openWrap(context, WrapViewer(start: start));
+
+/// Opens any wrap (a saved week, a month) full screen.
+Future<void> openWrap(BuildContext context, WrapViewer viewer) =>
     Navigator.of(context).push(
       PageRouteBuilder<void>(
         transitionDuration: const Duration(milliseconds: 260),
-        pageBuilder: (_, _, _) => WrapViewer(start: start),
+        pageBuilder: (_, _, _) => viewer,
         transitionsBuilder: (_, a, _, child) => FadeTransition(
           opacity: a,
           child: ScaleTransition(
@@ -56,9 +61,27 @@ Color _tone(WrapTone t) => switch (t) {
 /// Tap the right side for the next story, the left for the previous; each
 /// advances by itself after six seconds, and holding a finger down pauses it.
 class WrapViewer extends ConsumerStatefulWidget {
-  const WrapViewer({super.key, this.start = 0});
+  const WrapViewer({
+    super.key,
+    this.start = 0,
+    this.slides,
+    this.kicker,
+    this.range,
+    this.onPdf,
+  });
 
   final int start;
+
+  /// A fixed set of slides (a saved week, a month). Null plays this week's
+  /// live wrap, with the Pro gate on the personal part.
+  final List<WrapSlide>? slides;
+
+  /// Header overrides for a fixed set, e.g. "October wrap".
+  final String? kicker;
+  final String? range;
+
+  /// Shown as "Save as PDF" on the last slide.
+  final Future<void> Function()? onPdf;
 
   @override
   ConsumerState<WrapViewer> createState() => _WrapViewerState();
@@ -125,9 +148,10 @@ class _WrapViewerState extends ConsumerState<WrapViewer>
   Widget build(BuildContext context) {
     final wrap = ref.watch(weeklyWrapProvider);
     final unlocked = ref.watch(wrapPersonalUnlockedProvider);
-    final slides = [...wrap.market, if (unlocked) ...wrap.personal];
+    final fixed = widget.slides;
+    final slides = fixed ?? [...wrap.market, if (unlocked) ...wrap.personal];
     // A free user with personal data gets one locked "Your week" slide.
-    final locked = !unlocked && wrap.personal.isNotEmpty;
+    final locked = fixed == null && !unlocked && wrap.personal.isNotEmpty;
     _count = slides.length + (locked ? 1 : 0);
     if (_count == 0) {
       WidgetsBinding.instance.addPostFrameCallback(
@@ -169,14 +193,22 @@ class _WrapViewerState extends ConsumerState<WrapViewer>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _Bars(count: _count, index: i, clock: _clock),
+                  // Progress bars redraw every frame; decorative, so kept out
+                  // of the semantics tree.
+                  ExcludeSemantics(
+                    child: _Bars(count: _count, index: i, clock: _clock),
+                  ),
                   _Header(
-                    kicker: t(
-                      onLocked || (slide?.personal ?? false)
-                          ? 'wrap.kickerYou'
-                          : 'wrap.kickerMarket',
-                    ),
-                    range: _range(wrap.from, wrap.to),
+                    kicker:
+                        widget.kicker ??
+                        t(
+                          onLocked || (slide?.personal ?? false)
+                              ? 'wrap.kickerYou'
+                              : 'wrap.kickerMarket',
+                        ),
+                    range:
+                        widget.range ??
+                        t('wrap.range', {'range': _range(wrap.from, wrap.to)}),
                     onShare: onLocked ? null : _share,
                   ),
                   Expanded(
@@ -194,6 +226,29 @@ class _WrapViewerState extends ConsumerState<WrapViewer>
                             ),
                           ),
                   ),
+                  if (widget.onPdf != null && i == _count - 1)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+                      child: FilledButton.icon(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: _d.text,
+                          foregroundColor: _d.bg,
+                          minimumSize: const Size.fromHeight(50),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        onPressed: () async {
+                          _clock.stop();
+                          await widget.onPdf!();
+                        },
+                        icon: const Icon(
+                          Icons.picture_as_pdf_outlined,
+                          size: 18,
+                        ),
+                        label: Text(t('reports.savePdf')),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -275,10 +330,7 @@ class _Header extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                Text(
-                  t('wrap.range', {'range': range}),
-                  style: TextStyle(color: _d.muted, fontSize: 12),
-                ),
+                Text(range, style: TextStyle(color: _d.muted, fontSize: 12)),
               ],
             ),
           ),
@@ -538,6 +590,9 @@ class _LockedSlide extends ConsumerWidget {
   }
 }
 
+/// Week last written to the archive this session, so the card saves once.
+String? _archivedWeek;
+
 /// Today's way in: one card for the whole week, never a row of circles.
 class WeeklyWrapCard extends ConsumerWidget {
   const WeeklyWrapCard({super.key});
@@ -547,6 +602,13 @@ class WeeklyWrapCard extends ConsumerWidget {
     final c = context.c;
     final wrap = ref.watch(weeklyWrapProvider);
     if (wrap.market.isEmpty) return const SizedBox.shrink();
+    final week = WrapArchive.weekId(wrap.to);
+    if (_archivedWeek != week) {
+      _archivedWeek = week;
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => ref.read(wrapArchiveProvider.notifier).saveWeek(wrap),
+      );
+    }
     final unlocked = ref.watch(wrapPersonalUnlockedProvider);
     final thumbs = [
       ...wrap.market.take(4),

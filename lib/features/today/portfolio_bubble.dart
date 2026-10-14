@@ -124,88 +124,102 @@ class _PortfolioBubbleState extends ConsumerState<PortfolioBubble>
     final label = '+${bps.toStringAsFixed(1)} bps';
     final n = ref.watch(holdingsProvider).length;
 
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        if (_showLine)
-          Positioned(
-            left: 16,
-            right: 16,
-            bottom: 0,
-            child: _Line(
-              label: label,
-              holdings: n,
-              onTap: _openPortfolio,
-              onClose: () => setState(() => _showLine = false),
+    // A fixed-height band: Today places this with left, right and bottom
+    // only, which leaves its height unbounded, and a Stack of only positioned
+    // children cannot size itself to an infinite height. Without this the
+    // bubble never laid out and Flutter's semantics pass met it still dirty.
+    return SizedBox(
+      height: 96,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          if (_showLine)
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 0,
+              child: _Line(
+                label: label,
+                holdings: n,
+                onTap: _openPortfolio,
+                onClose: () => setState(() => _showLine = false),
+              ),
             ),
-          ),
-        // Sparks from where the bubble was.
-        Positioned(
-          right: 18,
-          bottom: 0,
-          width: 74,
-          height: 74,
-          child: IgnorePointer(
-            child: AnimatedBuilder(
-              animation: _burst,
-              builder: (_, _) => _burst.value == 0 || _burst.value == 1
-                  ? const SizedBox.shrink()
-                  : CustomPaint(painter: _Sparks(_burst.value, c.up, c.accent)),
-            ),
-          ),
-        ),
-        if (!_popped)
+          // Sparks from where the bubble was.
           Positioned(
             right: 18,
             bottom: 0,
-            child: AnimatedBuilder(
-              animation: _bob,
-              builder: (_, child) => Transform.translate(
-                offset: Offset(0, -5 * Curves.easeInOut.transform(_bob.value)),
-                child: child,
-              ),
-              child: Semantics(
-                button: true,
-                label: t('today.bubble.a11y', {'v': label}),
-                child: GestureDetector(
-                  onTap: _pop,
-                  child: Container(
-                    width: 74,
-                    height: 74,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: RadialGradient(
-                        center: const Alignment(-0.36, -0.44),
-                        colors: [
-                          c.text.withValues(alpha: c.isDark ? 0.45 : 0.0),
-                          c.up.withValues(alpha: c.isDark ? 0.32 : 0.22),
-                          c.up.withValues(alpha: c.isDark ? 0.55 : 0.40),
-                        ],
-                        stops: const [0, 0.58, 1],
-                      ),
-                      border: Border.all(
-                        color: c.up.withValues(alpha: 0.5),
-                        width: 1.2,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: c.up.withValues(alpha: 0.35),
-                          blurRadius: 24,
-                          offset: const Offset(0, 10),
+            width: 74,
+            height: 74,
+            child: IgnorePointer(
+              child: ExcludeSemantics(
+                child: AnimatedBuilder(
+                  animation: _burst,
+                  builder: (_, _) => _burst.value == 0 || _burst.value == 1
+                      ? const SizedBox.shrink()
+                      : CustomPaint(
+                          painter: _Sparks(_burst.value, c.up, c.accent),
                         ),
-                      ],
-                    ),
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Padding(
-                        padding: const EdgeInsets.all(8),
-                        child: Text(
-                          label,
-                          style: fructaFonts.numeric(
-                            color: c.text,
-                            size: 15,
-                            weight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+          if (!_popped)
+            Positioned(
+              right: 18,
+              bottom: 0,
+              child: AnimatedBuilder(
+                animation: _bob,
+                builder: (_, child) => Transform.translate(
+                  offset: Offset(
+                    0,
+                    -5 * Curves.easeInOut.transform(_bob.value),
+                  ),
+                  child: child,
+                ),
+                child: Semantics(
+                  button: true,
+                  label: t('today.bubble.a11y', {'v': label}),
+                  child: GestureDetector(
+                    onTap: _pop,
+                    child: Container(
+                      width: 74,
+                      height: 74,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          center: const Alignment(-0.36, -0.44),
+                          colors: [
+                            c.text.withValues(alpha: c.isDark ? 0.45 : 0.0),
+                            c.up.withValues(alpha: c.isDark ? 0.32 : 0.22),
+                            c.up.withValues(alpha: c.isDark ? 0.55 : 0.40),
+                          ],
+                          stops: const [0, 0.58, 1],
+                        ),
+                        border: Border.all(
+                          color: c.up.withValues(alpha: 0.5),
+                          width: 1.2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: c.up.withValues(alpha: 0.35),
+                            blurRadius: 24,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: Text(
+                            label,
+                            style: fructaFonts.numeric(
+                              color: c.text,
+                              size: 15,
+                              weight: FontWeight.w700,
+                            ),
                           ),
                         ),
                       ),
@@ -214,8 +228,8 @@ class _PortfolioBubbleState extends ConsumerState<PortfolioBubble>
                 ),
               ),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 }

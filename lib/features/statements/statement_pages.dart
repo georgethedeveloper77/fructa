@@ -48,10 +48,10 @@ class _StatementCheckPageState extends ConsumerState<StatementCheckPage> {
       type: FileType.custom,
       allowedExtensions: const ['pdf'],
     );
-    if (picked == null || picked.files.isEmpty) return;
+    if (picked.isEmpty) return;
     Uint8List? bytes;
     try {
-      bytes = await picked.files.single.readAsBytes();
+      bytes = await picked.single.readAsBytes();
     } catch (_) {
       bytes = null;
     }
@@ -63,7 +63,7 @@ class _StatementCheckPageState extends ConsumerState<StatementCheckPage> {
       return;
     }
     _bytes = bytes;
-    _fileName = picked.files.single.name;
+    _fileName = picked.single.name;
     await _read();
   }
 

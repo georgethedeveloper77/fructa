@@ -144,7 +144,7 @@ class _CloudBackupSectionState extends ConsumerState<CloudBackupSection> {
 
   Future<void> _importFile() async {
     final picked = await FilePicker.pickFiles(type: FileType.any);
-    if (picked == null || picked.files.isEmpty) return;
+    if (picked.isEmpty) return;
 
     // readAsBytes() rather than withData + .bytes. Both of those are deprecated
     // precisely because withData eagerly loads the whole file into memory at
@@ -153,7 +153,7 @@ class _CloudBackupSectionState extends ConsumerState<CloudBackupSection> {
     // Reading here also means a pick the user cancels costs nothing.
     Uint8List? bytes;
     try {
-      bytes = await picked.files.single.readAsBytes();
+      bytes = await picked.single.readAsBytes();
     } catch (_) {
       bytes = null;
     }

@@ -365,11 +365,14 @@ class _DebugProSwitch extends ConsumerWidget {
     final on = ref.watch(debugProProvider);
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-      child: Container(
-        decoration: BoxDecoration(
-          color: c.s1,
+      // Material, not a coloured DecoratedBox: ListTile paints its ripple on
+      // the nearest Material, which a coloured box above it would hide.
+      child: Material(
+        color: c.s1,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: c.line),
+          side: BorderSide(color: c.line),
         ),
         child: SwitchListTile.adaptive(
           value: on,

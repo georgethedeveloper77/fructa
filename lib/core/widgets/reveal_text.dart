@@ -5,16 +5,26 @@ import '../theme.dart';
 
 /// Long copy, short by default.
 ///
-/// Shows the first [collapsedLines] lines and a "More" link; a tap expands it
-/// in place, another collapses it. Text that already fits shows no link. This
-/// is the house rule for any explanation longer than two lines: the number and
-/// one sentence first, the reasoning one tap away.
+/// Collapsed, the text shows at most [collapsedLines] lines with a "More" link;
+/// a tap shows all of it, another tap collapses it. The house rule for any
+/// explanation longer than two lines: the number and one sentence first, the
+/// reasoning one tap away.
+///
+/// Deliberately measures nothing during layout. An earlier version used a
+/// LayoutBuilder and an AnimatedSize, which asked for a new layout while the
+/// framework was collecting semantics and tripped a debug assertion in lists.
+/// Whether the link is needed is decided from the text's length instead.
 class RevealText extends StatefulWidget {
   const RevealText(this.text, {super.key, this.style, this.collapsedLines = 2});
 
   final String text;
   final TextStyle? style;
   final int collapsedLines;
+
+  /// Roughly how many characters fit on one line of a phone-width column at
+  /// body sizes. Erring short only means "More" appears on a slightly long
+  /// text that would just have fitted.
+  static const _charsPerLine = 46;
 
   @override
   State<RevealText> createState() => _RevealTextState();
@@ -28,50 +38,39 @@ class _RevealTextState extends State<RevealText> {
     final c = context.c;
     final style =
         widget.style ?? TextStyle(color: c.muted, fontSize: 13, height: 1.45);
-    return LayoutBuilder(
-      builder: (context, box) {
-        final painter = TextPainter(
-          text: TextSpan(text: widget.text, style: style),
-          maxLines: widget.collapsedLines,
-          textDirection: Directionality.of(context),
-        )..layout(maxWidth: box.maxWidth);
-        final overflows = painter.didExceedMaxLines;
-        if (!overflows) return Text(widget.text, style: style);
+    final long =
+        widget.text.length > widget.collapsedLines * RevealText._charsPerLine;
+    if (!long) return Text(widget.text, style: style);
 
-        return GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () => setState(() => _open = !_open),
-          child: AnimatedSize(
-            duration: const Duration(milliseconds: 200),
-            alignment: Alignment.topLeft,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (_open)
-                  Text(widget.text, style: style)
-                else
-                  // Clip to whole lines, never an ellipsis: the link says
-                  // there is more.
-                  ClipRect(
-                    child: SizedBox(
-                      height: painter.height,
-                      child: Text(widget.text, style: style),
-                    ),
-                  ),
-                const SizedBox(height: 4),
-                Text(
-                  t(_open ? 'common.less' : 'common.more'),
-                  style: TextStyle(
-                    color: c.accentInk,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
+    return Semantics(
+      button: true,
+      expanded: _open,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => setState(() => _open = !_open),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.text,
+              style: style,
+              maxLines: _open ? null : widget.collapsedLines,
+              // Whole lines are clipped, never an ellipsis: the link below
+              // says there is more.
+              overflow: _open ? TextOverflow.visible : TextOverflow.clip,
             ),
-          ),
-        );
-      },
+            const SizedBox(height: 4),
+            Text(
+              t(_open ? 'common.less' : 'common.more'),
+              style: TextStyle(
+                color: c.accentInk,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

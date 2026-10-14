@@ -492,16 +492,29 @@ class _LeaderTickerState extends ConsumerState<_LeaderTicker>
       decoration: BoxDecoration(
         border: Border.symmetric(horizontal: BorderSide(color: c.line)),
       ),
-      child: Listener(
-        onPointerDown: (_) => _held = true,
-        onPointerUp: (_) => _held = false,
-        onPointerCancel: (_) => _held = false,
-        child: SingleChildScrollView(
-          controller: _scroll,
-          scrollDirection: Axis.horizontal,
-          physics: const NeverScrollableScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 9),
-          child: Row(children: items),
+      // The marquee moves every frame. Its moving children are kept out of
+      // the semantics tree, which otherwise re-walks a subtree whose layout
+      // changes on each tick (the '_needsLayout' semantics assertion). Screen
+      // readers get one stable summary instead; the category chips below give
+      // the same choices as real buttons.
+      child: Semantics(
+        container: true,
+        label: [
+          for (final l in widget.leaders)
+            '${t(l.category.shortKey)} ${l.shown(ref.watch(showNetProvider)).toStringAsFixed(2)}%',
+        ].join(', '),
+        excludeSemantics: true,
+        child: Listener(
+          onPointerDown: (_) => _held = true,
+          onPointerUp: (_) => _held = false,
+          onPointerCancel: (_) => _held = false,
+          child: SingleChildScrollView(
+            controller: _scroll,
+            scrollDirection: Axis.horizontal,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 9),
+            child: Row(children: items),
+          ),
         ),
       ),
     );
