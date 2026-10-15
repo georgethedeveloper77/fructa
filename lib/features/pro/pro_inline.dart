@@ -8,6 +8,7 @@ import '../../core/i18n.dart';
 import '../../core/theme.dart';
 import '../../data/models/fund.dart';
 import '../../data/pro/pro_providers.dart';
+import '../../data/pro/pro_tuning.dart';
 import '../../data/providers.dart';
 import '../../data/snapshot_providers.dart';
 import '../../data/statements/statement_store.dart';
@@ -48,6 +49,7 @@ class SwitchOpportunity {
     required this.ptsNet,
     required this.gain,
     required this.currency,
+    required this.floor,
   });
 
   final Fund from;
@@ -60,8 +62,10 @@ class SwitchOpportunity {
   final double gain;
   final String currency;
 
-  /// Worth acting on: KES 500 (or USD 5) a year or more.
-  bool get worth => gain >= (currency == 'USD' ? 5 : 500);
+  /// The yearly gain below which a move is not worth it (admin: Pro tuning).
+  final double floor;
+
+  bool get worth => gain >= floor;
 }
 
 double _net(Fund f, double wht) => f.taxFree || !f.whtStillDue
@@ -105,13 +109,17 @@ final switchOpportunityProvider = Provider.autoDispose
         taxFree: from.taxFree,
         usdKes: null,
       ).valueNative;
-      final gain = value * pts / 100 - value * _net(to, wht) / 100 * 3 / 365;
+      final tune = ref.watch(proTuningProvider);
+      final gain =
+          value * pts / 100 -
+          value * _net(to, wht) / 100 * tune.transitDays / 365;
       return SwitchOpportunity(
         from: from,
         to: to,
         ptsNet: pts,
         gain: gain,
         currency: h.currency,
+        floor: tune.floorFor(h.currency),
       );
     });
 
@@ -120,7 +128,8 @@ final bestSwitchProvider = Provider.autoDispose<SwitchOpportunity?>((ref) {
   SwitchOpportunity? best;
   for (final h in ref.watch(holdingsProvider)) {
     final o = ref.watch(switchOpportunityProvider(h.fundId));
-    if (o == null || o.ptsNet < 0.25) continue;
+    if (o == null || o.ptsNet < ref.watch(proTuningProvider).todaySwitchPts)
+      continue;
     if (best == null || o.gain > best.gain) best = o;
   }
   return best;
@@ -594,7 +603,9 @@ class _FundProCardsState extends ConsumerState<FundProCards> {
           if (st != null && a?.gapPts != null)
             _Card(
               icon: Icons.fact_check_outlined,
-              tone: a!.gapPts! <= -0.25 ? c.down : c.up,
+              tone: a!.gapPts! <= -ref.watch(proTuningProvider).underpaidPts
+                  ? c.down
+                  : c.up,
               title: t('fundPro.statement', {
                 'gap':
                     '${a.gapPts! >= 0 ? '+' : ''}${a.gapPts!.toStringAsFixed(2)}',

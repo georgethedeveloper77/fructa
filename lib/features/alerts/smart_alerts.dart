@@ -7,29 +7,12 @@ import '../../core/settings_prefs.dart';
 import '../../data/models/fund.dart';
 import '../../data/models/smart_alert.dart';
 import '../../data/pro/pro_providers.dart';
+import '../../data/pro/pro_tuning.dart';
 import '../../data/providers.dart';
 import '../../data/snapshot_providers.dart';
 import '../../data/statements/statement_store.dart';
 import '../../engine/portfolio_math.dart';
 import '../statements/statement_controller.dart';
-
-/// Thresholds, kept deliberately conservative: an alert has to be worth the
-/// interruption.
-abstract final class SmartAlertRules {
-  /// Credited this many points a year or more below published.
-  static const underpaidPts = 0.30;
-
-  /// A better fund must be worth at least this much a year, in the holding's
-  /// own currency.
-  static const betterKes = 500.0;
-  static const betterUsd = 5.0;
-
-  /// Days money sits in transit when switching, earning nothing.
-  static const transitDays = 3;
-
-  /// Places that count as "top".
-  static const top = 5;
-}
 
 /// Runs the smart alerts whenever their inputs change: a fresh rates snapshot
 /// (better fund, rank drops) or a newly checked statement (underpaid, no
@@ -108,6 +91,7 @@ Future<void> _runMarket(
   required List<Fund> fresh,
 }) async {
   final wht = ref.read(remoteConfigProvider).whtPct;
+  final tune = ref.read(proTuningProvider);
   double net(Fund f) => f.taxFree || !f.whtStillDue
       ? f.currentRate!
       : f.currentRate! * (1 - wht / 100);
@@ -134,11 +118,8 @@ Future<void> _runMarket(
         usdKes: null,
       ).valueNative;
       final extra =
-          value * diff / 100 -
-          value * net(best) / 100 * SmartAlertRules.transitDays / 365;
-      final floor = h.currency == 'USD'
-          ? SmartAlertRules.betterUsd
-          : SmartAlertRules.betterKes;
+          value * diff / 100 - value * net(best) / 100 * tune.transitDays / 365;
+      final floor = tune.floorFor(h.currency);
       if (extra < floor) continue;
       await _raise(
         ref,
@@ -148,7 +129,7 @@ Future<void> _runMarket(
           title:
               '${best.name} would pay you about ${_money(h.currency, extra)} more a year',
           body:
-              'Than ${mine.name}, after tax and ${SmartAlertRules.transitDays} days in transit. Rates move, so this is a guide.',
+              'Than ${mine.name}, after tax and ${tune.transitDays} days in transit. Rates move, so this is a guide.',
           at: now,
           target: 'fund/${best.id}',
         ),
@@ -176,14 +157,14 @@ Future<void> _runMarket(
       final before = rankIn(was, old);
       final after = rankIn(f, fresh);
       if (before == 0 || after == 0) continue;
-      if (before <= SmartAlertRules.top && after > SmartAlertRules.top) {
+      if (before <= tune.rankTop && after > tune.rankTop) {
         final n = _peers(f, fresh).length;
         await _raise(
           ref,
           SmartAlert(
             key: 'rank|$id|$after|${now.year}-${now.month}-${now.day}',
             type: SmartAlertType.rankDrop,
-            title: '${f.name} left the top ${SmartAlertRules.top}',
+            title: '${f.name} left the top ${tune.rankTop}',
             body:
                 'Now #$after of $n ${f.currency} funds of its kind, at ${f.currentRate!.toStringAsFixed(2)}% gross. It was #$before.',
             at: now,
@@ -196,6 +177,7 @@ Future<void> _runMarket(
 }
 
 Future<void> _runStatements(Ref ref, List<SavedStatement> list) async {
+  final tune = ref.read(proTuningProvider);
   // Latest statement per account only: older ones were already judged.
   final latest = <String, SavedStatement>{};
   for (final s in list) {
@@ -216,7 +198,7 @@ Future<void> _runStatements(Ref ref, List<SavedStatement> list) async {
 
     final gap = a.gapPts;
     if (gap != null &&
-        gap <= -SmartAlertRules.underpaidPts &&
+        gap <= -tune.underpaidPts &&
         _allowed(ref, SmartAlertType.underpaid)) {
       await _raise(
         ref,

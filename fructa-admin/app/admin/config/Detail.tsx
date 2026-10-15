@@ -506,6 +506,18 @@ export function Detail({
         {field.kind === "stringList" && <ChipsEditor model={model as string[]} onChange={onChange} />}
         {field.kind === "table" && <TableEditor field={field} model={model as TableModel} onChange={onChange} />}
         {field.kind === "json" && <JsonEditor model={model as string} onChange={onChange} />}
+        {field.kind === "number" && (
+          <div className="flex max-w-[260px] items-center gap-2">
+            <input
+              inputMode="decimal"
+              value={model as string}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder={field.seed != null ? String(field.seed) : "0"}
+              className="w-full rounded-md border border-line bg-panel2 px-3 py-1.5 font-mono text-sm tnum text-ink outline-none placeholder:text-faint focus:border-gold/60"
+            />
+            {field.unit && <span className="shrink-0 text-xs text-faint">{field.unit}</span>}
+          </div>
+        )}
 
         {!v.ok && <p className="mt-2.5 text-xs text-bad">{v.msg}</p>}
         {v.warn && <p className="mt-2.5 text-xs text-warn">{v.warn}</p>}

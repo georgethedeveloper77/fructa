@@ -34,7 +34,17 @@ const TYPES: Record<string, string> = {
 };
 
 type SortKey = "name" | "type" | "funds" | "verified";
-type Filter = "all" | "nologo" | "nobrand" | "orphan" | "unverified";
+type Filter = "all" | "nologo" | "nobrand" | "orphan" | "unverified" | "nocontact";
+
+/** Channels the app shows in "How to switch" and on the fund page. */
+function contactCount(r: Company): number {
+  return [r.phone, r.whatsapp, r.email, r.website].filter((v) => v && v.trim()).length;
+}
+
+/** A fund manager with funds but no way for a user to reach them in the app. */
+function missingContacts(r: Company, funds: number): boolean {
+  return r.type === "fund_manager" && funds > 0 && !(r.phone?.trim() || r.whatsapp?.trim() || r.email?.trim());
+}
 
 function SearchIcon() {
   return (
@@ -85,7 +95,7 @@ export function CompaniesTable({
   const stats = useMemo(() => {
     const fundsFor = (id: string) => counts[id] ?? 0;
     const byType: Record<string, number> = {};
-    let verified = 0, withLogo = 0, withBrand = 0, totalFunds = 0, orphan = 0, noLogo = 0, noBrand = 0, unverified = 0;
+    let verified = 0, withLogo = 0, withBrand = 0, totalFunds = 0, orphan = 0, noLogo = 0, noBrand = 0, unverified = 0, noContact = 0, managers = 0;
     for (const r of rows) {
       byType[r.type] = (byType[r.type] ?? 0) + 1;
       if (r.verified) verified++; else unverified++;
@@ -94,8 +104,10 @@ export function CompaniesTable({
       const f = fundsFor(r.id);
       totalFunds += f;
       if (f === 0) orphan++;
+      if (r.type === "fund_manager" && f > 0) managers++;
+      if (missingContacts(r, f)) noContact++;
     }
-    return { total: rows.length, verified, withLogo, withBrand, totalFunds, orphan, noLogo, noBrand, unverified, byType };
+    return { total: rows.length, verified, withLogo, withBrand, totalFunds, orphan, noLogo, noBrand, unverified, noContact, managers, byType };
   }, [rows, counts]);
 
   const filtered = useMemo(() => {
@@ -107,6 +119,7 @@ export function CompaniesTable({
         case "nobrand": return !r.brand_color;
         case "orphan": return (counts[r.id] ?? 0) === 0;
         case "unverified": return !r.verified;
+        case "nocontact": return missingContacts(r, counts[r.id] ?? 0);
         default: return true;
       }
     });
@@ -163,13 +176,15 @@ export function CompaniesTable({
   return (
     <div className="space-y-3">
       {/* KPIs */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-7">
         <Kpi label="Companies" value={stats.total} />
         <Kpi label="Verified" value={stats.verified} sub={`${stats.total ? Math.round((stats.verified / stats.total) * 100) : 0}%`} tone={stats.verified === stats.total ? "ok" : undefined} />
         <Kpi label="With logo" value={stats.withLogo} sub={`${stats.noLogo} missing`} tone={stats.noLogo ? "warn" : "ok"} />
         <Kpi label="With brand" value={stats.withBrand} sub={`${stats.noBrand} missing`} tone={stats.noBrand ? "warn" : "ok"} />
         <Kpi label="Funds mapped" value={stats.totalFunds} />
         <Kpi label="Orphans" value={stats.orphan} sub="0 funds" tone={stats.orphan ? "warn" : "ok"} />
+        {/* Managers users can reach from "How to switch" in the app. */}
+        <Kpi label="Reachable" value={stats.managers - stats.noContact} sub={`${stats.noContact} managers missing`} tone={stats.noContact ? "warn" : "ok"} />
       </div>
 
       {/* type distribution */}
@@ -194,6 +209,7 @@ export function CompaniesTable({
         <Chip f="nologo" label="No logo" n={stats.noLogo} />
         <Chip f="nobrand" label="No brand" n={stats.noBrand} />
         <Chip f="orphan" label="Orphans" n={stats.orphan} />
+        <Chip f="nocontact" label="No contacts" n={stats.noContact} />
         <span className="tnum ml-auto text-xs text-faint">{sorted.length} shown</span>
       </div>
 
@@ -247,6 +263,19 @@ export function CompaniesTable({
                         {Object.entries(TYPES).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
                       </select>
                       <button className="rounded-md border border-gold/50 bg-gold/10 px-3 py-1.5 text-xs font-medium text-gold hover:bg-gold/20">Save</button>
+                      <span
+                        title="Phone, WhatsApp, email, website: shown in the app's How to switch steps"
+                        className={
+                          "rounded px-1.5 py-0.5 text-[10px] tnum " +
+                          (missingContacts(c, counts[c.id] ?? 0)
+                            ? "bg-warn/15 text-warn"
+                            : contactCount(c) === 4
+                              ? "bg-live/10 text-live"
+                              : "bg-panel2 text-faint")
+                        }
+                      >
+                        {contactCount(c)}/4 contacts
+                      </span>
                       <span className="ml-auto truncate text-[11px] text-faint">{c.id}</span>
                     </div>
                   </form>

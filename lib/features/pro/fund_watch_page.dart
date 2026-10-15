@@ -6,6 +6,7 @@ import '../../core/theme.dart';
 import '../../core/widgets/fund_logo.dart';
 import '../../data/models/fund.dart';
 import '../../data/models/fund_composition.dart';
+import '../../data/pro/pro_tuning.dart';
 import '../../data/providers.dart';
 import '../../data/snapshot_providers.dart';
 import '../../data/statements/statement_store.dart';
@@ -49,6 +50,7 @@ final fundWatchProvider = Provider.autoDispose<List<FundWatch>>((ref) {
   final funds = ref.watch(fundsByIdProvider);
   final statements =
       ref.watch(statementsProvider).value ?? const <SavedStatement>[];
+  final underpaid = ref.watch(proTuningProvider).underpaidPts;
   final out = <FundWatch>[];
 
   for (final h in ref.watch(holdingsProvider)) {
@@ -67,8 +69,8 @@ final fundWatchProvider = Provider.autoDispose<List<FundWatch>>((ref) {
       if (gap != null) {
         s.add(
           WatchSignal(
-            gap <= -0.25 ? WatchLevel.watch : WatchLevel.ok,
-            t(gap <= -0.25 ? 'watch.underpays' : 'watch.paysAsPublished'),
+            gap <= -underpaid ? WatchLevel.watch : WatchLevel.ok,
+            t(gap <= -underpaid ? 'watch.underpays' : 'watch.paysAsPublished'),
             t('watch.gapDetail', {
               'credited': a.recentCreditedPct!.toStringAsFixed(2),
               'published': a.recentPublishedPct!.toStringAsFixed(2),

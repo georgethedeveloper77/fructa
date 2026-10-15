@@ -11,7 +11,7 @@
 // adding a key never requires touching this file, it just gets a nicer editor
 // when you describe it here.
 
-export type FieldKind = "rate" | "flag" | "text" | "stringList" | "table" | "json";
+export type FieldKind = "rate" | "flag" | "text" | "stringList" | "table" | "json" | "number";
 
 export interface TableColumn {
   key: string; // property name on each row object
@@ -41,7 +41,8 @@ export type Field =
       totalKey?: string; // if set, sum a column into this property
       totalFromColumn?: string;
     })
-  | (Base & { kind: "json" }); // free-form, current behaviour
+  | (Base & { kind: "json" }) // free-form, current behaviour
+  | (Base & { kind: "number"; unit?: string; min?: number; max?: number; step?: number }); // plain JSON number
 
 // ── The registry ──────────────────────────────────────────────────────────
 
@@ -128,6 +129,76 @@ export const CONFIG_SCHEMA: Record<string, Field> = {
     group: "Feature flags",
     label: "Statement check live",
     help: "Shows Check a statement in Portfolio and Pro, and lets the statement-day reminder send. Leave off until the reader ships in a store build.",
+  },
+
+  // Pro tuning: thresholds the app uses for smart alerts, Should I switch?
+  // and the Today "Your money" cards. Each is a plain number; unset keys fall
+  // back to the value in the app, so nothing changes until you publish one.
+  "pro.underpaid_pts": {
+    kind: "number",
+    group: "Pro tuning",
+    label: "Underpaid alert threshold",
+    help: "A statement that credits this many points a year or more below the published rate raises the \"pays less than it publishes\" alert and marks the fund to watch.",
+    unit: "pts",
+    min: 0.05,
+    max: 2,
+    step: 0.05,
+    seed: 0.3,
+  },
+  "pro.switch_floor_kes": {
+    kind: "number",
+    group: "Pro tuning",
+    label: "Worth switching, KES",
+    help: "A move must gain at least this much a year, after tax and transit days, to be called worth it and to raise the better-fund alert.",
+    unit: "KES a year",
+    min: 0,
+    max: 100000,
+    step: 100,
+    seed: 500,
+  },
+  "pro.switch_floor_usd": {
+    kind: "number",
+    group: "Pro tuning",
+    label: "Worth switching, USD",
+    help: "The same floor for USD holdings.",
+    unit: "USD a year",
+    min: 0,
+    max: 1000,
+    step: 1,
+    seed: 5,
+  },
+  "pro.transit_days": {
+    kind: "number",
+    group: "Pro tuning",
+    label: "Days in transit",
+    help: "Days the money earns nothing between withdrawing from one fund and landing in another. The switch maths subtracts this; users can still change it on the screen.",
+    unit: "days",
+    min: 0,
+    max: 14,
+    step: 1,
+    seed: 3,
+  },
+  "pro.rank_top": {
+    kind: "number",
+    group: "Pro tuning",
+    label: "Top places for rank alerts",
+    help: "A followed fund dropping out of this many top places among similar funds raises the rank alert.",
+    unit: "places",
+    min: 1,
+    max: 20,
+    step: 1,
+    seed: 5,
+  },
+  "pro.today_switch_pts": {
+    kind: "number",
+    group: "Pro tuning",
+    label: "Today switch card threshold",
+    help: "Today shows \"X pays N pts more than your fund\" only when the best fund beats the user's by at least this many net points.",
+    unit: "pts",
+    min: 0,
+    max: 3,
+    step: 0.05,
+    seed: 0.25,
   },
 
   // Statements, what the app needs to read each manager's PDF. Read on the
@@ -234,6 +305,7 @@ export const GROUP_ORDER = [
   "Feature flags",
   "Market (CMA)",
   "Statements",
+  "Pro tuning",
   "Search",
   "Onboarding",
   "Learn",
@@ -277,6 +349,7 @@ export function fieldFor(row: { key: string; value: unknown }): Field {
   const v = row.value;
 
   if (typeof v === "boolean") return { kind: "flag", label, help: "", group };
+  if (typeof v === "number") return { kind: "number", label, help: "", group };
   if (typeof v === "string")
     return { kind: "text", label, help: "", group, multiline: v.length > 60 };
   if (Array.isArray(v) && v.every((x) => typeof x === "string"))
@@ -327,6 +400,8 @@ export function parseModel(field: Field, value: unknown): Model {
     }
     case "json":
       return typeof value === "string" ? value : JSON.stringify(value, null, 2);
+    case "number":
+      return typeof value === "number" ? String(value) : "";
   }
 }
 
@@ -344,6 +419,8 @@ export function defaultModel(field: Field): Model {
     case "table":
       return { as_of: "", source: "", rows: [] };
     case "json":
+      return "";
+    case "number":
       return "";
   }
 }
@@ -385,6 +462,8 @@ export function serializeValue(field: Field, model: Model): string {
     }
     case "json":
       return model as string; // raw, actions.ts parses JSON-or-text
+    case "number":
+      return JSON.stringify(Number(model as string));
   }
 }
 
@@ -425,6 +504,15 @@ export function validate(field: Field, model: Model): Validity {
         const sum = m.rows.reduce((s, r) => s + Number(r[shareCol.key] || 0), 0);
         if (Math.abs(sum - 100) > 0.5) return { ok: true, warn: `Shares sum to ${sum.toFixed(1)}%, not 100%.` };
       }
+      return { ok: true };
+    }
+    case "number": {
+      const raw = (model as string).trim();
+      if (!raw) return { ok: false, msg: "Enter a number." };
+      const n = Number(raw);
+      if (!Number.isFinite(n)) return { ok: false, msg: "That isn't a number." };
+      if (field.min != null && n < field.min) return { ok: false, msg: `Use ${field.min} or more.` };
+      if (field.max != null && n > field.max) return { ok: false, msg: `Use ${field.max} or less.` };
       return { ok: true };
     }
     case "json": {

@@ -274,6 +274,22 @@ function TableEditor({ field, model, onChange }: EditorProps) {
   );
 }
 
+function NumberEditor({ field, model, onChange }: EditorProps) {
+  const f = field.kind === "number" ? field : null;
+  return (
+    <div className="flex max-w-[240px] items-center gap-2">
+      <input
+        inputMode="decimal"
+        value={model as string}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={f?.seed != null ? String(f.seed) : "0"}
+        className={fieldCls + " font-mono tnum"}
+      />
+      {f?.unit && <span className="shrink-0 text-xs text-faint">{f.unit}</span>}
+    </div>
+  );
+}
+
 function JsonEditor({ model, onChange }: EditorProps) {
   const v = model as string;
   return <textarea rows={4} value={v} onChange={(e) => onChange(e.target.value)} className={monoCls} spellCheck={false} />;
@@ -293,6 +309,8 @@ function renderEditor(props: EditorProps) {
       return <TableEditor {...props} />;
     case "json":
       return <JsonEditor {...props} />;
+    case "number":
+      return <NumberEditor {...props} />;
   }
 }
 

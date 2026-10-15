@@ -8,6 +8,7 @@ import '../../core/widgets/fund_logo.dart';
 import '../../core/widgets/reveal_text.dart';
 import '../../data/models/fund.dart';
 import '../../data/models/holding.dart';
+import '../../data/pro/pro_tuning.dart';
 import '../../data/providers.dart';
 import '../../data/snapshot_providers.dart';
 import '../../engine/portfolio_math.dart';
@@ -39,7 +40,9 @@ class _SwitchPageState extends ConsumerState<SwitchPage> {
   late String? _from = widget.fromFundId;
   late String? _to = widget.toFundId;
   double? _amount;
-  int _days = 3;
+
+  /// Null until the user changes it; then their choice wins over admin's default.
+  int? _daysPicked;
 
   double _net(Fund f, double wht) => f.taxFree || !f.whtStillDue
       ? f.currentRate!
@@ -154,6 +157,8 @@ class _SwitchPageState extends ConsumerState<SwitchPage> {
     final funds = ref.watch(fundsByIdProvider);
     final companies = ref.watch(companiesProvider);
     final wht = ref.watch(remoteConfigProvider).whtPct;
+    final tune = ref.watch(proTuningProvider);
+    final days = _daysPicked ?? tune.transitDays;
     final holdings = ref
         .watch(holdingsProvider)
         .where(
@@ -223,9 +228,9 @@ class _SwitchPageState extends ConsumerState<SwitchPage> {
     final a = _net(from, wht);
     final b = _net(to, wht);
     final yearly = amount * (b - a) / 100;
-    final transit = amount * b / 100 * _days / 365;
+    final transit = amount * b / 100 * days / 365;
     final gain = yearly - transit;
-    final floor = h.currency == 'USD' ? 5.0 : 500.0;
+    final floor = tune.floorFor(h.currency);
     final worth = gain >= floor;
     final breakEvenWeeks = yearly <= 0
         ? null
@@ -312,11 +317,13 @@ class _SwitchPageState extends ConsumerState<SwitchPage> {
               ),
               IconButton(
                 tooltip: t('switch.fewer'),
-                onPressed: _days > 1 ? () => setState(() => _days--) : null,
+                onPressed: days > 0
+                    ? () => setState(() => _daysPicked = days - 1)
+                    : null,
                 icon: Icon(Icons.remove_rounded, color: c.text),
               ),
               Text(
-                t('switch.daysN', {'n': '$_days'}),
+                t('switch.daysN', {'n': '$days'}),
                 style: fructaFonts.numeric(
                   color: c.text,
                   size: 15,
@@ -325,7 +332,9 @@ class _SwitchPageState extends ConsumerState<SwitchPage> {
               ),
               IconButton(
                 tooltip: t('switch.more'),
-                onPressed: _days < 14 ? () => setState(() => _days++) : null,
+                onPressed: days < 14
+                    ? () => setState(() => _daysPicked = days + 1)
+                    : null,
                 icon: Icon(Icons.add_rounded, color: c.text),
               ),
             ],

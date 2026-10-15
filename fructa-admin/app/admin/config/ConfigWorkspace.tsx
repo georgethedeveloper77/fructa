@@ -51,6 +51,10 @@ function preview(field: Field, model: Model): string {
       return `${(model as TableModel).rows.length} rows`;
     case "text":
       return "copy";
+    case "number": {
+      const n = (model as string).trim();
+      return n ? `${n}${field.unit ? " " + field.unit : ""}` : "empty";
+    }
     default:
       return "json";
   }

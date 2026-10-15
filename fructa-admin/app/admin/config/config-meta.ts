@@ -158,6 +158,18 @@ export const CONSUMERS: Record<string, Consumer[]> = {
     { surface: "App", where: "Locked PDF, password hint" },
     { surface: "App", where: "Statement-day reminder push, 08:00 EAT" },
   ],
+  "pro.underpaid_pts": [
+    { surface: "App", where: "Smart alert, pays less than it publishes" },
+    { surface: "App", where: "Fund health, Today watch card" },
+  ],
+  "pro.switch_floor_kes": [
+    { surface: "App", where: "Should I switch? verdict" },
+    { surface: "App", where: "Smart alert, a better fund" },
+  ],
+  "pro.switch_floor_usd": [{ surface: "App", where: "Should I switch? verdict, USD holdings" }],
+  "pro.transit_days": [{ surface: "App", where: "Should I switch? and the better-fund alert" }],
+  "pro.rank_top": [{ surface: "App", where: "Smart alert, leaves the top places" }],
+  "pro.today_switch_pts": [{ surface: "App", where: "Today, Your money switch card" }],
   "search.placeholder": [{ surface: "App", where: "Search field" }],
   "search.suggestions": [{ surface: "App", where: "Search, empty state chips" }],
 };
@@ -170,4 +182,5 @@ export const KIND_LABEL: Record<string, string> = {
   stringList: "chips",
   table: "table",
   json: "json",
+  number: "number",
 };
