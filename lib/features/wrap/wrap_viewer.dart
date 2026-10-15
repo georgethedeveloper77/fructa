@@ -18,6 +18,7 @@ import '../company/company_page.dart';
 import '../pro/pro_widgets.dart';
 import '../statements/statement_controller.dart';
 import '../reports/report_archive.dart';
+import 'wrap_chart.dart';
 import 'wrap_engine.dart';
 
 /// Opens the Weekly wrap full screen at [start].
@@ -219,9 +220,14 @@ class _WrapViewerState extends ConsumerState<WrapViewer>
                             child: ColoredBox(
                               color: _d.bg,
                               child: _SlideBody(
+                                key: ValueKey(i),
                                 slide: slide!,
                                 tone: tone,
                                 index: i,
+                                // Scrubbing a chart holds the story, like a
+                                // long press does.
+                                onScrub: (on) =>
+                                    on ? _clock.stop() : _clock.forward(),
                               ),
                             ),
                           ),
@@ -353,14 +359,17 @@ class _Header extends StatelessWidget {
 
 class _SlideBody extends ConsumerWidget {
   const _SlideBody({
+    super.key,
     required this.slide,
     required this.tone,
     required this.index,
+    required this.onScrub,
   });
 
   final WrapSlide slide;
   final Color tone;
   final int index;
+  final ValueChanged<bool> onScrub;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -370,8 +379,9 @@ class _SlideBody extends ConsumerWidget {
     final masked = hidden && slide.personal && slide.big.startsWith('+KES');
     final funds = ref.watch(fundsByIdProvider);
     final fund = slide.fundId == null ? null : funds[slide.fundId];
+    final charted = slide.chart != WrapChartKind.none;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 36, 24, 20),
+      padding: const EdgeInsets.fromLTRB(24, 22, 24, 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -384,7 +394,7 @@ class _SlideBody extends ConsumerWidget {
               letterSpacing: 1.1,
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Text(
             slide.title,
             style: TextStyle(
@@ -394,42 +404,57 @@ class _SlideBody extends ConsumerWidget {
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 22),
+          const SizedBox(height: 14),
           StretchSwap(
             value: index,
             playOnMount: true,
             alignment: Alignment.centerLeft,
-            child: Text(
-              masked ? 'KES \u2022\u2022\u2022\u2022' : slide.big,
-              style: fructaFonts.numeric(
-                color: tone,
-                size: 72,
-                weight: FontWeight.w600,
-                letterSpacing: -2,
-                height: 1,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: _CountUp(
+                masked ? 'KES \u2022\u2022\u2022\u2022' : slide.big,
+                style: fructaFonts.numeric(
+                  color: tone,
+                  size: 64,
+                  weight: FontWeight.w600,
+                  letterSpacing: -2,
+                  height: 1,
+                ),
               ),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
             slide.unit,
             style: TextStyle(color: _d.muted, fontSize: 15, height: 1.35),
           ),
-          if (slide.series.length >= 2) ...[
-            const SizedBox(height: 24),
-            SizedBox(
-              height: 96,
-              width: double.infinity,
-              child: CustomPaint(painter: _Line(slide.series, tone)),
+          if (charted) ...[
+            const SizedBox(height: 14),
+            // Takes the room left on short phones, never more than 260.
+            Expanded(
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 260),
+                  child: StoryChart(
+                    slide: slide,
+                    tone: tone,
+                    palette: _d,
+                    onScrub: onScrub,
+                  ),
+                ),
+              ),
             ),
-          ],
-          const SizedBox(height: 22),
+            const SizedBox(height: 12),
+          ] else
+            const SizedBox(height: 22),
           RevealText(
             slide.line,
-            collapsedLines: 3,
+            collapsedLines: charted ? 2 : 3,
             style: TextStyle(color: _d.text, fontSize: 17, height: 1.45),
           ),
-          const Spacer(),
+          if (!charted) const Spacer() else const SizedBox(height: 16),
           if (fund != null)
             SizedBox(
               width: double.infinity,
@@ -461,43 +486,72 @@ class _SlideBody extends ConsumerWidget {
   }
 }
 
-class _Line extends CustomPainter {
-  _Line(this.points, this.color);
+/// The headline figure counting up from zero to its value, keeping the sign,
+/// decimals and digit grouping of the text. Text with no number, or reduced
+/// motion, shows as is.
+class _CountUp extends StatefulWidget {
+  const _CountUp(this.text, {required this.style});
 
-  final List<double> points;
-  final Color color;
+  final String text;
+  final TextStyle style;
 
   @override
-  void paint(Canvas canvas, Size size) {
-    var lo = points.first;
-    var hi = points.first;
-    for (final v in points) {
-      if (v < lo) lo = v;
-      if (v > hi) hi = v;
-    }
-    final span = hi - lo;
-    final path = Path();
-    for (var i = 0; i < points.length; i++) {
-      final x = i / (points.length - 1) * size.width;
-      final y = span == 0
-          ? size.height / 2
-          : size.height - (points[i] - lo) / span * size.height;
-      i == 0 ? path.moveTo(x, y) : path.lineTo(x, y);
-    }
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = color
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 3
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round,
-    );
+  State<_CountUp> createState() => _CountUpState();
+}
+
+class _CountUpState extends State<_CountUp>
+    with SingleTickerProviderStateMixin {
+  static final _number = RegExp(r'\d[\d,]*(?:\.\d+)?');
+
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 900),
+  );
+  bool _started = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+    reduceMotion(context) ? _c.value = 1 : _c.forward();
   }
 
   @override
-  bool shouldRepaint(covariant _Line old) =>
-      old.points != points || old.color != color;
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  String _at(double p) {
+    final m = _number.firstMatch(widget.text);
+    if (m == null || p >= 1) return widget.text;
+    final raw = m.group(0)!;
+    final grouped = raw.contains(',');
+    final clean = raw.replaceAll(',', '');
+    final dot = clean.indexOf('.');
+    final dp = dot < 0 ? 0 : clean.length - dot - 1;
+    var out = (double.parse(clean) * p).toStringAsFixed(dp);
+    if (grouped) out = _group(out);
+    return widget.text.replaceRange(m.start, m.end, out);
+  }
+
+  /// Thousands separators on the whole part.
+  static String _group(String s) {
+    final parts = s.split('.');
+    final whole = parts.first.replaceAllMapped(
+      RegExp(r'\B(?=(\d{3})+(?!\d))'),
+      (_) => ',',
+    );
+    return parts.length > 1 ? '$whole.${parts[1]}' : whole;
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: _c,
+    builder: (_, _) =>
+        Text(_at(Curves.easeOutCubic.transform(_c.value)), style: widget.style),
+  );
 }
 
 /// "Now, your week" for a free user: what Pro would show, blurred.

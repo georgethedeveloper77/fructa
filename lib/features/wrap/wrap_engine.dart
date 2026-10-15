@@ -12,6 +12,28 @@ import '../statements/statement_controller.dart';
 /// Colour family of a slide, resolved against the story palette in the UI.
 enum WrapTone { up, down, info, tbill, accent }
 
+/// Which chart a story draws under its figure. Each kind has two labelled
+/// axes; the viewer picks the scale.
+enum WrapChartKind {
+  /// No chart (personal slides with no series).
+  none,
+
+  /// A rate over dated days, with the start level and a bracket for the move.
+  line,
+
+  /// Like [line], drawn as steps so a cut lands on the day it happened.
+  step,
+
+  /// A flat rate set inside the field's low to high range.
+  band,
+
+  /// Ranking, #1 at the top of the axis.
+  rank,
+
+  /// One bar per fund, best first, against a reference rate.
+  bars,
+}
+
 /// One story in the Weekly wrap.
 class WrapSlide {
   const WrapSlide({
@@ -24,6 +46,14 @@ class WrapSlide {
     this.series = const [],
     this.fundId,
     this.personal = false,
+    this.chart = WrapChartKind.none,
+    this.windowDays = 7,
+    this.refRate,
+    this.refKey,
+    this.field = const [],
+    this.rankFrom,
+    this.rankTo,
+    this.rankOf,
   });
 
   /// i18n key for the small caps label (`wrap.tag.improved`).
@@ -47,6 +77,28 @@ class WrapSlide {
   /// Built from the user's own holdings or statements (Pro).
   final bool personal;
 
+  /// Chart drawn under the figure.
+  final WrapChartKind chart;
+
+  /// Days of dated history the chart covers, ending today.
+  final int windowDays;
+
+  /// Reference rate drawn across the chart (category average, the T-bill).
+  final double? refRate;
+
+  /// i18n key for the reference label, with a `{v}` slot for the rate.
+  final String? refKey;
+
+  /// [WrapChartKind.bars]: every fund's rate, best first.
+  /// [WrapChartKind.band]: the field's low and high rate now.
+  final List<double> field;
+
+  /// [WrapChartKind.rank]: place at the start of the window, place now, and
+  /// how many funds were ranked.
+  final int? rankFrom;
+  final int? rankTo;
+  final int? rankOf;
+
   Map<String, dynamic> toMap() => {
     'tag': tagKey,
     'title': title,
@@ -57,6 +109,14 @@ class WrapSlide {
     'series': series,
     'fund': fundId,
     'personal': personal,
+    'chart': chart.name,
+    'window': windowDays,
+    'ref': refRate,
+    'refKey': refKey,
+    'field': field,
+    'rankFrom': rankFrom,
+    'rankTo': rankTo,
+    'rankOf': rankOf,
   };
 
   static WrapSlide fromMap(Map m) => WrapSlide(
@@ -71,6 +131,17 @@ class WrapSlide {
         .toList(),
     fundId: m['fund'] as String?,
     personal: (m['personal'] as bool?) ?? false,
+    // Weeks archived before charts existed carry none of these keys.
+    chart: WrapChartKind.values.asNameMap()[m['chart']] ?? WrapChartKind.none,
+    windowDays: (m['window'] as int?) ?? 7,
+    refRate: (m['ref'] as num?)?.toDouble(),
+    refKey: m['refKey'] as String?,
+    field: ((m['field'] as List?) ?? const [])
+        .map((x) => (x as num).toDouble())
+        .toList(),
+    rankFrom: m['rankFrom'] as int?,
+    rankTo: m['rankTo'] as int?,
+    rankOf: m['rankOf'] as int?,
   );
 }
 
@@ -129,6 +200,9 @@ final weeklyWrapProvider = Provider.autoDispose<WeeklyWrap>((ref) {
   final field = _field(ref.watch(ratesProvider).value ?? const <Fund>[]);
   final market = <WrapSlide>[];
   final badges = <String, FundBadge>{};
+  final avg = field.isEmpty
+      ? null
+      : field.map((f) => f.currentRate!).reduce((a, b) => a + b) / field.length;
 
   // ── Most improved and biggest drop, from the 7-day rate events ───────────
   Fund? up;
@@ -164,6 +238,9 @@ final weeklyWrapProvider = Provider.autoDispose<WeeklyWrap>((ref) {
         tone: WrapTone.up,
         series: up.spark,
         fundId: up.id,
+        chart: WrapChartKind.line,
+        refRate: avg,
+        refKey: 'wrap.axis.avg',
       ),
     );
   }
@@ -178,6 +255,9 @@ final weeklyWrapProvider = Provider.autoDispose<WeeklyWrap>((ref) {
         tone: WrapTone.down,
         series: down.spark,
         fundId: down.id,
+        chart: WrapChartKind.step,
+        refRate: avg,
+        refKey: 'wrap.axis.avg',
       ),
     );
   }
@@ -213,6 +293,9 @@ final weeklyWrapProvider = Provider.autoDispose<WeeklyWrap>((ref) {
         tone: WrapTone.info,
         series: stable.spark,
         fundId: stable.id,
+        chart: WrapChartKind.band,
+        windowDays: 90,
+        field: [rates.first, rates.last],
       ),
     );
   }
@@ -251,6 +334,10 @@ final weeklyWrapProvider = Provider.autoDispose<WeeklyWrap>((ref) {
           tone: WrapTone.up,
           series: climber.spark,
           fundId: climber.id,
+          chart: WrapChartKind.rank,
+          rankFrom: rank + places,
+          rankTo: rank,
+          rankOf: after.length,
         ),
       );
     }
@@ -277,6 +364,15 @@ final weeklyWrapProvider = Provider.autoDispose<WeeklyWrap>((ref) {
             ? 'No KES money market fund beats the bill this week.'
             : 'The best, ${above.first.name}, pays ${_pts(above.first.currentRate! - tb)} pts more.',
         tone: WrapTone.tbill,
+        chart: WrapChartKind.bars,
+        refRate: tb,
+        refKey: 'wrap.axis.tbill',
+        field: [
+          for (final f in [
+            ...field,
+          ]..sort((a, b) => b.currentRate!.compareTo(a.currentRate!)))
+            f.currentRate!,
+        ],
       ),
     );
   }
