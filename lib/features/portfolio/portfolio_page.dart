@@ -18,7 +18,7 @@ import '../../data/snapshot_providers.dart';
 import '../../engine/accrual_engine.dart';
 import '../../engine/portfolio_math.dart';
 import '../pro/pro_widgets.dart';
-import '../reports/reports_page.dart';
+import '../pro/pro_home_page.dart';
 import '../statements/statement_pages.dart';
 import 'add_holding_page.dart';
 import 'manage_holding_sheet.dart';
@@ -428,7 +428,8 @@ class _Full extends ConsumerWidget {
 
         // Statement check: the way to turn estimates into verified balances.
         const StatementEntryCard(),
-        const ReportsEntryRow(),
+        // Pro home holds Reports, Smart alerts, Statements and the tools.
+        const ProHomeEntryRow(),
 
         // Pro upsell for free users. Renders nothing for subscribers or while
         // the `pro.enabled` remote flag is off.
