@@ -11,6 +11,8 @@ import '../reports/reports_page.dart';
 import '../statements/statement_controller.dart';
 import '../statements/statement_pages.dart';
 import '../wrap/wrap_viewer.dart';
+import 'fund_watch_page.dart';
+import 'goals.dart';
 import 'pro_widgets.dart';
 import 'switch_page.dart';
 
@@ -38,6 +40,8 @@ class ProHomePage extends ConsumerWidget {
         .where((a) => a.at.isAfter(seen))
         .length;
     final pro = ref.watch(proProvider);
+    final goals = ref.watch(goalsProvider);
+    final watchCount = ref.watch(fundWatchCountProvider);
 
     void go(Widget page) =>
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
@@ -128,6 +132,30 @@ class ProHomePage extends ConsumerWidget {
             title: t('switch.title'),
             sub: t('proHome.switchSub'),
             onTap: () => go(const SwitchPage()),
+          ),
+          _Row(
+            icon: Icons.flag_outlined,
+            tone: c.dataInk(c.up),
+            title: t('goals.title'),
+            sub: goals.isEmpty
+                ? t('proHome.goalsNone')
+                : t(
+                    goals.length == 1
+                        ? 'proHome.goalsOne'
+                        : 'proHome.goalsMany',
+                    {'n': '${goals.length}'},
+                  ),
+            onTap: () => go(const GoalsPage()),
+          ),
+          _Row(
+            icon: Icons.health_and_safety_outlined,
+            tone: watchCount > 0 ? c.down : c.up,
+            title: t('watch.title'),
+            sub: t('proHome.watchSub'),
+            value: watchCount == 0
+                ? null
+                : t('proHome.watchN', {'n': '$watchCount'}),
+            onTap: () => go(const FundWatchPage()),
           ),
           if (pro.active)
             Padding(
