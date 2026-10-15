@@ -18,7 +18,8 @@ import '../../data/snapshot_providers.dart';
 import '../../engine/accrual_engine.dart';
 import '../../engine/portfolio_math.dart';
 import '../pro/pro_widgets.dart';
-import '../pro/pro_home_page.dart';
+import '../pro/pro_inline.dart';
+import '../reports/reports_page.dart';
 import '../statements/statement_pages.dart';
 import 'add_holding_page.dart';
 import 'manage_holding_sheet.dart';
@@ -427,9 +428,9 @@ class _Full extends ConsumerWidget {
         ),
 
         // Statement check: the way to turn estimates into verified balances.
+        const GoalsSection(),
         const StatementEntryCard(),
-        // Pro home holds Reports, Smart alerts, Statements and the tools.
-        const ProHomeEntryRow(),
+        const ReportsEntryRow(),
 
         // Pro upsell for free users. Renders nothing for subscribers or while
         // the `pro.enabled` remote flag is off.
@@ -889,12 +890,23 @@ class _HoldingRow extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(3),
               ),
             ),
-            FundLogo(
-              domain: f?.logoDomain,
-              logoUrl: logoUrl,
-              brandColor: brand,
-              seed: f?.manager ?? name,
-              size: 40,
+            // Fund health on the logo: green, gold or red.
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                FundLogo(
+                  domain: f?.logoDomain,
+                  logoUrl: logoUrl,
+                  brandColor: brand,
+                  seed: f?.manager ?? name,
+                  size: 40,
+                ),
+                Positioned(
+                  right: -2,
+                  bottom: -2,
+                  child: HealthDot(fundId: holding.fundId),
+                ),
+              ],
             ),
             const SizedBox(width: 12),
             Expanded(

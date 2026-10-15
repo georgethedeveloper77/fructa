@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive/hive.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../pro/pro_inline.dart';
 import '../../core/categories.dart';
 import '../../core/category_colors.dart';
 import '../../core/format.dart';
@@ -505,7 +506,7 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
       backgroundColor: c.bg,
       appBar: AppBar(
         backgroundColor: c.bg,
-        surfaceTintColor: Colors.transparent,
+        surfaceTintColor: c.bg.withValues(alpha: 0),
         foregroundColor: c.text,
         elevation: 0,
         // Full fund name as the title. FittedBox.scaleDown shrinks a long name
@@ -557,7 +558,7 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
                     radius: 0.85,
                     colors: [
                       rawTint.withValues(alpha: 0.20),
-                      Colors.transparent,
+                      rawTint.withValues(alpha: 0),
                     ],
                   ),
                 ),
@@ -828,6 +829,9 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
               ),
 
               if (_tab == 0) ...[
+                // ── Your money in this fund: health, switch, statement ────
+                FundProCards(fund: fund),
+
                 // ── Risk profile - editorial band from fund_type ───────────
                 _RiskBand(fund.fundType),
 

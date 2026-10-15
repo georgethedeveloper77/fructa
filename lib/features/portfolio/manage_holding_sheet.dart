@@ -8,6 +8,7 @@ import '../../core/widgets/fund_logo.dart';
 import '../../data/models/holding.dart';
 import '../../data/providers.dart';
 import '../../data/snapshot_providers.dart';
+import '../pro/pro_inline.dart';
 
 /// [subject] is what the holding is held in: a fund or a SACCO. Resolved by the
 /// caller, because only the caller knows the holding's kind.
@@ -242,6 +243,7 @@ class _ManageSheetState extends ConsumerState<_ManageSheet> {
               ),
             ],
           ),
+          HoldingProActions(fundId: h.fundId),
           if (h.isVerified) ...[
             const SizedBox(height: 12),
             Row(

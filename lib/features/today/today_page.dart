@@ -26,10 +26,8 @@ import '../markets/widgets/market_allocation_donut.dart';
 import '../markets/widgets/market_pulse.dart';
 import '../portfolio/add_holding_page.dart';
 import '../settings/following_page.dart';
-import '../statements/statement_controller.dart';
-import '../statements/statement_pages.dart';
-import '../../data/statements/statement_store.dart';
 import '../wrap/wrap_viewer.dart';
+import '../pro/pro_inline.dart';
 import 'portfolio_bubble.dart';
 import 'today_providers.dart';
 import 'today_state.dart';
@@ -73,10 +71,11 @@ class TodayPage extends ConsumerWidget {
                           if (l.category != hero.category) l,
                       ],
                     ),
-                  _StatementLine(mode: mode),
                   if (leaders.length > 1)
                     _CategoryChips(leaders: leaders, selected: hero?.category),
                   if (hero != null) _HeroCard(leader: hero),
+                  // The user's own money: watch, switch, goals, statement week.
+                  YourMoneySection(mode: mode),
                   const _LearnPrimer(),
                   if (mode == TodayMode.newcomer &&
                       !dismissed.contains('start'))
@@ -514,116 +513,6 @@ class _LeaderTickerState extends ConsumerState<_LeaderTicker>
             physics: const NeverScrollableScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: 9),
             child: Row(children: items),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Statements: the latest finding, or a nudge on statement week ───────────
-/// One line, no amounts (Today never shows balances). After a check it states
-/// the finding; early in the month, for someone who holds funds and has not
-/// checked one recently, it says statements are out. Hidden otherwise, and
-/// while `statements.enabled` is off.
-class _StatementLine extends ConsumerWidget {
-  const _StatementLine({required this.mode});
-
-  final TodayMode mode;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    if (!ref.watch(remoteConfigProvider).statementsEnabled) {
-      return const SizedBox.shrink();
-    }
-    final c = context.c;
-    final items =
-        ref.watch(statementsProvider).value ?? const <SavedStatement>[];
-    final now = DateTime.now();
-    final latest = items.isEmpty ? null : items.first;
-    final fresh = latest != null && now.difference(latest.data.to).inDays <= 45;
-
-    String? title;
-    String? sub;
-    Color tone = c.accentInk;
-    VoidCallback? onTap;
-
-    if (latest != null && fresh) {
-      final gap = ref
-          .watch(statementAnalysisProvider(latest.id))
-          .value
-          ?.analysis
-          .gapPts;
-      if (gap == null) return const SizedBox.shrink();
-      final under = gap <= -0.25;
-      tone = under ? c.down : c.up;
-      title = t(under ? 'statement.today.under' : 'statement.today.ok', {
-        'name': latest.data.managerName,
-        'gap': gap.abs().toStringAsFixed(2),
-      });
-      sub = t('statement.today.from', {'date': dayLabel(latest.data.to)});
-      onTap = () => Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => StatementDetailPage(saved: latest)),
-      );
-    } else if (mode == TodayMode.investor && now.day <= 10) {
-      title = t('statement.today.out');
-      sub = t('statement.today.outSub');
-      onTap = () => Navigator.of(
-        context,
-      ).push(MaterialPageRoute(builder: (_) => const StatementCheckPage()));
-    } else {
-      return const SizedBox.shrink();
-    }
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
-      child: Material(
-        color: c.s1,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: c.line),
-        ),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
-            child: Row(
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: tone.withValues(alpha: c.isDark ? 0.16 : 0.12),
-                    borderRadius: BorderRadius.circular(11),
-                  ),
-                  child: Icon(Icons.fact_check_outlined, size: 19, color: tone),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: TextStyle(
-                          color: c.text,
-                          fontSize: 14.5,
-                          height: 1.3,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        sub,
-                        style: TextStyle(color: c.muted, fontSize: 12.5),
-                      ),
-                    ],
-                  ),
-                ),
-                Icon(Icons.chevron_right_rounded, color: c.faint),
-              ],
-            ),
           ),
         ),
       ),
