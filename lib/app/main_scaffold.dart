@@ -11,6 +11,7 @@ import '../core/i18n.dart';
 import '../core/theme.dart';
 import '../data/backup_service.dart';
 import '../data/providers.dart';
+import '../features/alerts/smart_alerts.dart';
 import '../features/backup/backup_ui.dart';
 import '../features/learn/learn_home_page.dart';
 import '../features/markets/markets_page.dart';
@@ -111,6 +112,9 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
   Widget build(BuildContext context) {
     final c = context.c;
     final index = ref.watch(selectedTabProvider);
+    // Keeps the smart-alert engine alive for the app's lifetime; it listens to
+    // rates and statements and raises alerts itself.
+    ref.watch(smartAlertsRunnerProvider);
 
     // Auto-backup on any portfolio change (debounced). Empty books aren't
     // backed up, so a fresh user never creates a code for nothing.

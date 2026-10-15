@@ -1018,5 +1018,20 @@
   "reports.tax": "Tax pack",
   "reports.taxTitle": "Withholding tax, {year}",
   "reports.taxSub": "KES {amount} across {n} accounts",
-  "reports.taxEmpty": "Check a fund statement and its withholding tax appears here, ready for your KRA return."
+  "reports.taxEmpty": "Check a fund statement and its withholding tax appears here, ready for your KRA return.",
+  "alerts.recent": "Recent",
+  "alerts.smart.title": "Smart alerts",
+  "alerts.smart.sub": "Worked out on this phone from your statements, holdings and follows.",
+  "alerts.smart.underpaid": "My fund pays less than it publishes",
+  "alerts.smart.underpaidSub": "After a statement check, when you were credited 0.3 pts or more below the published rate",
+  "alerts.smart.better": "Another fund would pay me more",
+  "alerts.smart.betterSub": "KES 500 or more a year extra on your balance, after tax and transit days",
+  "alerts.smart.rank": "A fund I follow leaves the top 5",
+  "alerts.smart.rankSub": "Ranked on gross rate among funds of the same kind and currency",
+  "alerts.smart.noInterest": "A month with no interest",
+  "alerts.smart.noInterestSub": "When a statement shows a month with nothing credited",
+  "alerts.rose": " rate rose to ",
+  "alerts.fell": " rate fell to ",
+  "alerts.from": "from {rate} · {ago}",
+  "alerts.emptyTitle": "No alerts yet"
 }

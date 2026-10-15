@@ -11,6 +11,7 @@ import 'models/alert.dart';
 import 'models/fund.dart';
 import 'models/holding.dart';
 import 'models/nav_history.dart';
+import 'models/smart_alert.dart';
 import 'models/rate_history.dart';
 import 'models/stock_history.dart';
 import 'repositories/holdings_repository.dart';
@@ -381,6 +382,71 @@ final alertsProvider = NotifierProvider<AlertsNotifier, List<RateAlert>>(
   AlertsNotifier.new,
 );
 
+// smart alerts -----------------------------------------------------------------
+/// Alerts worked out on the phone (see SmartAlertType). Kept in their own Hive
+/// box, opened on first use, so the existing rate-alert box and its readers
+/// are untouched.
+class SmartAlertsNotifier extends Notifier<List<SmartAlert>> {
+  static const boxName = 'smart_alerts';
+
+  @override
+  List<SmartAlert> build() {
+    if (!Hive.isBoxOpen(boxName)) {
+      Hive.openBox(boxName).then((_) => ref.invalidateSelf());
+      return const [];
+    }
+    final out = <SmartAlert>[];
+    for (final v in Hive.box(boxName).values) {
+      try {
+        out.add(SmartAlert.fromMap(v as Map));
+      } catch (_) {
+        continue;
+      }
+    }
+    out.sort((a, b) => b.at.compareTo(a.at));
+    return out;
+  }
+
+  /// Stores [a] unless its key was raised before. True when it is new, which
+  /// is the caller's cue to notify.
+  Future<bool> add(SmartAlert a) async {
+    final box = Hive.isBoxOpen(boxName)
+        ? Hive.box(boxName)
+        : await Hive.openBox(boxName);
+    if (box.containsKey(a.key)) return false;
+    await box.put(a.key, a.toMap());
+    state = [a, ...state];
+    return true;
+  }
+}
+
+final smartAlertsProvider =
+    NotifierProvider<SmartAlertsNotifier, List<SmartAlert>>(
+      SmartAlertsNotifier.new,
+    );
+
+/// Which smart alerts the user wants. All on by default; each is one switch.
+class SmartAlertPrefs extends Notifier<Map<SmartAlertType, bool>> {
+  Box get _box => Hive.box('settings');
+  static String _key(SmartAlertType t) => 'smart_alert_${t.name}';
+
+  @override
+  Map<SmartAlertType, bool> build() => {
+    for (final t in SmartAlertType.values)
+      t: _box.get(_key(t), defaultValue: true) as bool,
+  };
+
+  Future<void> set(SmartAlertType t, bool on) async {
+    state = {...state, t: on};
+    await _box.put(_key(t), on);
+  }
+}
+
+final smartAlertPrefsProvider =
+    NotifierProvider<SmartAlertPrefs, Map<SmartAlertType, bool>>(
+      SmartAlertPrefs.new,
+    );
+
 final alertsSeenProvider = StateProvider<DateTime>((ref) {
   final s = Hive.box('settings').get('alertsSeen') as String?;
   return s != null ? DateTime.parse(s) : DateTime.fromMillisecondsSinceEpoch(0);
@@ -388,7 +454,8 @@ final alertsSeenProvider = StateProvider<DateTime>((ref) {
 
 final unreadAlertsProvider = Provider<int>((ref) {
   final seen = ref.watch(alertsSeenProvider);
-  return ref.watch(alertsProvider).where((a) => a.at.isAfter(seen)).length;
+  return ref.watch(alertsProvider).where((a) => a.at.isAfter(seen)).length +
+      ref.watch(smartAlertsProvider).where((a) => a.at.isAfter(seen)).length;
 });
 
 // push delivery state --------------------------------------------------------
