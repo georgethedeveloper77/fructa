@@ -26,6 +26,7 @@ import '../reports/report_notify.dart';
 import 'wrap_chart.dart';
 import 'wrap_engine.dart';
 import 'wrap_feed.dart';
+import 'wrap_for_you.dart';
 
 /// Opens the Weekly wrap full screen at [start].
 Future<void> openWeeklyWrap(BuildContext context, {int start = 0}) =>
@@ -574,7 +575,9 @@ class _SlideBody extends ConsumerWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
+            TrendStrip(slide: slide, palette: _d),
+            const SizedBox(height: 10),
           ] else
             const SizedBox(height: 22),
           RevealText(
@@ -582,6 +585,12 @@ class _SlideBody extends ConsumerWidget {
             collapsedLines: charted ? 2 : 3,
             style: TextStyle(color: _d.text, fontSize: 17, height: 1.45),
           ),
+          // What this story means for the user's own money. Never in a
+          // shared image.
+          if (!sharing) ...[
+            const SizedBox(height: 12),
+            ForYouPanel(slide: slide, palette: _d),
+          ],
           if (!charted) const Spacer() else const SizedBox(height: 16),
           if (sharing)
             const _ShareFooter()

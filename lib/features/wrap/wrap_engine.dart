@@ -59,6 +59,7 @@ class WrapSlide {
     this.type,
     this.ratio,
     this.trendWeeks,
+    this.value,
   });
 
   /// i18n key for the small caps label (`wrap.tag.improved`).
@@ -117,6 +118,10 @@ class WrapSlide {
   /// Consecutive weeks the fund has moved the same way.
   final int? trendWeeks;
 
+  /// The story's raw figure (a move in points, a count), for the "for you"
+  /// arithmetic. Null for stories built on the phone.
+  final double? value;
+
   Map<String, dynamic> toMap() => {
     'tag': tagKey,
     'title': title,
@@ -141,6 +146,7 @@ class WrapSlide {
     'type': type,
     'ratio': ratio,
     'trend': trendWeeks,
+    'value': value,
   };
 
   static WrapSlide fromMap(Map m) => WrapSlide(
@@ -174,6 +180,7 @@ class WrapSlide {
     type: m['type'] as String?,
     ratio: (m['ratio'] as num?)?.toDouble(),
     trendWeeks: m['trend'] as int?,
+    value: (m['value'] as num?)?.toDouble(),
   );
 }
 
@@ -207,6 +214,17 @@ class WeeklyWrap {
 
 String _pts(double v) => '${v > 0 ? '+' : ''}${v.toStringAsFixed(2)}';
 String _pct(double v) => '${v.toStringAsFixed(2)}%';
+
+/// A whole number with thousands separators: 1840 reads "1,840".
+String _whole(double v) {
+  final s = v.abs().round().toString();
+  final b = StringBuffer();
+  for (var i = 0; i < s.length; i++) {
+    if (i > 0 && (s.length - i) % 3 == 0) b.write(',');
+    b.write(s[i]);
+  }
+  return b.toString();
+}
 
 /// The KES money market funds the market stories compare. One currency and
 /// one fund type, so every figure in a story is like for like.
@@ -463,6 +481,75 @@ final localWeeklyWrapProvider = Provider.autoDispose<WeeklyWrap>((ref) {
       ),
     );
   }
+  // ── A better fund for your money, and your fund's move up or down the table
+  final wht = cfg.whtPct;
+  final kesHeld = [
+    for (final h in ref.watch(holdingsProvider))
+      if (!h.isSacco && h.currency == 'KES' && h.balance > 0)
+        if (field.where((f) => f.id == h.fundId).firstOrNull case final f?)
+          (h: h, f: f),
+  ]..sort((a, b) => b.h.balance.compareTo(a.h.balance));
+  if (kesHeld.isNotEmpty && field.length > 1) {
+    final mine = kesHeld.first;
+    final best = [...field]
+      ..sort((a, b) => (b.netRate(wht) ?? 0).compareTo(a.netRate(wht) ?? 0));
+    final top = best.first;
+    final gap = (top.netRate(wht) ?? 0) - (mine.f.netRate(wht) ?? 0);
+    if (top.id != mine.f.id && gap >= 0.25) {
+      personal.add(
+        WrapSlide(
+          tagKey: 'wrap.tag.better',
+          title: '${top.name} pays more than your ${mine.f.name}',
+          big: '+KES ${_whole(mine.h.balance * gap / 100)}',
+          unit: 'a year more on your balance, after tax',
+          line:
+              '${_pct(top.currentRate!)} against ${_pct(mine.f.currentRate!)}, both gross. Rates move, so this is a guide.',
+          tone: WrapTone.up,
+          fundId: top.id,
+          personal: true,
+          type: 'better',
+        ),
+      );
+    }
+
+    // Rank a week ago, from each fund's 7-day move.
+    double then(Fund f) =>
+        f.currentRate! - (ref.watch(fundDeltaProvider(f.id)) ?? 0);
+    final rankNow =
+        ([...field]..sort((a, b) => b.currentRate!.compareTo(a.currentRate!)))
+            .map((f) => f.id)
+            .toList();
+    final rankThen = ([
+      ...field,
+    ]..sort((a, b) => then(b).compareTo(then(a)))).map((f) => f.id).toList();
+    for (final x in kesHeld) {
+      final a = rankThen.indexOf(x.f.id) + 1;
+      final b = rankNow.indexOf(x.f.id) + 1;
+      final places = a - b;
+      if (a == 0 || b == 0 || places.abs() < 2) continue;
+      personal.add(
+        WrapSlide(
+          tagKey: places > 0 ? 'wrap.tag.yourUp' : 'wrap.tag.yourDown',
+          title: x.f.name,
+          big: '${places > 0 ? '+' : ''}$places',
+          unit: 'places this week · now #$b of ${field.length}',
+          line: places > 0
+              ? 'Your fund climbed the KES money market table.'
+              : 'Your fund slipped down the KES money market table.',
+          tone: places > 0 ? WrapTone.up : WrapTone.down,
+          fundId: x.f.id,
+          personal: true,
+          chart: WrapChartKind.rank,
+          rankFrom: a,
+          rankTo: b,
+          rankOf: field.length,
+          type: 'your_rank',
+        ),
+      );
+      break;
+    }
+  }
+
   final statements =
       ref.watch(statementsProvider).value ?? const <SavedStatement>[];
   if (statements.isNotEmpty) {

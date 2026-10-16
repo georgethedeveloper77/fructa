@@ -93,6 +93,7 @@ WrapSlide? slideFromServer(Map s) {
     type: s['type'] as String?,
     ratio: (stats['ratio'] as num?)?.toDouble(),
     trendWeeks: (stats['trend_weeks'] as num?)?.toInt(),
+    value: (stats['value'] as num?)?.toDouble(),
   );
 }
 
