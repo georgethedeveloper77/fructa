@@ -234,3 +234,8 @@ html[data-theme="light"] .fl{
 @media(prefers-reduced-motion:reduce){
   .fl *{animation:none!important}
 }
+
+/* The best rate today, under the hero, into the rates page. */
+.fl-besttoday{display:inline-flex;flex-wrap:wrap;gap:4px;margin-top:14px;font-size:14.5px;color:var(--fl-mute)}
+.fl-besttoday b{color:var(--fl-ink);font-family:var(--fl-mono),monospace;font-variant-numeric:tabular-nums}
+.fl-besttoday:hover{color:var(--fl-gold)}

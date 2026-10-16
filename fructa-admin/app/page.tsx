@@ -5,7 +5,9 @@ import Landing from './landing/Landing';
 import { getLandingContent } from './landing/content.server';
 import { getLandingCharts } from './landing/charts.server';
 
-export const dynamic = 'force-dynamic';
+// Built at most hourly and served from cache: the home page answers in
+// milliseconds, which search ranking weighs, and rates move once a day.
+export const revalidate = 3600;
 
 const SITE = 'https://fructa.africa';
 

@@ -11,6 +11,8 @@ import PortfolioDonut from './charts/PortfolioDonut';
 import AlertThreshold from './charts/AlertThreshold';
 import MarketDonut from './charts/MarketDonut';
 import YieldCurve from './charts/YieldCurve';
+import GetBar from '../site/GetBar';
+import '../site/site.css';
 
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--fl-sans' });
 const grotesk = Space_Grotesk({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--fl-mono' });
@@ -130,7 +132,7 @@ export default function Landing({
   const hasCharts = charts.live && charts.tabs.length > 0;
 
   return (
-    <div className={`fl ${inter.variable} ${grotesk.variable}`} data-theme-ready={theme ? 'true' : undefined}>
+    <div className={`fl fl-has-getbar ${inter.variable} ${grotesk.variable}`} data-theme-ready={theme ? 'true' : undefined}>
       {ticker.length > 0 && (
         <div className="fl-tickerwrap" aria-hidden="true">
           <div className="fl-ticker">
@@ -149,7 +151,8 @@ export default function Landing({
             <Wordmark size={15} />
           </a>
           <div className="fl-nav-links">
-            <a href="#rates">Rates</a>
+            <a href="/rates/money-market-funds">Rates today</a>
+            <a href="/funds">Funds</a>
             <a href="#market">Market</a>
             <a href="#how">How it works</a>
           </div>
@@ -166,7 +169,7 @@ export default function Landing({
                 </svg>
               )}
             </button>
-            <a className="fl-btn fl-btn-gold" href="#get">
+            <a className="fl-btn fl-btn-gold" href="/get">
               Get the app
             </a>
           </div>
@@ -188,6 +191,12 @@ export default function Landing({
               <span className="g" />
               {content.hero.microtrust}
             </div>
+            {lead ? (
+              <a className="fl-besttoday" href="/rates/money-market-funds">
+                Best today: <b>{lead.name} {lead.values[lead.values.length - 1].toFixed(2)}%</b>
+                <span aria-hidden="true"> ›</span> See all rates
+              </a>
+            ) : null}
           </div>
           {hasCharts && <HeroTerminal charts={charts} />}
         </div>
@@ -203,10 +212,7 @@ export default function Landing({
               <div>
                 <span className="fl-eyebrow">Compare</span>
                 <h2>The headline rate is not what you keep.</h2>
-                <p>
-                  Every board in Kenya quotes gross. Fructa ranks on what lands in your account: after
-                  the {Math.round(WHT * 100)}% withholding, and after {INFLATION}% inflation takes its cut.
-                </p>
+                <p>Ranked on what you keep, after {Math.round(WHT * 100)}% tax and {INFLATION}% inflation.</p>
                 <Points
                   rows={[
                     ['Gross, net, real', 'all three on every fund, always visible'],
@@ -226,11 +232,7 @@ export default function Landing({
               <div>
                 <span className="fl-eyebrow">Your money</span>
                 <h2>Your holdings, on top of the market.</h2>
-                <p>
-                  Add what you already hold and Fructa overlays it on the live board. See your blended
-                  yield, your projected earnings, and whether your money is sitting in a fund that has
-                  quietly slipped down the ranking.
-                </p>
+                <p>Add what you hold. See your yield, your earnings and when your fund slips.</p>
                 <Points
                   rows={[
                     ['Blended yield', 'consolidated to KES across every holding'],
@@ -250,16 +252,12 @@ export default function Landing({
               <div>
                 <span className="fl-eyebrow">Move first</span>
                 <h2>Know the moment a rate moves.</h2>
-                <p>
-                  Set a threshold on any fund or benchmark. When a rate crosses it, when a T-bill
-                  auction prints, or when a fund you hold slips, Fructa tells you before the WhatsApp
-                  group does.
-                </p>
+                <p>An alert the morning a rate you follow crosses your line.</p>
                 <Points
                   rows={[
                     ['Thresholds', 'on any rate on the board'],
                     ['Auctions', 'T-bill results and maturity reminders'],
-                    ['Weekly digest', 'where every rate landed, once a week'],
+                    ['Statement check', 'is your fund paying what it publishes?'],
                   ]}
                 />
               </div>
@@ -285,10 +283,7 @@ export default function Landing({
             <div className="fl-sec-head">
               <span className="fl-eyebrow">The market</span>
               <h2>The whole board, and the curve that prices it.</h2>
-              <p>
-                Where Kenya&apos;s collective investment money sits, next to the Treasury curve every
-                other rate in the country is measured against.
-              </p>
+              <p>Where Kenya&apos;s fund money sits, and the bill rates it is measured against.</p>
             </div>
             <div className="fl-mkt">
               <MarketDonut market={charts.market} />
@@ -308,17 +303,17 @@ export default function Landing({
             <div className="fl-step">
               <div className="no">01</div>
               <h3>Open the board</h3>
-              <p>Every Kenyan rate, ranked and live, the second you land. No account required to look.</p>
+              <p>Every Kenyan rate, ranked. No account needed.</p>
             </div>
             <div className="fl-step">
               <div className="no">02</div>
               <h3>Add your holdings</h3>
-              <p>Enter what you hold. It stays on your device and overlays onto the live market instantly.</p>
+              <p>It stays on your phone, backed up to your own Drive.</p>
             </div>
             <div className="fl-step">
               <div className="no">03</div>
               <h3>Set your alerts</h3>
-              <p>Pick the rates you care about and let Fructa watch them for you, day and night.</p>
+              <p>Follow a fund and hear the morning it moves.</p>
             </div>
           </div>
         </div>
@@ -344,10 +339,11 @@ export default function Landing({
             </div>
             <div className="fl-foot-links">
               <div className="fl-foot-col">
-                <h4>Product</h4>
-                <a href="#rates">Rates</a>
-                <a href="#market">Market</a>
-                <a href="#how">How it works</a>
+                <h4>Rates</h4>
+                <a href="/rates/money-market-funds">Money market funds</a>
+                <a href="/rates/usd-money-market-funds">USD funds</a>
+                <a href="/rates/fixed-income-funds">Fixed income</a>
+                <a href="/funds">All funds</a>
               </div>
               <div className="fl-foot-col">
                 <h4>Company</h4>
@@ -359,6 +355,7 @@ export default function Landing({
                 <h4>Get the app</h4>
                 <a href={content.links.androidUrl}>Google Play</a>
                 <a href={content.links.iosUrl}>App Store</a>
+                <a href="/blog">Learn</a>
               </div>
             </div>
           </div>
@@ -368,6 +365,7 @@ export default function Landing({
           </div>
         </div>
       </footer>
+      <GetBar />
     </div>
   );
 }
