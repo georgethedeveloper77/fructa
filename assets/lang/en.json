@@ -1316,5 +1316,6 @@
   "statement.reading": "Reading your statement",
   "statement.reading.private": "On this phone. Nothing is uploaded.",
   "statement.locked.sub": "Usually your ID or member number.",
-  "statement.locked.rememberShort": "Next month's opens on its own"
+  "statement.locked.rememberShort": "Next month's opens on its own",
+  "statement.step.foundAny": "Found your fund statement"
 }

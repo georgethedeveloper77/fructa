@@ -115,13 +115,15 @@ class _StatementCheckPageState extends ConsumerState<StatementCheckPage> {
       _step(t('statement.step.opened'));
 
       final cfg = ref.read(remoteConfigProvider);
-      final data = StatementParser.parse(read.text, extra: configManagers(cfg));
+      final data = StatementParser.parse(
+        read.text,
+        extra: configManagers(cfg),
+        known: trackedManagers(ref.read(fundsByIdProvider).values),
+      );
       _step(
-        t('statement.step.found', {
-          'name': data.managerName.isEmpty
-              ? t('statement.unknownManager')
-              : data.managerName,
-        }),
+        data.managerName.isEmpty
+            ? t('statement.step.foundAny')
+            : t('statement.step.found', {'name': data.managerName}),
         data.currency,
       );
       _step(t('statement.step.lines'), '${data.entries.length}');
@@ -241,7 +243,7 @@ class _StatementCheckPageState extends ConsumerState<StatementCheckPage> {
 // ── Pick ────────────────────────────────────────────────────────────────────
 
 /// Start of a check: one line of headline, one button, privacy in a line,
-/// what is checked as four tiles that open on tap, and the managers read.
+/// and what is checked as four tiles that open on tap.
 /// A returning user sees their last check first, figure first.
 class _PickView extends ConsumerStatefulWidget {
   const _PickView({required this.onPick});
@@ -256,13 +258,11 @@ class _PickViewState extends ConsumerState<_PickView> {
   bool _how = false;
   bool _private = false;
   final _open = <int>{};
-  late final Future<List<String>> _remembered = StatementPasswords.managers();
 
   @override
   Widget build(BuildContext context) {
     final c = context.c;
     final full = ref.watch(statementFullAccessProvider);
-    final managers = ref.watch(remoteConfigProvider).statementManagers;
     final items =
         ref.watch(statementsProvider).value ?? const <SavedStatement>[];
     final latest = items.isEmpty ? null : items.first;
@@ -433,34 +433,6 @@ class _PickViewState extends ConsumerState<_PickView> {
             );
           },
         ),
-
-        if (managers.isNotEmpty) ...[
-          _Heading(t('statement.pick.readsFrom')),
-          FutureBuilder<List<String>>(
-            future: _remembered,
-            builder: (context, snap) {
-              final keys = snap.data ?? const <String>[];
-              return Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final m in managers)
-                    _ManagerChip(
-                      name: m.name,
-                      remembered: keys.contains(m.key),
-                    ),
-                ],
-              );
-            },
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(4, 10, 4, 0),
-            child: Text(
-              t('statement.pick.others'),
-              style: TextStyle(color: c.faint, fontSize: 12, height: 1.45),
-            ),
-          ),
-        ],
       ],
     );
   }
@@ -732,69 +704,6 @@ class _CheckTile extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-/// A manager Fructa reads, with a lock when its password is remembered.
-class _ManagerChip extends StatelessWidget {
-  const _ManagerChip({required this.name, required this.remembered});
-
-  final String name;
-  final bool remembered;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.c;
-    final mono = name
-        .split(RegExp(r'[\s\-]+'))
-        .where((w) => w.isNotEmpty)
-        .take(2)
-        .map((w) => w[0].toUpperCase())
-        .join();
-    return Container(
-      constraints: const BoxConstraints(minHeight: 34),
-      padding: const EdgeInsets.fromLTRB(4, 4, 12, 4),
-      decoration: BoxDecoration(
-        color: c.s1,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: c.line),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 26,
-            height: 26,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(color: c.s3, shape: BoxShape.circle),
-            child: Text(
-              mono,
-              style: TextStyle(
-                color: c.text,
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            name,
-            style: TextStyle(
-              color: c.text,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          if (remembered) ...[
-            const SizedBox(width: 6),
-            Semantics(
-              label: t('statement.pick.remembered'),
-              child: Icon(Icons.lock_outline_rounded, size: 13, color: c.up),
-            ),
-          ],
-        ],
       ),
     );
   }

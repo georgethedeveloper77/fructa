@@ -36,6 +36,62 @@ List<StatementManager> configManagers(RemoteConfig cfg) {
   return out;
 }
 
+/// Every manager the app tracks, as parser entries, tried after admin config
+/// and the built-in list. Lets a statement from any fund in the snapshot be
+/// named without a release: the pattern is the distinctive part of the
+/// manager's name ("Old Mutual" from "Old Mutual Investment Group"), so the
+/// short form a statement prints still matches.
+List<StatementManager> trackedManagers(Iterable<Fund> funds) {
+  const tail = {
+    'asset',
+    'assets',
+    'investment',
+    'investments',
+    'management',
+    'managers',
+    'manager',
+    'limited',
+    'ltd',
+    'plc',
+    'kenya',
+    'group',
+    'bank',
+    'company',
+    'co',
+    'fund',
+    'funds',
+  };
+  final seen = <String>{};
+  final out = <StatementManager>[];
+  final names = {for (final f in funds) f.manager.trim()}.toList()
+    ..sort((a, b) => b.length.compareTo(a.length));
+  for (final name in names) {
+    final words = name
+        .split(RegExp(r'[\s\-]+'))
+        .where((w) => w.isNotEmpty)
+        .toList();
+    while (words.length > 1 && tail.contains(words.last.toLowerCase())) {
+      words.removeLast();
+    }
+    final core = words.join(' ');
+    if (core.replaceAll(' ', '').length < 3 || !seen.add(core.toLowerCase())) {
+      continue;
+    }
+    final key = core.toLowerCase().replaceAll(RegExp('[^a-z0-9]+'), '_');
+    out.add(
+      StatementManager(
+        key,
+        name,
+        RegExp(
+          '\\b${words.map(RegExp.escape).join(r'[\s\-]*')}\\b',
+          caseSensitive: false,
+        ),
+      ),
+    );
+  }
+  return out;
+}
+
 /// The money market fund a statement belongs to: same manager (by name),
 /// same currency. Retail funds first. Null when nothing fits, in which case
 /// the user picks.
