@@ -858,7 +858,7 @@ class _Thumb extends StatelessWidget {
                 ),
               ),
             ),
-            Text(
+            _FitWords(
               t(slide.tagKey),
               style: TextStyle(
                 color: _d.text.withValues(alpha: 0.8),
@@ -871,4 +871,35 @@ class _Thumb extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Text that wraps only between words. When the longest word is wider than
+/// the space, the whole label shrinks until it fits, so "IMPROVED" never
+/// breaks into "IMPROVE" and "D".
+class _FitWords extends StatelessWidget {
+  const _FitWords(this.text, {required this.style});
+
+  final String text;
+  final TextStyle style;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, box) {
+      final scale = MediaQuery.textScalerOf(context);
+      var widest = 0.0;
+      for (final w in text.split(' ')) {
+        final tp = TextPainter(
+          text: TextSpan(text: w, style: style),
+          textDirection: TextDirection.ltr,
+          textScaler: scale,
+        )..layout();
+        if (tp.width > widest) widest = tp.width;
+      }
+      final size = style.fontSize ?? 9;
+      final fitted = widest > box.maxWidth && widest > 0
+          ? size * box.maxWidth / widest * 0.98
+          : size;
+      return Text(text, style: style.copyWith(fontSize: fitted));
+    },
+  );
 }
