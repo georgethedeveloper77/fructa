@@ -151,7 +151,9 @@ export interface Market {
   funds: FundRow[];
   /** Prints per fund, date order. */
   prints: Map<string, [string, number][]>;
+  /** The bill rate in config and the day it was set, for the current week only. */
   tbill: number | null;
+  tbillAsOf: string | null;
 }
 
 /** Retail funds and their approved prints between [from] and [to]. */
@@ -186,10 +188,11 @@ export async function loadMarket(db: SupabaseClient, from: string, to: string): 
   }
 
   const { data: cfg } = await db.from("app_config").select("value").eq("key", "benchmark.tbill_91").maybeSingle();
-  const tb = cfg?.value as { rate?: number } | number | null | undefined;
+  const tb = cfg?.value as { rate?: number; as_of?: string } | number | null | undefined;
   const tbill = typeof tb === "number" ? tb : (tb && typeof tb.rate === "number" ? tb.rate : null);
+  const tbillAsOf = tb && typeof tb === "object" && typeof tb.as_of === "string" ? tb.as_of : null;
 
-  return { funds, prints, tbill };
+  return { funds, prints, tbill, tbillAsOf };
 }
 
 /** The rate in force on [day]: the last print on or before it. */
@@ -258,6 +261,22 @@ function trendWeeks(m: Market, id: string, to: string): number {
 const isKesMmf = (f: FundRow) => f.retail === true && f.fund_type === "mmf" && f.currency === "KES";
 const isUsdMmf = (f: FundRow) => f.retail === true && f.fund_type === "mmf" && f.currency === "USD";
 const isBill91 = (f: FundRow) => f.category === "tbill" && /91/.test(`${f.id} ${f.name}`);
+
+/**
+ * The 91-day bill rate in force on [day]: from the bill's own auction prints
+ * when there are any, else the config figure, but only near the day it was
+ * set. A past week is never measured against today's bill.
+ */
+function billAt(m: Market, day: string): number | null {
+  for (const b of m.funds.filter(isBill91)) {
+    const r = rateAt(m, b.id, day);
+    if (r != null) return r;
+  }
+  if (m.tbill == null) return null;
+  if (!m.tbillAsOf) return null;
+  const gap = Math.abs(Date.parse(day) - Date.parse(m.tbillAsOf)) / DAY;
+  return gap <= 14 ? m.tbill : null;
+}
 
 const pct = (v: number) => `${v.toFixed(2)}%`;
 const pts = (v: number) => `${v > 0 ? "+" : v < 0 ? "-" : ""}${Math.abs(v).toFixed(2)}`;
@@ -478,8 +497,8 @@ export function buildRange(
   }
 
   // How many beat the 91-day bill.
-  if (m.tbill != null) {
-    const tb = m.tbill;
+  const tb = billAt(m, to);
+  if (tb != null) {
     const above = moves.filter((x) => x.b > tb).sort((x, y) => y.b - x.b);
     out.push({
       key: `tbill-${to}`,
@@ -495,7 +514,8 @@ export function buildRange(
       tone: "tbill",
       chart: { kind: "bars", field: [...moves].map((x) => x.b).sort((a, b) => b - a), ref: tb, ref_key: "wrap.axis.tbill" },
       stats: { value: above.length, ratio: null, trend_weeks: null },
-      score: 3,
+      // Context, not news: it leads only a week with nothing else to say.
+      score: 1.5,
     });
   }
 
@@ -573,7 +593,7 @@ export function buildRange(
       unit: "points between the best and worst KES fund",
       line: `${s[0].f.name} pays the most, at ${pct(s[0].b)}.`,
       tone: "info",
-      chart: { kind: "bars", field: s.map((x) => x.b), ref: m.tbill, ref_key: "wrap.axis.tbill" },
+      chart: { kind: "bars", field: s.map((x) => x.b), ref: billAt(m, to), ref_key: "wrap.axis.tbill" },
       stats: { value: gap, ratio: null, trend_weeks: null },
       score: 2.5,
     });

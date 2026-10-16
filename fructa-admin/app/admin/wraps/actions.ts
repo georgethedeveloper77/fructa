@@ -39,8 +39,8 @@ export async function runWrapsNow(): Promise<void> {
 }
 
 /** Build every past day, week, month, quarter and year the history supports. */
-export async function backfillWraps(): Promise<void> {
-  await invoke({ backfill: true });
+export async function backfillWraps(formData: FormData): Promise<void> {
+  await invoke({ backfill: true, force: formData.get("force") === "1" });
   done();
 }
 

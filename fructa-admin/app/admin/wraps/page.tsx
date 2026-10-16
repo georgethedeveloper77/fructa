@@ -84,6 +84,10 @@ export default async function WrapsPage() {
         <form action={backfillWraps}>
           <button className="btn xs">Build past wraps</button>
         </form>
+        <form action={backfillWraps}>
+          <input type="hidden" name="force" value="1" />
+          <button className="btn xs">Rebuild all past wraps</button>
+        </form>
         <form action={runWrapsNow}>
           <button className="btn xs">Run now</button>
         </form>
