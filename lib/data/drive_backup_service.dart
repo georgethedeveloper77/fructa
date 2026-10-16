@@ -41,10 +41,20 @@ class DriveSignInFailed implements Exception {
 
 /// Turns a Google sign-in error into the right exception: a backed-out
 /// prompt is a cancel; anything else is a failure worth showing.
-Exception _signInError(GoogleSignInException e) =>
-    e.code == GoogleSignInExceptionCode.canceled
-    ? const DriveCancelled()
-    : DriveSignInFailed(e.code.name, e.description);
+///
+/// Android reports some setup failures as `canceled` too, with a reason such
+/// as "[16] Account reauth failed" when the app's SHA-1 is not registered. So
+/// a cancel only counts as the user backing out when Google gives no other
+/// reason.
+Exception _signInError(GoogleSignInException e) {
+  final why = (e.description ?? '').trim();
+  final userBackedOut =
+      e.code == GoogleSignInExceptionCode.canceled &&
+      (why.isEmpty || why.toLowerCase().contains('cancel'));
+  return userBackedOut
+      ? const DriveCancelled()
+      : DriveSignInFailed(e.code.name, why.isEmpty ? null : why);
+}
 
 /// Tier 1 of the two tier backup: one JSON file, `fructa-portfolio.json`, in a
 /// folder called Fructa in the user's own Drive. Visible, so the user can see

@@ -62,8 +62,10 @@ class DefaultFirebaseOptions {
     messagingSenderId: '665013279649',
     projectId: 'fructa-africa',
     storageBucket: 'fructa-africa.firebasestorage.app',
-    androidClientId: '665013279649-h02is444ghn8rks6p333pga0ogjchs48.apps.googleusercontent.com',
-    iosClientId: '665013279649-4blh319j6qg41jpv552s84pplgv6vj7v.apps.googleusercontent.com',
+    androidClientId:
+        '665013279649-h02is444ghn8rks6p333pga0ogjchs48.apps.googleusercontent.com',
+    iosClientId:
+        '665013279649-4blh319j6qg41jpv552s84pplgv6vj7v.apps.googleusercontent.com',
     iosBundleId: 'com.mindberzerk.fructa',
   );
 }
