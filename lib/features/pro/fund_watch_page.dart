@@ -240,7 +240,6 @@ enum _Filter { all, watch, clear }
 
 class _FundWatchPageState extends ConsumerState<FundWatchPage> {
   _Filter _filter = _Filter.all;
-  bool _how = false;
 
   /// Cards the user opened or closed by hand, overriding the default.
   final _opened = <String, bool>{};

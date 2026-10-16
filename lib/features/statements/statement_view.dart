@@ -5,6 +5,7 @@ import '../../core/format.dart';
 import '../../core/i18n.dart';
 import '../../core/motion/motion.dart';
 import '../../core/theme.dart';
+import '../../core/widgets/reveal_note.dart';
 import '../../core/widgets/reveal_text.dart';
 import '../../data/statements/statement_store.dart';
 import '../../engine/statement/statement_analysis.dart';
@@ -49,6 +50,7 @@ class StatementFindingsView extends ConsumerWidget {
             _Header(saved: saved),
             _Headline(result: r),
             if (full) ...[
+              _Kpis(saved: saved, analysis: a),
               if (a.fullPeriods.length >= 2)
                 _Card(
                   title: t('statement.chart.yield'),
@@ -86,6 +88,14 @@ class StatementFindingsView extends ConsumerWidget {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+                child: Text(
+                  t('statement.match.note'),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: c.faint, fontSize: 12),
                 ),
               ),
             ] else ...[
@@ -203,7 +213,12 @@ class _Headline extends StatelessWidget {
                     ),
                   ),
                   TextSpan(
-                    text: '  ${t('statement.ptsYear')}',
+                    text:
+                        '  ${t(gap < 0
+                            ? 'statement.gapBelow'
+                            : gap > 0
+                            ? 'statement.gapAbove'
+                            : 'statement.ptsYear')}',
                     style: TextStyle(color: c.muted, fontSize: 15),
                   ),
                 ],
@@ -211,8 +226,20 @@ class _Headline extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          RevealText(
-            t(
+          Text(
+            t('statement.headShort', {
+              'credited': a.recentCreditedPct!.toStringAsFixed(2),
+              'published': a.recentPublishedPct!.toStringAsFixed(2),
+            }),
+            style: TextStyle(color: c.text, fontSize: 14.5, height: 1.45),
+          ),
+          RevealNote(
+            label: t(
+              result.publishedIsToday
+                  ? 'statement.whyToday'
+                  : 'statement.whyNotFees',
+            ),
+            body: t(
               result.publishedIsToday
                   ? 'statement.headlineToday'
                   : 'statement.headline',
@@ -221,7 +248,7 @@ class _Headline extends StatelessWidget {
                 'published': a.recentPublishedPct!.toStringAsFixed(2),
               },
             ),
-            style: TextStyle(color: c.text, fontSize: 14.5, height: 1.45),
+            padding: const EdgeInsets.only(top: 4),
           ),
         ],
       ),
@@ -280,44 +307,257 @@ class _Card extends StatelessWidget {
 }
 
 /// Each finding as a row: a mark, then the sentence, long ones tap-to-reveal.
-class _Checks extends StatelessWidget {
+/// Each check as a short title and its value, worst first. The full sentence
+/// opens on tap.
+class _Checks extends StatefulWidget {
   const _Checks({required this.findings});
 
   final List<StatementFinding> findings;
 
   @override
+  State<_Checks> createState() => _ChecksState();
+}
+
+class _ChecksState extends State<_Checks> {
+  final _open = <int>{};
+
+  static int _rank(FindingSeverity s) => switch (s) {
+    FindingSeverity.bad => 0,
+    FindingSeverity.warn => 1,
+    FindingSeverity.info => 2,
+    FindingSeverity.ok => 3,
+  };
+
+  /// A few words and a figure for a finding; the full sentence stays its
+  /// detail. A finding without a short form shows its sentence as the title.
+  static (String, String)? _short(StatementFinding f) {
+    final v = f.vars;
+    String months() {
+      final list = (v['months'] ?? '').split(', ').where((m) => m.isNotEmpty);
+      return list.length == 1
+          ? list.first
+          : t('statement.short.monthsN', {'n': '${list.length}'});
+    }
+
+    return switch (f.key) {
+      'statement.find.taxOk' => (
+        t('statement.short.taxOk'),
+        '${v['pct'] ?? ''}%',
+      ),
+      'statement.find.taxOff' => (t('statement.short.taxOff'), v['n'] ?? '!'),
+      'statement.find.taxOnTaxFree' => (t('statement.short.taxOnTaxFree'), '!'),
+      'statement.find.everyMonth' => (
+        t('statement.short.everyMonth'),
+        '${v['n']}/${v['n']}',
+      ),
+      'statement.find.missingMonths' => (
+        t('statement.short.missing'),
+        months(),
+      ),
+      'statement.find.withdrawalPaid' => (
+        t('statement.short.withdrawal'),
+        v['amount'] ?? '',
+      ),
+      'statement.find.creditOnArrival' => (
+        t('statement.short.onArrival'),
+        v['amount'] ?? '',
+      ),
+      'statement.find.partCredit' => (
+        t('statement.short.partCredit'),
+        t('statement.short.days', {'n': v['days'] ?? ''}),
+      ),
+      'statement.find.totalsOff' => (t('statement.short.totalsOff'), '!'),
+      _ => null,
+    };
+  }
+
+  @override
   Widget build(BuildContext context) {
     final c = context.c;
-    if (findings.isEmpty) return const SizedBox.shrink();
-    return _Card(
+    final rows = [...widget.findings]
+      ..sort((a, b) => _rank(a.severity).compareTo(_rank(b.severity)));
+    if (rows.isEmpty) return const SizedBox.shrink();
+    final calm = reduceMotion(context);
+    Color tone(FindingSeverity s) => switch (s) {
+      FindingSeverity.ok => c.up,
+      FindingSeverity.bad => c.down,
+      FindingSeverity.warn => c.accentInk,
+      FindingSeverity.info => c.muted,
+    };
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: c.s1,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: c.line),
+      ),
       child: Column(
         children: [
-          for (var i = 0; i < findings.length; i++)
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              decoration: BoxDecoration(
-                border: i == findings.length - 1
-                    ? null
-                    : Border(bottom: BorderSide(color: c.line)),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _Mark(severity: findings[i].severity),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: RevealText(
-                      t(findings[i].key, findings[i].vars),
-                      style: TextStyle(
-                        color: c.text,
-                        fontSize: 14,
-                        height: 1.4,
+          for (var i = 0; i < rows.length; i++)
+            Builder(
+              builder: (context) {
+                final f = rows[i];
+                final full = t(f.key, f.vars);
+                final short = _short(f);
+                final open = _open.contains(i);
+                return Container(
+                  decoration: BoxDecoration(
+                    border: i == 0
+                        ? null
+                        : Border(top: BorderSide(color: c.line)),
+                  ),
+                  child: Semantics(
+                    button: short != null,
+                    expanded: short == null ? null : open,
+                    child: InkWell(
+                      onTap: short == null
+                          ? null
+                          : () => setState(
+                              () => open ? _open.remove(i) : _open.add(i),
+                            ),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                _Mark(severity: f.severity),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    short?.$1 ?? full,
+                                    style: TextStyle(
+                                      color: c.text,
+                                      fontSize: 14,
+                                      height: 1.35,
+                                      fontWeight: short == null
+                                          ? FontWeight.w400
+                                          : FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                if (short != null && short.$2.isNotEmpty) ...[
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    short.$2,
+                                    style: fructaFonts.numeric(
+                                      color: tone(f.severity),
+                                      size: 13,
+                                      weight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            if (short != null)
+                              AnimatedSize(
+                                duration: Duration(
+                                  milliseconds: calm ? 0 : 200,
+                                ),
+                                curve: Curves.easeOutCubic,
+                                alignment: Alignment.topLeft,
+                                child: open
+                                    ? Padding(
+                                        padding: const EdgeInsets.fromLTRB(
+                                          38,
+                                          8,
+                                          0,
+                                          0,
+                                        ),
+                                        child: Text(
+                                          full,
+                                          style: TextStyle(
+                                            color: c.muted,
+                                            fontSize: 12.5,
+                                            height: 1.45,
+                                          ),
+                                        ),
+                                      )
+                                    : const SizedBox(width: double.infinity),
+                              ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ],
+                );
+              },
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Three figures under the finding: months credited, interest, tax.
+class _Kpis extends StatelessWidget {
+  const _Kpis({required this.saved, required this.analysis});
+
+  final SavedStatement saved;
+  final StatementAnalysis analysis;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    final d = saved.data;
+    final months =
+        (d.to.year - d.from.year) * 12 + d.to.month - d.from.month + 1;
+    final credited = {
+      for (final p in analysis.periods)
+        if (p.interest > 0) p.end.year * 12 + p.end.month,
+    }.length;
+    Widget cell(String value, String label, Color color) => Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: c.s1,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: c.line),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                value,
+                style: fructaFonts.numeric(
+                  color: color,
+                  size: 16,
+                  weight: FontWeight.w600,
+                ),
               ),
             ),
+            const SizedBox(height: 2),
+            Text(label, style: TextStyle(color: c.muted, fontSize: 11)),
+          ],
+        ),
+      ),
+    );
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      child: Row(
+        children: [
+          cell(
+            t('statement.kpi.monthsOf', {
+              'n': '${credited.clamp(0, months)}',
+              'of': '$months',
+            }),
+            t('statement.kpi.months'),
+            credited >= months ? c.up : c.accentInk,
+          ),
+          const SizedBox(width: 8),
+          cell(
+            money(d.currency, d.interest),
+            t('statement.kpi.interest'),
+            c.up,
+          ),
+          const SizedBox(width: 8),
+          cell(money(d.currency, d.tax), t('statement.kpi.tax'), c.text),
         ],
       ),
     );
@@ -367,42 +607,33 @@ class _YieldBars extends StatelessWidget {
     final pub = analysis.recentPublishedPct;
     return Column(
       children: [
-        SizedBox(
-          height: 160,
-          width: double.infinity,
-          child: CustomPaint(
-            painter: _YieldPainter(
-              values: [for (final p in periods) p.annualPct ?? 0],
-              published: pub,
-              above: c.dataInk(c.accent),
-              below: c.down,
-              line: c.text,
-              grid: c.line,
+        TweenAnimationBuilder<double>(
+          tween: Tween(begin: reduceMotion(context) ? 1.0 : 0.0, end: 1.0),
+          duration: const Duration(milliseconds: 700),
+          curve: Curves.easeOutCubic,
+          builder: (_, grow, _) => SizedBox(
+            height: 176,
+            width: double.infinity,
+            child: CustomPaint(
+              painter: _YieldPainter(
+                values: [for (final p in periods) p.annualPct ?? 0],
+                months: [for (final p in periods) monthLabel(p.end)],
+                published: pub,
+                above: c.up,
+                below: c.down,
+                line: c.text,
+                grid: c.line,
+                label: c.faint,
+                grow: grow,
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 6),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              monthLabel(periods.first.end),
-              style: TextStyle(color: c.faint, fontSize: 10.5),
-            ),
-            Text(
-              monthLabel(periods.last.end),
-              style: TextStyle(color: c.faint, fontSize: 10.5),
-            ),
-          ],
         ),
         if (pub != null) ...[
           const SizedBox(height: 8),
           Row(
             children: [
-              _Key(
-                color: c.dataInk(c.accent),
-                label: t('statement.chart.above'),
-              ),
+              _Key(color: c.up, label: t('statement.chart.above')),
               const SizedBox(width: 14),
               _Key(color: c.down, label: t('statement.chart.below')),
               const SizedBox(width: 14),
@@ -424,19 +655,42 @@ class _YieldBars extends StatelessWidget {
 class _YieldPainter extends CustomPainter {
   _YieldPainter({
     required this.values,
+    required this.months,
     required this.published,
     required this.above,
     required this.below,
     required this.line,
     required this.grid,
+    required this.label,
+    required this.grow,
   });
 
   final List<double> values;
+  final List<String> months;
   final double? published;
   final Color above;
   final Color below;
   final Color line;
   final Color grid;
+  final Color label;
+
+  /// 0 to 1: how far the bars have grown in.
+  final double grow;
+
+  /// Room for the rate labels on the left and the months underneath.
+  static const _left = 34.0;
+  static const _bottom = 16.0;
+
+  void _text(Canvas canvas, String s, Offset at, {double ax = 0}) {
+    final tp = TextPainter(
+      text: TextSpan(
+        text: s,
+        style: TextStyle(color: label, fontSize: 10.5),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    tp.paint(canvas, at - Offset(tp.width * ax, tp.height / 2));
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -449,30 +703,36 @@ class _YieldPainter extends CustomPainter {
     }
     lo = (lo - 0.6).floorToDouble();
     hi = (hi + 0.3).ceilToDouble();
-    double y(double v) => size.height - (v - lo) / (hi - lo) * size.height;
+    final h = size.height - _bottom;
+    double y(double v) => h - (v - lo) / (hi - lo) * h;
 
     final gridPaint = Paint()
       ..color = grid
       ..strokeWidth = 1;
     for (var g = lo + 1; g < hi; g += 1) {
-      canvas.drawLine(Offset(0, y(g)), Offset(size.width, y(g)), gridPaint);
+      canvas.drawLine(Offset(_left, y(g)), Offset(size.width, y(g)), gridPaint);
+      _text(canvas, g.toStringAsFixed(1), Offset(_left - 6, y(g)), ax: 1);
     }
 
     final n = values.length;
     const gap = 4.0;
-    final w = (size.width - gap * (n - 1)) / n;
+    final w = (size.width - _left - gap * (n - 1)) / n;
     for (var i = 0; i < n; i++) {
       final v = values[i];
-      final x = i * (w + gap);
+      final x = _left + i * (w + gap);
       final under = published != null && v < published!;
+      final top = h - (h - y(v)) * grow;
       canvas.drawRRect(
         RRect.fromRectAndCorners(
-          Rect.fromLTRB(x, y(v), x + w, size.height),
+          Rect.fromLTRB(x, top, x + w, h),
           topLeft: const Radius.circular(3),
           topRight: const Radius.circular(3),
         ),
         Paint()..color = (under ? below : above).withValues(alpha: 0.9),
       );
+      if (i < months.length && (n <= 6 || i.isEven || i == n - 1)) {
+        _text(canvas, months[i], Offset(x + w / 2, size.height - 6), ax: 0.5);
+      }
     }
 
     if (published != null) {
@@ -480,7 +740,7 @@ class _YieldPainter extends CustomPainter {
       final p = Paint()
         ..color = line
         ..strokeWidth = 1.4;
-      for (var x = 0.0; x < size.width; x += 9) {
+      for (var x = _left; x < size.width; x += 9) {
         canvas.drawLine(
           Offset(x, py),
           Offset((x + 5).clamp(0, size.width), py),
@@ -492,7 +752,10 @@ class _YieldPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _YieldPainter old) =>
-      old.values != values || old.published != published || old.above != above;
+      old.values != values ||
+      old.published != published ||
+      old.above != above ||
+      old.grow != grow;
 }
 
 /// Gross interest per credit, split into what was kept and what was withheld.
