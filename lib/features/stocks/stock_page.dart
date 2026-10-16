@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/i18n.dart';
 import '../../core/theme.dart';
-import '../../core/widgets/reveal_note.dart';
 import '../../core/widgets/follow_star.dart';
 import '../../core/widgets/kit.dart';
 import '../../data/models/stock.dart';

@@ -7,7 +7,6 @@ import '../../core/category_colors.dart';
 import '../../core/format.dart';
 import '../../core/i18n.dart';
 import '../../core/theme.dart';
-import '../../core/widgets/reveal_note.dart';
 import '../../core/widgets/kit.dart';
 import '../../data/models/insurer.dart';
 import '../../data/models/remote_config.dart';

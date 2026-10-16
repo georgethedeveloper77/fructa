@@ -38,6 +38,11 @@ abstract final class ReportPdf {
     return pw.ThemeData.withFont(base: base, bold: bold);
   }
 
+  /// The Fructa mark, the same file the app icon and shared stories use.
+  static Future<pw.ImageProvider> _logo() async => pw.MemoryImage(
+    (await rootBundle.load('assets/icons/logo.png')).buffer.asUint8List(),
+  );
+
   static Future<pw.Font> _num() async => pw.Font.ttf(
     await rootBundle.load('assets/fonts/SpaceGrotesk-Medium.ttf'),
   );
@@ -54,34 +59,64 @@ abstract final class ReportPdf {
     return 'KES $b.${parts[1]}';
   }
 
-  static pw.Widget _header(String kicker, String title, String sub) =>
-      pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
+  /// The logo and address across the top, then the report's kicker, title
+  /// and dates.
+  static pw.Widget _header(
+    pw.ImageProvider logo,
+    String kicker,
+    String title,
+    String sub,
+  ) => pw.Column(
+    crossAxisAlignment: pw.CrossAxisAlignment.start,
+    children: [
+      pw.Row(
         children: [
-          pw.Text(
-            kicker,
-            style: pw.TextStyle(
-              color: _gold,
-              fontSize: 9,
-              fontWeight: pw.FontWeight.bold,
-              letterSpacing: 1,
-            ),
+          pw.ClipRRect(
+            horizontalRadius: 6,
+            verticalRadius: 6,
+            child: pw.Image(logo, width: 26, height: 26),
           ),
-          pw.SizedBox(height: 6),
+          pw.SizedBox(width: 8),
           pw.Text(
-            title,
+            'Fructa',
             style: pw.TextStyle(
               color: _ink,
-              fontSize: 22,
+              fontSize: 13,
               fontWeight: pw.FontWeight.bold,
             ),
           ),
-          pw.SizedBox(height: 3),
-          pw.Text(sub, style: pw.TextStyle(color: _muted, fontSize: 10)),
-          pw.SizedBox(height: 14),
-          pw.Divider(color: _line, thickness: 0.8),
+          pw.Spacer(),
+          pw.Text(
+            'fructa.africa',
+            style: pw.TextStyle(color: _muted, fontSize: 9),
+          ),
         ],
-      );
+      ),
+      pw.SizedBox(height: 18),
+      pw.Text(
+        kicker,
+        style: pw.TextStyle(
+          color: _gold,
+          fontSize: 9,
+          fontWeight: pw.FontWeight.bold,
+          letterSpacing: 1,
+        ),
+      ),
+      pw.SizedBox(height: 6),
+      pw.Text(
+        title,
+        style: pw.TextStyle(
+          color: _ink,
+          fontSize: 22,
+          fontWeight: pw.FontWeight.bold,
+        ),
+      ),
+      pw.SizedBox(height: 3),
+      pw.Text(sub, style: pw.TextStyle(color: _muted, fontSize: 10)),
+      pw.SizedBox(height: 14),
+      pw.Divider(color: _line, thickness: 0.8),
+    ],
+  );
 
   static pw.Widget _section(String title) => pw.Padding(
     padding: const pw.EdgeInsets.only(top: 18, bottom: 8),
@@ -122,13 +157,15 @@ abstract final class ReportPdf {
     cellPadding: const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 4),
   );
 
-  static pw.Widget _footer(pw.Context ctx) => pw.Row(
-    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+  static pw.Widget _footer(pw.Context ctx, pw.ImageProvider logo) => pw.Row(
     children: [
+      pw.Image(logo, width: 10, height: 10),
+      pw.SizedBox(width: 5),
       pw.Text(
         'Fructa \u00b7 fructa.africa \u00b7 made on your phone',
         style: pw.TextStyle(color: _muted, fontSize: 8),
       ),
+      pw.Spacer(),
       pw.Text(
         '${ctx.pageNumber} / ${ctx.pagesCount}',
         style: pw.TextStyle(color: _muted, fontSize: 8),
@@ -142,14 +179,16 @@ abstract final class ReportPdf {
     required List<StatementAnalysis> statements,
   }) async {
     final doc = pw.Document(theme: await _theme());
+    final logo = await _logo();
     final num = await _num();
     doc.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.fromLTRB(40, 40, 40, 32),
-        footer: _footer,
+        footer: (ctx) => _footer(ctx, logo),
         build: (_) => [
           _header(
+            logo,
             'FRUCTA \u00b7 MONTHLY REPORT',
             monthName(m.from),
             '${dayLabel(m.from)} to ${dayLabel(m.to)}',
@@ -238,15 +277,17 @@ abstract final class ReportPdf {
     StatementAnalysis a,
   ) async {
     final doc = pw.Document(theme: await _theme());
+    final logo = await _logo();
     final num = await _num();
     final d = s.data;
     doc.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.fromLTRB(40, 40, 40, 32),
-        footer: _footer,
+        footer: (ctx) => _footer(ctx, logo),
         build: (_) => [
           _header(
+            logo,
             'FRUCTA \u00b7 STATEMENT CHECK',
             '${d.managerName} \u00b7 ${d.currency}',
             'Account ending ${d.accountTail} \u00b7 ${dayLabel(d.from)} to ${dayLabel(d.to)}',
@@ -313,6 +354,7 @@ abstract final class ReportPdf {
   /// Withholding tax for one year, per account, for the KRA return.
   static Future<Uint8List> tax(int year, List<TaxRow> rows) async {
     final doc = pw.Document(theme: await _theme());
+    final logo = await _logo();
     final num = await _num();
     final totalTax = rows.fold(0.0, (s, r) => s + r.tax);
     final totalInterest = rows.fold(0.0, (s, r) => s + r.interest);
@@ -320,9 +362,10 @@ abstract final class ReportPdf {
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.fromLTRB(40, 40, 40, 32),
-        footer: _footer,
+        footer: (ctx) => _footer(ctx, logo),
         build: (_) => [
           _header(
+            logo,
             'FRUCTA \u00b7 TAX PACK',
             'Withholding tax, $year',
             'From the fund statements you checked in Fructa',
