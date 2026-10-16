@@ -7,6 +7,10 @@ class Config {
 
   static String get snapshotUrl =>
       '$supabaseUrl/storage/v1/object/public/snapshots/funds-snapshot.json';
+
+  /// Market stories by day, week, month, quarter and year (build-wraps).
+  static String get wrapsUrl =>
+      '$supabaseUrl/storage/v1/object/public/snapshots/wraps.json';
   static String get restBase => '$supabaseUrl/rest/v1';
   static String get functionsBase => '$supabaseUrl/functions/v1';
 

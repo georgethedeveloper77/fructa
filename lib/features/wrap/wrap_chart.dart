@@ -343,7 +343,10 @@ class _StoryChartState extends ConsumerState<StoryChart>
         ? null
         : ref.watch(fundsByIdProvider)[s.fundId];
     var pts = <_Pt>[];
-    if (fund != null) {
+    if (s.points.length >= 2) {
+      // A server story brings its own dated points: draw them at once.
+      pts = [for (final p in s.points) (day: p.day, v: p.v)];
+    } else if (fund != null) {
       // Until dated history arrives, draw from the snapshot line below, so
       // the chart is never blank while it loads.
       final hist = ref.watch(historyProvider(fund.id));

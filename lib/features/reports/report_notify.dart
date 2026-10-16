@@ -11,6 +11,7 @@ import '../../data/snapshot_providers.dart';
 import '../../data/statements/statement_store.dart';
 import '../wrap/wrap_engine.dart';
 import 'report_archive.dart';
+import '../wrap/wrap_feed.dart';
 
 // ── Seen state ─────────────────────────────────────────────────────────────
 
@@ -36,6 +37,11 @@ class SeenNotifier extends Notifier<String?> {
 /// The week id ([WrapArchive.weekId]) of the last live wrap the user watched.
 final wrapSeenProvider = NotifierProvider<SeenNotifier, String?>(
   () => SeenNotifier('wrap_seen_week'),
+);
+
+/// The id of the last day's stories the user watched (`day-2026-10-16`).
+final daySeenProvider = NotifierProvider<SeenNotifier, String?>(
+  () => SeenNotifier('wrap_seen_day'),
 );
 
 /// The month id ([monthId]) of the last monthly report the user opened.
@@ -107,9 +113,13 @@ Future<void> _sync(Ref ref) async {
   final week = WrapArchive.weekId(wrap.to);
 
   // ── Weekly wrap: Friday evening, only for a week with stories ────────────
+  // Once the server publishes wraps it sends this push itself, with the
+  // week's real lead story, so the phone's own reminder stands down.
   final wrapId = wrapNotificationId(wrap.to);
   final close = _weekClose(now);
+  final serverPush = ref.read(wrapFeedProvider).value != null;
   if (on &&
+      !serverPush &&
       prefs.weeklyDigest &&
       wrap.market.isNotEmpty &&
       ref.read(wrapSeenProvider) != week &&

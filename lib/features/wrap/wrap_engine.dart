@@ -8,6 +8,7 @@ import '../../data/snapshot_providers.dart';
 import '../../data/statements/statement_store.dart';
 import '../pro/weekly_report.dart';
 import '../statements/statement_controller.dart';
+import 'wrap_feed.dart';
 
 /// Colour family of a slide, resolved against the story palette in the UI.
 enum WrapTone { up, down, info, tbill, accent }
@@ -54,6 +55,10 @@ class WrapSlide {
     this.rankFrom,
     this.rankTo,
     this.rankOf,
+    this.points = const [],
+    this.type,
+    this.ratio,
+    this.trendWeeks,
   });
 
   /// i18n key for the small caps label (`wrap.tag.improved`).
@@ -99,6 +104,19 @@ class WrapSlide {
   final int? rankTo;
   final int? rankOf;
 
+  /// Dated points for the chart, from a server story. Empty for stories built
+  /// on the phone, whose chart reads the fund's history instead.
+  final List<({DateTime day, double v})> points;
+
+  /// The server's story type (improved, drop, stable, breadth...), for badges.
+  final String? type;
+
+  /// How unusual the move was: its size over the fund's normal weekly move.
+  final double? ratio;
+
+  /// Consecutive weeks the fund has moved the same way.
+  final int? trendWeeks;
+
   Map<String, dynamic> toMap() => {
     'tag': tagKey,
     'title': title,
@@ -117,6 +135,12 @@ class WrapSlide {
     'rankFrom': rankFrom,
     'rankTo': rankTo,
     'rankOf': rankOf,
+    'points': [
+      for (final p in points) [p.day.toIso8601String().substring(0, 10), p.v],
+    ],
+    'type': type,
+    'ratio': ratio,
+    'trend': trendWeeks,
   };
 
   static WrapSlide fromMap(Map m) => WrapSlide(
@@ -142,6 +166,14 @@ class WrapSlide {
     rankFrom: m['rankFrom'] as int?,
     rankTo: m['rankTo'] as int?,
     rankOf: m['rankOf'] as int?,
+    points: [
+      for (final p in (m['points'] as List?) ?? const [])
+        if (p is List && p.length == 2)
+          (day: DateTime.parse('${p[0]}'), v: (p[1] as num).toDouble()),
+    ],
+    type: m['type'] as String?,
+    ratio: (m['ratio'] as num?)?.toDouble(),
+    trendWeeks: m['trend'] as int?,
   );
 }
 
@@ -193,7 +225,38 @@ List<Fund> _field(List<Fund> funds) => funds
 /// data, nothing sent anywhere. Each market story is skipped when the data
 /// cannot support it (no moves this week, too little history), so the wrap
 /// never fills a slide with a made-up number.
+/// The week's wrap. The server's published week leads, the same for everyone
+/// and built from approved rates; the user's own stories always come from the
+/// phone. Before the first Friday publish, or offline with nothing kept, the
+/// stories built on the phone stand in.
 final weeklyWrapProvider = Provider.autoDispose<WeeklyWrap>((ref) {
+  final local = ref.watch(localWeeklyWrapProvider);
+  final server = ref.watch(serverWeekProvider);
+  if (server == null) return local;
+  const badgeFor = {
+    'improved': ('wrap.badge.improved', WrapTone.up),
+    'stable': ('wrap.badge.stable', WrapTone.info),
+    'moving_up': ('wrap.badge.movingUp', WrapTone.up),
+    'leader': ('wrap.badge.top', WrapTone.accent),
+  };
+  final badges = <String, FundBadge>{};
+  for (var i = 0; i < server.slides.length; i++) {
+    final s = server.slides[i];
+    final b = badgeFor[s.type];
+    if (b == null || s.fundId == null) continue;
+    badges.putIfAbsent(s.fundId!, () => FundBadge(b.$1, b.$2, i));
+  }
+  return WeeklyWrap(
+    from: server.from,
+    to: server.to,
+    market: server.slides,
+    personal: local.personal,
+    badges: badges,
+  );
+});
+
+/// The wrap worked out on the phone from the snapshot.
+final localWeeklyWrapProvider = Provider.autoDispose<WeeklyWrap>((ref) {
   final now = DateTime.now();
   final from = now.subtract(const Duration(days: 7));
   final cfg = ref.watch(remoteConfigProvider);

@@ -25,6 +25,7 @@ import '../reports/report_archive.dart';
 import '../reports/report_notify.dart';
 import 'wrap_chart.dart';
 import 'wrap_engine.dart';
+import 'wrap_feed.dart';
 
 /// Opens the Weekly wrap full screen at [start].
 Future<void> openWeeklyWrap(BuildContext context, {int start = 0}) =>
@@ -867,7 +868,9 @@ class _WeeklyWrapCardState extends ConsumerState<WeeklyWrapCard>
   @override
   Widget build(BuildContext context) {
     final wrap = ref.watch(weeklyWrapProvider);
-    if (wrap.market.isEmpty) return const SizedBox.shrink();
+    if (wrap.market.isEmpty && ref.watch(todayWrapProvider) == null) {
+      return const SizedBox.shrink();
+    }
     final week = WrapArchive.weekId(wrap.to);
     if (_archivedWeek != week) {
       _archivedWeek = week;
@@ -876,12 +879,57 @@ class _WeeklyWrapCardState extends ConsumerState<WeeklyWrapCard>
       );
     }
     final unlocked = ref.watch(wrapPersonalUnlockedProvider);
-    final unseen = ref.watch(wrapUnseenProvider);
+    // A day when something moved leads the card until it is watched; then
+    // the card goes back to the week.
+    final day = ref.watch(todayWrapProvider);
+    final dayNew = day != null && ref.watch(daySeenProvider) != day.id;
+    final daySlides = day?.slides ?? const <WrapSlide>[];
+    final dayId = day?.id ?? '';
+    if (!dayNew && wrap.market.isEmpty) return const SizedBox.shrink();
+    final unseen = dayNew || ref.watch(wrapUnseenProvider);
     final total =
         wrap.market.length +
         (wrap.personal.isNotEmpty ? (unlocked ? wrap.personal.length : 1) : 0);
-    final lead = wrap.market.first;
-    final behind = wrap.market.skip(1).take(2).toList();
+    final lead = dayNew ? daySlides.first : wrap.market.first;
+    final behind = [
+      if (dayNew) ...daySlides.skip(1),
+      ...wrap.market.skip(dayNew ? 0 : 1),
+    ].take(2).toList();
+    final now = DateTime.now();
+    // The week publishes Friday evening; on that day the card says so.
+    final weekLater = now.weekday == DateTime.friday && now.hour < 18;
+    final kicker = dayNew
+        ? t('wrap.card.today', {'date': '${_weekday(now)} ${dayLabel(now)}'})
+        : t('wrap.card.kicker', {
+            'range': '${wrap.from.day} to ${dayLabel(wrap.to)}',
+          });
+    final footer = dayNew
+        ? [
+            if (daySlides.length > 1)
+              t('wrap.card.moreToday', {'n': '${daySlides.length - 1}'}),
+            if (weekLater) t('wrap.card.weekLater'),
+          ].join(' · ')
+        : !unseen
+        ? t('wrap.card.watched')
+        : total > 1
+        ? t('wrap.card.more', {'n': '${total - 1}'})
+        : t('wrap.card.title');
+    void open() {
+      if (dayNew) {
+        ref.read(daySeenProvider.notifier).mark(dayId);
+        openWrap(
+          context,
+          WrapViewer(
+            slides: daySlides,
+            kicker: t('wrap.kickerToday'),
+            range: dayLabel(now),
+          ),
+        );
+      } else {
+        openWeeklyWrap(context);
+      }
+    }
+
     final glow = _glowOf(lead);
     final tone = _tone(lead.tone);
     final funds = ref.watch(fundsByIdProvider);
@@ -934,7 +982,7 @@ class _WeeklyWrapCardState extends ConsumerState<WeeklyWrapCard>
                     ),
                   ),
                   child: InkWell(
-                    onTap: () => openWeeklyWrap(context),
+                    onTap: open,
                     child: DecoratedBox(
                       decoration: BoxDecoration(
                         gradient: RadialGradient(
@@ -955,10 +1003,7 @@ class _WeeklyWrapCardState extends ConsumerState<WeeklyWrapCard>
                               children: [
                                 Expanded(
                                   child: Text(
-                                    t('wrap.card.kicker', {
-                                      'range':
-                                          '${wrap.from.day} to ${dayLabel(wrap.to)}',
-                                    }).toUpperCase(),
+                                    kicker.toUpperCase(),
                                     style: TextStyle(
                                       color: _d.accent,
                                       fontSize: 11,
@@ -1067,13 +1112,9 @@ class _WeeklyWrapCardState extends ConsumerState<WeeklyWrapCard>
                               children: [
                                 Expanded(
                                   child: Text(
-                                    !unseen
-                                        ? t('wrap.card.watched')
-                                        : total > 1
-                                        ? t('wrap.card.more', {
-                                            'n': '${total - 1}',
-                                          })
-                                        : t('wrap.card.title'),
+                                    footer.isEmpty
+                                        ? t('wrap.card.todayOne')
+                                        : footer,
                                     style: TextStyle(
                                       color: _d.muted,
                                       fontSize: 13,
@@ -1133,6 +1174,9 @@ class _WeeklyWrapCardState extends ConsumerState<WeeklyWrapCard>
     );
   }
 }
+
+const _weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+String _weekday(DateTime d) => _weekdays[d.weekday - 1];
 
 /// The lead story's recent line on the card, drawn in to [progress].
 class _CardLine extends CustomPainter {

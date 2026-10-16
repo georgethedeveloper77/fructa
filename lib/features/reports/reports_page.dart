@@ -14,6 +14,7 @@ import '../pro/pro_widgets.dart';
 import '../statements/statement_controller.dart';
 import '../statements/statement_pages.dart';
 import '../wrap/wrap_engine.dart';
+import '../wrap/wrap_feed.dart';
 import '../wrap/wrap_viewer.dart';
 import 'report_archive.dart';
 import 'report_notify.dart';
@@ -106,26 +107,32 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     );
   });
 
-  void _openSaved(SavedWrap w) => _pro('reports_archive', () async {
+  String _kicker(ArchiveWrap w) => switch (w.period) {
+    WrapPeriod.day => t('reports.dayKicker'),
+    WrapPeriod.week => t('reports.weekKicker'),
+    WrapPeriod.month => t('reports.monthKicker', {'month': monthName(w.to)}),
+    WrapPeriod.quarter => t('reports.periodKicker', {'period': w.label}),
+    WrapPeriod.year => t('reports.periodKicker', {'period': w.label}),
+  };
+
+  String _range(ArchiveWrap w) => w.period == WrapPeriod.day
+      ? dayLabel(w.to)
+      : '${dayLabel(w.from.add(const Duration(days: 1)))} to ${dayLabel(w.to)}';
+
+  void _openSaved(ArchiveWrap w) => _pro('reports_archive', () async {
     await openWrap(
       context,
-      WrapViewer(
-        slides: w.slides,
-        kicker: w.monthly
-            ? t('reports.monthKicker', {'month': monthName(w.from)})
-            : t('reports.weekKicker'),
-        range: '${dayLabel(w.from)} to ${dayLabel(w.to)}',
-      ),
+      WrapViewer(slides: w.slides, kicker: _kicker(w), range: _range(w)),
     );
   });
 
-  /// The archived free week: market stories only, no paywall.
-  void _openFreeWeek(SavedWrap w) => openWrap(
+  /// A free wrap (today, last week): market stories only, no paywall.
+  void _openFree(ArchiveWrap w) => openWrap(
     context,
     WrapViewer(
       slides: w.slides.where((s) => !s.personal).toList(),
-      kicker: t('reports.weekKicker'),
-      range: '${dayLabel(w.from)} to ${dayLabel(w.to)}',
+      kicker: _kicker(w),
+      range: _range(w),
     ),
   );
 
@@ -134,19 +141,20 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     final c = context.c;
     final full = ref.watch(wrapPersonalUnlockedProvider);
     final month = ref.watch(monthWrapProvider);
-    final thisWeek = WrapArchive.weekId(DateTime.now());
-    final thisMonth = monthId(month.from);
     final archive = ref.watch(wrapArchiveProvider).value ?? const <SavedWrap>[];
-    // This week and last month have their own cards above, so the archive
-    // starts after them and nothing shows twice.
-    final weeks = [
-      for (final w in archive)
-        if (!w.monthly && w.id != thisWeek) w,
-    ];
-    final months = [
-      for (final w in archive)
-        if (w.monthly && w.id != thisMonth) w,
-    ];
+    // The week on the card above is not listed again below it.
+    final shownWeek = WrapArchive.weekId(ref.watch(weeklyWrapProvider).to);
+    final byPeriod = ref.watch(wrapArchiveByPeriodProvider);
+    final periods = {
+      for (final e in byPeriod.entries)
+        e.key: [
+          for (final w in e.value)
+            if (e.key != WrapPeriod.week ||
+                WrapArchive.weekId(w.to) != shownWeek)
+              w,
+        ],
+    };
+    final hasArchive = periods.values.any((l) => l.isNotEmpty);
     final statements =
         ref.watch(statementsProvider).value ?? const <SavedStatement>[];
     final taxes = taxByYear(statements);
@@ -158,8 +166,9 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     // Earnings by month for the small chart: past months from the archive,
     // then the month just ended.
     final earned = <(DateTime, double)>[
-      for (final w in months.reversed)
-        if (_earnedIn(w.slides) case final v?) (w.from, v),
+      for (final w in archive.reversed)
+        if (w.monthly && w.id != monthId(month.from))
+          if (_earnedIn(w.slides) case final v?) (w.from, v),
       if (month.holdings.isNotEmpty) (month.from, month.earnedKes),
     ];
     final series = earned.length > 6
@@ -268,14 +277,13 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                     onTap: () => _taxPdf(y, taxes[y]!),
                   ),
 
-              if (weeks.isNotEmpty || months.isNotEmpty) ...[
+              if (hasArchive) ...[
                 _Heading(t('reports.archive')),
                 _Archive(
-                  weeks: weeks,
-                  months: months,
+                  periods: periods,
                   full: full,
                   hide: hide,
-                  onFreeWeek: _openFreeWeek,
+                  onFree: _openFree,
                   onSaved: _openSaved,
                 ),
                 Padding(
@@ -856,61 +864,101 @@ class _TaxCard extends StatelessWidget {
 }
 
 /// Past wraps, weeks or months, each led by its headline story.
+/// Past wraps by period: days, weeks, months, quarters and years.
+///
+/// Free: today and last week. Pro: every wrap, with the user's own stories
+/// for that week or month joined on from the phone.
 class _Archive extends StatefulWidget {
   const _Archive({
-    required this.weeks,
-    required this.months,
+    required this.periods,
     required this.full,
     required this.hide,
-    required this.onFreeWeek,
+    required this.onFree,
     required this.onSaved,
   });
 
-  final List<SavedWrap> weeks;
-  final List<SavedWrap> months;
+  final Map<WrapPeriod, List<ArchiveWrap>> periods;
   final bool full;
   final bool hide;
-  final ValueChanged<SavedWrap> onFreeWeek;
-  final ValueChanged<SavedWrap> onSaved;
+  final ValueChanged<ArchiveWrap> onFree;
+  final ValueChanged<ArchiveWrap> onSaved;
 
   @override
   State<_Archive> createState() => _ArchiveState();
 }
 
 class _ArchiveState extends State<_Archive> {
-  late bool _months = widget.weeks.isEmpty;
+  late WrapPeriod _on = (widget.periods[WrapPeriod.week]?.isNotEmpty ?? false)
+      ? WrapPeriod.week
+      : WrapPeriod.values.firstWhere(
+          (p) => widget.periods[p]?.isNotEmpty ?? false,
+          orElse: () => WrapPeriod.week,
+        );
+
+  static const _labels = {
+    WrapPeriod.day: 'reports.days',
+    WrapPeriod.week: 'reports.weeks',
+    WrapPeriod.month: 'reports.months',
+    WrapPeriod.quarter: 'reports.quarters',
+    WrapPeriod.year: 'reports.years',
+  };
+
+  static const _empty = {
+    WrapPeriod.day: 'reports.daysEmpty',
+    WrapPeriod.week: 'reports.weeksEmpty',
+    WrapPeriod.month: 'reports.monthsEmpty',
+    WrapPeriod.quarter: 'reports.quartersEmpty',
+    WrapPeriod.year: 'reports.yearsEmpty',
+  };
+
+  /// Free users open today's stories and the latest past week.
+  bool _free(ArchiveWrap w, int i) {
+    if (widget.full) return true;
+    if (w.period == WrapPeriod.week) return i == 0;
+    if (w.period == WrapPeriod.day) {
+      final n = DateTime.now();
+      return w.to.year == n.year && w.to.month == n.month && w.to.day == n.day;
+    }
+    return false;
+  }
 
   @override
   Widget build(BuildContext context) {
     final c = context.c;
-    final items = _months ? widget.months : widget.weeks;
+    final items = widget.periods[_on] ?? const <ArchiveWrap>[];
 
-    Widget tab(String label, bool on, bool months) => Expanded(
-      child: Semantics(
-        selected: on,
-        button: true,
-        child: GestureDetector(
-          onTap: () => setState(() => _months = months),
-          child: AnimatedContainer(
-            duration: Duration(milliseconds: reduceMotion(context) ? 0 : 200),
-            constraints: const BoxConstraints(minHeight: 38),
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: on ? c.text : c.s2.withValues(alpha: 0),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(
-              label,
-              style: TextStyle(
-                color: on ? c.bg : c.muted,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
+    Widget tab(WrapPeriod p) {
+      final on = p == _on;
+      return Expanded(
+        child: Semantics(
+          selected: on,
+          button: true,
+          child: GestureDetector(
+            onTap: () => setState(() => _on = p),
+            child: AnimatedContainer(
+              duration: Duration(milliseconds: reduceMotion(context) ? 0 : 200),
+              constraints: const BoxConstraints(minHeight: 38),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: on ? c.text : c.s2.withValues(alpha: 0),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  t(_labels[p]!),
+                  style: TextStyle(
+                    color: on ? c.bg : c.muted,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             ),
           ),
         ),
-      ),
-    );
+      );
+    }
 
     return Column(
       children: [
@@ -921,12 +969,7 @@ class _ArchiveState extends State<_Archive> {
             color: c.s2,
             borderRadius: BorderRadius.circular(999),
           ),
-          child: Row(
-            children: [
-              tab(t('reports.weeks'), !_months, false),
-              tab(t('reports.months'), _months, true),
-            ],
-          ),
+          child: Row(children: [for (final p in WrapPeriod.values) tab(p)]),
         ),
         const SizedBox(height: 10),
         _Card(
@@ -934,7 +977,7 @@ class _ArchiveState extends State<_Archive> {
               ? Padding(
                   padding: const EdgeInsets.all(16),
                   child: Text(
-                    t(_months ? 'reports.monthsEmpty' : 'reports.weeksEmpty'),
+                    t(_empty[_on]!),
                     style: TextStyle(color: c.muted, fontSize: 13),
                   ),
                 )
@@ -945,10 +988,9 @@ class _ArchiveState extends State<_Archive> {
                         wrap: items[i],
                         first: i == 0,
                         hide: widget.hide,
-                        // The latest past week is free; the rest are Pro.
-                        locked: !widget.full && (_months || i > 0),
-                        onTap: () => !widget.full && !_months && i == 0
-                            ? widget.onFreeWeek(items[i])
+                        locked: !_free(items[i], i),
+                        onTap: () => !widget.full && _free(items[i], i)
+                            ? widget.onFree(items[i])
                             : widget.onSaved(items[i]),
                       ),
                   ],
@@ -968,7 +1010,7 @@ class _ArchiveRow extends StatelessWidget {
     required this.onTap,
   });
 
-  final SavedWrap wrap;
+  final ArchiveWrap wrap;
   final bool first;
   final bool hide;
   final bool locked;
@@ -977,7 +1019,8 @@ class _ArchiveRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.c;
-    final earned = wrap.monthly ? _earnedIn(wrap.slides) : null;
+    final monthly = wrap.period == WrapPeriod.month;
+    final earned = monthly ? _earnedIn(wrap.slides) : null;
     WrapSlide? lead;
     for (final s in wrap.slides) {
       if (!s.personal) {
@@ -985,7 +1028,9 @@ class _ArchiveRow extends StatelessWidget {
         break;
       }
     }
-    final title = wrap.monthly
+    final title = wrap.label.isNotEmpty
+        ? wrap.label
+        : monthly
         ? monthName(wrap.from)
         : t('reports.range', {
             'from': dayLabel(wrap.from),
