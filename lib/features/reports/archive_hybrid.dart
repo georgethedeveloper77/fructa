@@ -48,6 +48,10 @@ class _ArchiveHybridState extends State<ArchiveHybrid> {
   /// Index into the oldest-first list; null is the newest.
   int? _sel;
 
+  /// The year on the timeline. Every period but Years shows one year,
+  /// January to December, so the line reads as a calendar.
+  int _year = DateTime.now().year;
+
   static const _labels = {
     WrapPeriod.day: 'reports.days',
     WrapPeriod.week: 'reports.weeks',
@@ -74,7 +78,16 @@ class _ArchiveHybridState extends State<ArchiveHybrid> {
   @override
   Widget build(BuildContext context) {
     final c = context.c;
-    final newest = widget.periods[_period] ?? const <ArchiveWrap>[];
+    final years = {
+      for (final l in widget.periods.values)
+        for (final w in l) w.to.year,
+    }.toList()..sort((a, b) => b.compareTo(a));
+    if (years.isNotEmpty && !years.contains(_year)) _year = years.first;
+    final byYear = _period != WrapPeriod.year;
+    final newest = [
+      for (final w in widget.periods[_period] ?? const <ArchiveWrap>[])
+        if (!byYear || w.to.year == _year) w,
+    ];
     final items = newest.reversed.toList();
     final n = items.length;
     final sel = n == 0 ? 0 : (_sel ?? n - 1).clamp(0, n - 1);
@@ -118,6 +131,21 @@ class _ArchiveHybridState extends State<ArchiveHybrid> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (byYear && years.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: _YearPicker(
+                years: years,
+                year: _year,
+                onPick: (y) => setState(() {
+                  _year = y;
+                  _sel = null;
+                }),
+              ),
+            ),
+          ),
         Container(
           margin: const EdgeInsets.symmetric(horizontal: 16),
           padding: const EdgeInsets.all(3),
@@ -136,7 +164,13 @@ class _ArchiveHybridState extends State<ArchiveHybrid> {
             ),
           )
         else ...[
-          _Timeline(items: items, selected: sel, onPick: (i) => _pick(i, n)),
+          _Timeline(
+            items: items,
+            period: _period,
+            year: _year,
+            selected: sel,
+            onPick: (i) => _pick(i, n),
+          ),
           const SizedBox(height: 12),
           _Calendar(
             items: items,
@@ -185,22 +219,53 @@ class _Box extends StatelessWidget {
 class _Timeline extends StatelessWidget {
   const _Timeline({
     required this.items,
+    required this.period,
+    required this.year,
     required this.selected,
     required this.onPick,
   });
 
   final List<ArchiveWrap> items;
+  final WrapPeriod period;
+  final int year;
   final int selected;
   final ValueChanged<int> onPick;
+
+  /// Where each wrap sits across the axis, 0 to 1: by date within the year,
+  /// or evenly for Years.
+  List<double> _xs() {
+    if (period == WrapPeriod.year) {
+      final n = items.length;
+      return [for (var i = 0; i < n; i++) n == 1 ? 0.5 : i / (n - 1)];
+    }
+    final a = DateTime(year);
+    final span = DateTime(year + 1).difference(a).inHours;
+    return [
+      for (final w in items)
+        (w.to.difference(a).inHours / span).clamp(0.0, 1.0),
+    ];
+  }
+
+  /// Today's place on the axis, when the year shown is this one.
+  double? _today() {
+    final now = DateTime.now();
+    if (period == WrapPeriod.year || now.year != year) return null;
+    final a = DateTime(year);
+    return now.difference(a).inHours / DateTime(year + 1).difference(a).inHours;
+  }
 
   @override
   Widget build(BuildContext context) {
     final c = context.c;
     final s = items[selected];
     final calm = reduceMotion(context);
-    final first = items.first.to;
-    final last = items.last.to;
-    String mon(DateTime d) => monthName(d).split(' ').first.substring(0, 3);
+    final xs = _xs();
+    final today = _today();
+    final ticks = switch (period) {
+      WrapPeriod.year => [for (final w in items) '${w.to.year}'],
+      WrapPeriod.quarter => const ['Q1', 'Q2', 'Q3', 'Q4'],
+      _ => _monthShort,
+    };
 
     return _Box(
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
@@ -230,9 +295,16 @@ class _Timeline extends StatelessWidget {
           const SizedBox(height: 10),
           LayoutBuilder(
             builder: (context, box) {
-              int at(double x) => items.length == 1
-                  ? 0
-                  : (x / box.maxWidth * (items.length - 1)).round();
+              // The wrap nearest the finger.
+              int at(double x) {
+                final f = (x / box.maxWidth).clamp(0.0, 1.0);
+                var best = 0;
+                for (var i = 1; i < xs.length; i++) {
+                  if ((xs[i] - f).abs() < (xs[best] - f).abs()) best = i;
+                }
+                return best;
+              }
+
               return Semantics(
                 label: t('reports.medianTitle'),
                 value: s.label,
@@ -247,6 +319,8 @@ class _Timeline extends StatelessWidget {
                     builder: (_, v, _) => CustomPaint(
                       size: Size(box.maxWidth, 140),
                       painter: _LinePainter(
+                        xs: xs,
+                        today: today,
                         values: [for (final w in items) w.median],
                         moves: [for (final w in items) w.move],
                         big: [for (final w in items) w.big],
@@ -266,17 +340,17 @@ class _Timeline extends StatelessWidget {
             },
           ),
           const SizedBox(height: 6),
+          // January to December under the year; one label per year for Years.
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                mon(first),
-                style: fructaFonts.numeric(color: c.muted, size: 11),
-              ),
-              Text(
-                mon(last),
-                style: fructaFonts.numeric(color: c.muted, size: 11),
-              ),
+              for (final l in ticks)
+                Expanded(
+                  child: Text(
+                    l,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: c.muted, fontSize: 10.5),
+                  ),
+                ),
             ],
           ),
         ],
@@ -285,8 +359,25 @@ class _Timeline extends StatelessWidget {
   }
 }
 
+const _monthShort = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+
 class _LinePainter extends CustomPainter {
   const _LinePainter({
+    required this.xs,
+    required this.today,
     required this.values,
     required this.moves,
     required this.big,
@@ -300,6 +391,11 @@ class _LinePainter extends CustomPainter {
     required this.bg,
   });
 
+  /// Each value's place across the axis, 0 to 1.
+  final List<double> xs;
+
+  /// Where today sits, for the current year.
+  final double? today;
   final List<double?> values;
   final List<double?> moves;
   final List<bool> big;
@@ -324,8 +420,17 @@ class _LinePainter extends CustomPainter {
       }
     }
     final n = values.length;
-    double xAt(int i) =>
-        n == 1 ? size.width / 2 : 2 + i / (n - 1) * (size.width - 4);
+    double xAt(int i) => 2 + xs[i] * (size.width - 4);
+    // The rest of the year is still to come: a faint line marks today.
+    if (today != null) {
+      final x = 2 + today! * (size.width - 4);
+      final p = Paint()
+        ..color = marker.withValues(alpha: 0.25)
+        ..strokeWidth = 1;
+      for (var y = 0.0; y < size.height; y += 6) {
+        canvas.drawLine(Offset(x, y), Offset(x, y + 3), p);
+      }
+    }
     if (known.length < 2) {
       _marker(canvas, size, xAt(selected), null);
       return;
@@ -396,12 +501,15 @@ class _LinePainter extends CustomPainter {
   bool shouldRepaint(_LinePainter old) =>
       old.selected != selected ||
       old.progress != progress ||
+      old.xs != xs ||
       old.values != values ||
       old.line != line;
 }
 
-/// The same wraps as cells, coloured by the median's move, in rows: weeks by
-/// month, days by week, months and quarters by year, years together.
+/// The same wraps as cells, coloured by the median's move. Months and
+/// quarters sit in their fixed place in the year (January to December, Q1 to
+/// Q4), with the months still to come left empty. Weeks are rows by month and
+/// days rows by week, newest first; years one row.
 class _Calendar extends StatelessWidget {
   const _Calendar({
     required this.items,
@@ -415,43 +523,122 @@ class _Calendar extends StatelessWidget {
   final int selected;
   final ValueChanged<int> onPick;
 
-  String _rowKey(DateTime d) => switch (period) {
-    WrapPeriod.day => '${d.year}-${d.month}-${(d.day - 1) ~/ 7}',
-    WrapPeriod.week => '${d.year}-${d.month}',
-    WrapPeriod.month || WrapPeriod.quarter => '${d.year}',
-    WrapPeriod.year => 'all',
-  };
-
-  String _rowLabel(DateTime d) => switch (period) {
-    WrapPeriod.day ||
-    WrapPeriod.week => monthName(d).split(' ').first.substring(0, 3),
-    WrapPeriod.month || WrapPeriod.quarter => '${d.year}',
-    WrapPeriod.year => '',
-  };
-
-  int get _perRow => switch (period) {
-    WrapPeriod.day => 7,
-    WrapPeriod.week => 5,
-    WrapPeriod.month => 12,
-    WrapPeriod.quarter => 4,
-    WrapPeriod.year => 6,
-  };
-
   @override
   Widget build(BuildContext context) {
     final c = context.c;
     final calm = reduceMotion(context);
-    // Rows newest first; cells oldest first within each row.
-    final rows = <String, List<int>>{};
-    for (var i = 0; i < items.length; i++) {
-      rows.putIfAbsent(_rowKey(items[i].to), () => []).add(i);
-    }
-    final keys = rows.keys.toList().reversed.toList();
 
     Color tint(double? mv) {
       if (mv == null) return c.s3;
       final a = (0.22 + mv.abs() * 2.2).clamp(0.22, 0.9);
       return (mv >= 0 ? c.up : c.down).withValues(alpha: a);
+    }
+
+    Widget cell(int? i, {bool value = true}) => Expanded(
+      child: i == null
+          ? Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 3),
+              child: Container(
+                height: 36,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(9),
+                  border: Border.all(color: c.line),
+                ),
+              ),
+            )
+          : _Cell(
+              wrap: items[i],
+              on: i == selected,
+              tint: tint(items[i].move),
+              calm: calm,
+              showValue: value,
+              onTap: () => onPick(i),
+            ),
+    );
+
+    Widget labelled(String? label, List<Widget> cells) => Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Row(
+        children: [
+          if (label != null)
+            SizedBox(
+              width: 38,
+              child: Text(
+                label,
+                style: TextStyle(color: c.muted, fontSize: 12),
+              ),
+            ),
+          ...cells,
+        ],
+      ),
+    );
+
+    final rows = <Widget>[];
+    switch (period) {
+      case WrapPeriod.month || WrapPeriod.quarter:
+        final slots = period == WrapPeriod.month ? 12 : 4;
+        final at = <int, int>{
+          for (var i = 0; i < items.length; i++)
+            (period == WrapPeriod.month
+                    ? items[i].to.month - 1
+                    : (items[i].to.month - 1) ~/ 3):
+                i,
+        };
+        rows.add(
+          labelled(null, [
+            for (var k = 0; k < slots; k++) cell(at[k], value: slots <= 4),
+          ]),
+        );
+        rows.add(
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Row(
+              children: [
+                for (var k = 0; k < slots; k++)
+                  Expanded(
+                    child: Text(
+                      period == WrapPeriod.month
+                          ? _monthShort[k].substring(0, 1)
+                          : 'Q${k + 1}',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: c.faint, fontSize: 10.5),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      case WrapPeriod.year:
+        for (var r = items.length - 1; r >= 0; r -= 6) {
+          final row = [for (var i = (r - 5).clamp(0, r); i <= r; i++) i];
+          rows.add(
+            labelled(null, [
+              for (final i in row) cell(i),
+              for (var k = row.length; k < 6; k++)
+                const Expanded(child: SizedBox(height: 36)),
+            ]),
+          );
+        }
+      case WrapPeriod.week || WrapPeriod.day:
+        final per = period == WrapPeriod.week ? 5 : 7;
+        final groups = <String, List<int>>{};
+        for (var i = 0; i < items.length; i++) {
+          final d = items[i].to;
+          final key = period == WrapPeriod.week
+              ? '${d.month}'
+              : '${d.month}-${(d.day - 1) ~/ 7}';
+          groups.putIfAbsent(key, () => []).add(i);
+        }
+        for (final g in groups.values.toList().reversed) {
+          rows.add(
+            labelled(_monthShort[items[g.first].to.month - 1], [
+              for (var j = 0; j < per; j++)
+                j < g.length
+                    ? cell(g[j])
+                    : const Expanded(child: SizedBox(height: 36)),
+            ]),
+          );
+        }
     }
 
     return _Box(
@@ -463,35 +650,7 @@ class _Calendar extends StatelessWidget {
             t('reports.calendarTitle'),
             style: TextStyle(color: c.muted, fontSize: 11.5),
           ),
-          for (final k in keys)
-            Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Row(
-                children: [
-                  if (period != WrapPeriod.year)
-                    SizedBox(
-                      width: 38,
-                      child: Text(
-                        _rowLabel(items[rows[k]!.first].to),
-                        style: TextStyle(color: c.muted, fontSize: 12),
-                      ),
-                    ),
-                  for (var j = 0; j < _perRow; j++)
-                    Expanded(
-                      child: j >= rows[k]!.length
-                          ? const SizedBox(height: 36)
-                          : _Cell(
-                              wrap: items[rows[k]![j]],
-                              on: rows[k]![j] == selected,
-                              tint: tint(items[rows[k]![j]].move),
-                              calm: calm,
-                              showValue: _perRow <= 7,
-                              onTap: () => onPick(rows[k]![j]),
-                            ),
-                    ),
-                ],
-              ),
-            ),
+          ...rows,
           const SizedBox(height: 10),
           Wrap(
             spacing: 14,
@@ -503,6 +662,68 @@ class _Calendar extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// The year on the timeline, as a small dropdown.
+class _YearPicker extends StatelessWidget {
+  const _YearPicker({
+    required this.years,
+    required this.year,
+    required this.onPick,
+  });
+
+  final List<int> years;
+  final int year;
+  final ValueChanged<int> onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    return PopupMenuButton<int>(
+      tooltip: t('reports.year'),
+      initialValue: year,
+      onSelected: onPick,
+      color: c.s2,
+      itemBuilder: (_) => [
+        for (final y in years)
+          PopupMenuItem<int>(
+            value: y,
+            child: Text(
+              '$y',
+              style: fructaFonts.numeric(
+                color: y == year ? c.accentInk : c.text,
+                size: 14,
+                weight: FontWeight.w600,
+              ),
+            ),
+          ),
+      ],
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 36),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: c.s1,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: c.line),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '$year',
+              style: fructaFonts.numeric(
+                color: c.text,
+                size: 13.5,
+                weight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(width: 2),
+            Icon(Icons.expand_more_rounded, size: 18, color: c.muted),
+          ],
+        ),
       ),
     );
   }
