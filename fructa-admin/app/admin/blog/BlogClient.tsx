@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createPost, togglePostPublished, deletePost } from "./actions";
 import {
   IconArticle, IconBolt, IconPin, IconSearch, IconPlus,
-  IconEdit, IconSend, IconTrash, IconCheck,
+  IconEdit, IconSend, IconTrash, IconX,
 } from "../_icons";
 
 export type PostRow = {
@@ -139,6 +139,7 @@ function Row({ post }: { post: PostRow }) {
           <span className="text-[15.5px] font-semibold tracking-tight text-ink">{post.title || "Untitled"}</span>
           {post.pinned && <span className="text-gold" title="Pinned"><IconPin size={13} /></span>}
         </div>
+        {post.excerpt && <p className="mt-1 text-[13px] leading-snug text-mute">{post.excerpt}</p>}
         <div className="mt-1 flex flex-wrap items-center gap-2 font-mono text-[12px] text-faint">
           <span className={"rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider " +
             (post.kind === "brief" ? "bg-blue/10 text-blue" : "bg-gold/10 text-gold")}>
@@ -168,13 +169,18 @@ function Row({ post }: { post: PostRow }) {
         >
           <IconEdit size={15} />
         </button>
+        {/* Says what it does. A tick here read as "published", not as the
+            button that takes the post down. */}
         <button
           onClick={togglePublish}
           disabled={busy}
-          title={post.published ? "Unpublish" : "Publish"}
-          className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-line bg-raise text-mute hover:bg-raise2 hover:text-ink disabled:opacity-40"
+          className={"inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium disabled:opacity-40 " +
+            (post.published
+              ? "border-line bg-raise text-mute hover:border-bad/40 hover:text-bad"
+              : "border-gold/50 bg-gold/10 text-gold hover:bg-gold/20")}
         >
-          {post.published ? <IconCheck size={15} /> : <IconSend size={15} />}
+          {post.published ? <IconX size={13} /> : <IconSend size={13} />}
+          {post.published ? "Unpublish" : "Publish"}
         </button>
         <button
           onClick={del}

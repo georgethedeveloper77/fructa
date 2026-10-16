@@ -83,6 +83,22 @@ async function apply(ids: number[]): Promise<number> {
     .from("rate_review")
     .update({ status: "approved", decided_at: new Date().toISOString() })
     .in("id", rows.map((r) => r.id));
+
+  // The scraper compares each day's rate with the fund's current rate, so one
+  // real jump was held again every day until approved: five AA Kenya rows for
+  // one change. Approving the newest settles the older ones for that fund.
+  const newest = new Map<string, string>();
+  for (const r of rows) {
+    if ((newest.get(r.fund_id) ?? "") < r.as_of) newest.set(r.fund_id, r.as_of);
+  }
+  for (const [fundId, asOf] of newest) {
+    await db
+      .from("rate_review")
+      .update({ status: "rejected", decided_at: new Date().toISOString(), decided_by: "superseded" })
+      .eq("fund_id", fundId)
+      .eq("status", "pending")
+      .lt("as_of", asOf);
+  }
   return rows.length;
 }
 

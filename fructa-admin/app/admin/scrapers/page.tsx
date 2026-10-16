@@ -48,6 +48,10 @@ type Fleet = {
   // scrape-cbk.yml for every one of them, which was fine while there was
   // exactly one and wrong the moment there were two.
   workflow?: string;
+  // A weekly scraper whose clock lives in GitHub: the day it fires (0 Sunday
+  // to 6 Saturday, EAT), so the page can say when to expect it instead of
+  // "not scheduled here", and flag it when a week passes with no run.
+  weeklyDow?: number;
 };
 
 const SCRAPERS: Fleet[] = [
@@ -89,6 +93,7 @@ const SCRAPERS: Fleet[] = [
     kind: "github",
     writes: "rate_history",
     workflow: "scrape-cbk.yml",
+    weeklyDow: 4,
   },
 ];
 
@@ -171,7 +176,16 @@ type Health = {
   prev: Date | null;
   missed: boolean;
   successRate: number;
+  /** The next day a GitHub-scheduled weekly scraper should fire. */
+  nextDay: Date | null;
 };
+
+/** The next [dow] (EAT) on or after today. */
+function nextWeekday(now: Date, dow: number): Date {
+  const e = new Date(now.getTime() + EAT_MS);
+  const add = (dow - e.getUTCDay() + 7) % 7;
+  return new Date(Date.UTC(e.getUTCFullYear(), e.getUTCMonth(), e.getUTCDate() + add, 9));
+}
 
 function healthOf(f: Fleet, all: Run[], now: Date): Health {
   const runs = all.filter((r) => f.sources.includes(r.source));
@@ -189,12 +203,19 @@ function healthOf(f: Fleet, all: Run[], now: Date): Health {
   // A manual re-run does NOT satisfy the schedule. Only a scheduled run proves
   // pg_cron is alive, and conflating the two is exactly how a dead cron hides
   // behind someone pressing the button.
+  // A weekly GitHub scraper is late when more than 8 days pass with no
+  // scheduled run: one missed week, with a day's grace.
+  const weeklyLate =
+    f.weeklyDow != null &&
+    (lastAutoAt == null || now.getTime() - lastAutoAt.getTime() > 8 * 86_400_000);
   const missed =
-    prev != null &&
-    now.getTime() - prev.getTime() > 75 * 60_000 &&
-    (lastAutoAt == null || lastAutoAt.getTime() < prev.getTime());
+    weeklyLate ||
+    (prev != null &&
+      now.getTime() - prev.getTime() > 75 * 60_000 &&
+      (lastAutoAt == null || lastAutoAt.getTime() < prev.getTime()));
+  const nextDay = f.weeklyDow != null ? nextWeekday(now, f.weeklyDow) : null;
 
-  return { fleet: f, runs, last, lastAuto, next, prev, missed, successRate };
+  return { fleet: f, runs, last, lastAuto, next, prev, missed, successRate, nextDay };
 }
 
 type State = "ok" | "partial" | "failed";
@@ -286,7 +307,10 @@ export default async function ScrapersPage() {
   // for a 16-bar history to mean anything.
   const agg = fleet.find((h) => h.fleet.id === "ke-aggregator")!;
   const chart = agg.runs.slice(0, 16).reverse();
-  const maxW = Math.max(1, ...chart.map((r) => r.written));
+  const peak = Math.max(
+    1,
+    ...chart.map((r) => r.written + (r.unmapped?.length ?? 0) + (r.errors?.length ?? 0)),
+  );
 
   // Fleet-wide, because the question this page must answer at a glance is "is
   // anything broken", not "is the aggregator fine".
@@ -327,7 +351,9 @@ export default async function ScrapersPage() {
               <li key={h.fleet.id}>
                 <code className="text-faint">{h.fleet.id}</code>{" "}
                 {h.missed
-                  ? `has not run on schedule since the ${eatTime(h.prev!)} slot.`
+                  ? h.prev
+                    ? `has not run on schedule since the ${eatTime(h.prev)} slot.`
+                    : `has not run in over a week${h.lastAuto ? ` (last ${ago(h.lastAuto.started_at)})` : ""}. Check the GitHub workflow.`
                   : `failed ${ago(h.last!.started_at)}.`}
               </li>
             ))}
@@ -388,7 +414,11 @@ export default async function ScrapersPage() {
                 <div className="min-w-[7rem]">
                   <div className="text-[10px] uppercase tracking-wider text-faint">Next</div>
                   <div className="mt-0.5 text-sm text-mute">
-                    {h.next ? `${eatDay(h.next, now)} ${eatTime(h.next)}` : "not scheduled here"}
+                    {h.next
+                      ? `${eatDay(h.next, now)} ${eatTime(h.next)}`
+                      : h.nextDay
+                      ? `${eatDay(h.nextDay, now)}, GitHub schedule`
+                      : "GitHub schedule"}
                   </div>
                 </div>
 
@@ -462,17 +492,42 @@ export default async function ScrapersPage() {
         )}
       </div>
 
-      {/* written over recent runs */}
+      {/* Each run as a stacked bar: rows written, labels that did not map,
+          errors. Written alone was nearly the same every run, so the old chart
+          read as a flat line; the stack shows what actually changes run to
+          run. */}
       {chart.length > 1 && (
         <div className="mb-6 rounded-xl border border-line bg-panel px-4 py-3">
-          <div className="mb-2 flex items-center justify-between text-[10px] uppercase tracking-wider text-faint">
-            <span>Written · last {chart.length} runs</span><span>peak {maxW}</span>
+          <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] uppercase tracking-wider text-faint">
+            <span className="flex-1">Aggregator · last {chart.length} runs</span>
+            <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm" style={{ background: "var(--live)" }} />written</span>
+            <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm" style={{ background: "var(--warn)" }} />unmapped</span>
+            <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm" style={{ background: "var(--bad)" }} />errors</span>
           </div>
-          <div className="flex h-16 items-end gap-1">
+          <div className="flex h-28 items-end gap-1.5">
+            {chart.map((r) => {
+              const un = r.unmapped?.length ?? 0;
+              const er = r.errors?.length ?? 0;
+              const total = Math.max(1, r.written + un + er);
+              const h = (n: number) => `${(n / peak) * 100}%`;
+              return (
+                <div key={r.id} className="flex h-full flex-1 flex-col items-center justify-end gap-1"
+                  title={`${ago(r.started_at)} · ${r.written} written · ${un} unmapped · ${er} errors · ${r.trigger}`}>
+                  <span className="tnum text-[9px] text-faint">{r.written}</span>
+                  <div className="flex w-full flex-col-reverse overflow-hidden rounded-t" style={{ height: h(total) }}>
+                    <div style={{ height: `${(r.written / total) * 100}%`, background: "var(--live)", opacity: 0.85 }} />
+                    <div style={{ height: `${(un / total) * 100}%`, background: "var(--warn)", opacity: 0.85 }} />
+                    <div style={{ height: `${(er / total) * 100}%`, background: "var(--bad)", opacity: 0.9 }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-1.5 flex gap-1.5">
             {chart.map((r) => (
-              <div key={r.id} title={`${ago(r.started_at)} · ${r.written} written · ${stateOf(r)} · ${r.trigger}`}
-                className="flex-1 rounded-t"
-                style={{ height: `${Math.max(4, (r.written / maxW) * 100)}%`, background: DOT[stateOf(r)], opacity: 0.85 }} />
+              <span key={r.id} className="tnum flex-1 text-center text-[9px] text-faint">
+                {new Date(new Date(r.started_at).getTime() + EAT_MS).getUTCDate()}
+              </span>
             ))}
           </div>
         </div>
