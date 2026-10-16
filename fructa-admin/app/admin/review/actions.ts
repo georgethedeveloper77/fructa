@@ -14,6 +14,17 @@ async function republishSnapshot() {
   } catch { /* ignore */ }
 }
 
+// An approved rate can now become a story: refresh today and this week.
+async function refreshWraps() {
+  try {
+    await fetch(`${process.env.SUPABASE_URL}/functions/v1/build-wraps`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-cron-secret": process.env.CRON_SECRET ?? "" },
+      body: "{}",
+    });
+  } catch { /* ignore */ }
+}
+
 export async function approveReview(formData: FormData) {
   const id = Number(formData.get("id"));
   if (!Number.isFinite(id)) return;
@@ -39,7 +50,9 @@ export async function approveReview(formData: FormData) {
     .eq("id", id);
 
   await republishSnapshot();
+  await refreshWraps();
   revalidatePath("/admin/review");
+  revalidatePath("/admin/wraps");
   revalidatePath("/admin/funds");
   revalidatePath("/admin");
 }

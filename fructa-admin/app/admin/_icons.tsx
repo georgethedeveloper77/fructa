@@ -77,6 +77,10 @@ export const IconPages = (p: IconProps) => (
 );
 
 // ── UI ───────────────────────────────────────────────────────────────────
+/** Stacked story cards, for Wraps. */
+export const IconWraps = (p: IconProps) => (
+  <svg {...base(p)}><rect x="4" y="8" width="16" height="13" rx="2" /><path d="M7 5h10" /><path d="M9 2h6" /></svg>
+);
 export const IconSearch = (p: IconProps) => (
   <svg {...base(p)}><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
 );

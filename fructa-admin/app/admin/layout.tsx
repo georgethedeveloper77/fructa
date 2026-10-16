@@ -15,7 +15,7 @@ import {
   IconSources, IconScrapers, IconImport, IconInsights, IconConfig,
   IconLearn, IconBell, IconPages, IconSettings, IconArticle, IconModeration,
   IconSearch, IconPower, IconRefresh, IconStocks, IconBrokers, IconSaccos,
-  IconFactsheets, IconReview,
+  IconFactsheets, IconReview, IconWraps,
 } from "./_icons";
 import type { SVGProps } from "react";
 
@@ -33,6 +33,7 @@ const OPERATE: NavItem[] = [
   { href: "/admin/brokers", label: "Brokers", icon: IconBrokers, title: "Brokers", crumb: "CMA-licensed stockbrokers" },
   { href: "/admin/moderation", label: "Moderation", icon: IconModeration, title: "Moderation", crumb: "review queue" },
   { href: "/admin/notifications", label: "Notify", icon: IconBell, title: "Notifications", crumb: "push console" },
+  { href: "/admin/wraps", label: "Wraps", icon: IconWraps, title: "Wraps", crumb: "stories by day, week, month, quarter, year" },
 ];
 
 const DATA: NavItem[] = [
