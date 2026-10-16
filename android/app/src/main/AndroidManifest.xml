@@ -54,6 +54,19 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Android App Links: a fructa.africa fund or rates link opens the
+                 app when it is installed. Android verifies the claim against
+                 https://fructa.africa/.well-known/assetlinks.json. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https" android:host="fructa.africa" android:pathPrefix="/funds/"/>
+                <data android:scheme="https" android:host="fructa.africa" android:pathPrefix="/rates/"/>
+            </intent-filter>
+            <!-- The app routes these links itself (lib/app/deep_link.dart), so
+                 Flutter's own path-to-route handling stays off. -->
+            <meta-data android:name="flutter_deeplinking_enabled" android:value="false"/>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

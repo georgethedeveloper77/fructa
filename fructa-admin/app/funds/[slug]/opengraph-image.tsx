@@ -3,57 +3,65 @@ import { getFundBySlug, netRate } from "@/lib/funds.server";
 
 /*
  * The picture a shared fund link shows in WhatsApp, X or Slack: the fund, its
- * rate today and what you keep, instead of a generic card. Rebuilt hourly.
+ * rate today and what you keep.
+ *
+ * Kept deliberately plain: solid colours only (no gradients, no remote fonts
+ * or images), on the Node runtime, and any failure returns a simple card
+ * rather than an error. The first version used a CSS gradient and the server
+ * dropped the connection rendering it.
  */
+export const runtime = "nodejs";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 export const revalidate = 3600;
 export const alt = "Fund rate today on Fructa";
 
-export default async function Image({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
-  const found = await getFundBySlug(slug);
-  const fund = found?.fund;
-  const gross = fund?.grossRate ?? null;
-  const net = fund && found ? netRate(fund, found.bundle.whtPct) : null;
-  const brand = fund?.brandColor ?? "#e7b24c";
-  const day = new Date(Date.now() + 3 * 3_600_000).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  });
+const BG = "#060709";
+const INK = "#F3F5F8";
+const MUTE = "#9AA2B2";
+const GOLD = "#E7B24C";
 
+function card(title: string, big: string | null, sub: string | null, accent: string) {
   return new ImageResponse(
     (
-      <div
-        style={{
-          width: "100%",
-          height: "100%",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "space-between",
-          padding: 72,
-          background: "#060709",
-          color: "#F3F5F8",
-          backgroundImage: `radial-gradient(circle at 0% 0%, ${brand}66, transparent 60%)`,
-        }}
-      >
-        <div style={{ display: "flex", fontSize: 28, letterSpacing: 6, color: "#E7B24C", fontWeight: 700 }}>FRUCTA</div>
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          <div style={{ fontSize: 52, fontWeight: 700, lineHeight: 1.1 }}>{fund?.name ?? "Fund rates in Kenya"}</div>
-          {gross != null ? (
-            <div style={{ display: "flex", alignItems: "baseline", marginTop: 24 }}>
-              <div style={{ fontSize: 132, fontWeight: 700, letterSpacing: -4 }}>{gross.toFixed(2)}%</div>
-              <div style={{ fontSize: 36, color: "#9AA2B2", marginLeft: 24 }}>
-                {net != null ? `${net.toFixed(2)}% after tax` : "gross"}
+      <div style={{ width: "100%", height: "100%", display: "flex", background: BG, color: INK }}>
+        <div style={{ width: 24, height: "100%", background: accent, display: "flex" }} />
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-between", padding: 72 }}>
+          <div style={{ display: "flex", fontSize: 30, letterSpacing: 6, color: GOLD, fontWeight: 700 }}>FRUCTA</div>
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <div style={{ display: "flex", fontSize: 54, fontWeight: 700 }}>{title}</div>
+            {big ? (
+              <div style={{ display: "flex", alignItems: "flex-end", marginTop: 20 }}>
+                <div style={{ display: "flex", fontSize: 140, fontWeight: 700 }}>{big}</div>
+                {sub ? <div style={{ display: "flex", fontSize: 38, color: MUTE, marginLeft: 28, marginBottom: 26 }}>{sub}</div> : null}
               </div>
-            </div>
-          ) : null}
+            ) : null}
+          </div>
+          <div style={{ display: "flex", fontSize: 28, color: MUTE }}>Kenyan rates, after tax · fructa.africa</div>
         </div>
-        <div style={{ display: "flex", fontSize: 28, color: "#9AA2B2" }}>Rate today · {day} · fructa.africa</div>
       </div>
     ),
     size,
   );
+}
+
+export default async function Image({ params }: { params: Promise<{ slug: string }> }) {
+  try {
+    const { slug } = await params;
+    const found = await getFundBySlug(slug);
+    if (!found) return card("Fund rates in Kenya", null, null, GOLD);
+    const { fund, bundle } = found;
+    const gross = fund.grossRate;
+    const net = netRate(fund, bundle.whtPct);
+    const accent = /^#[0-9a-f]{6}$/i.test(fund.brandColor ?? "") ? fund.brandColor! : GOLD;
+    return card(
+      fund.name,
+      gross != null ? `${gross.toFixed(2)}%` : null,
+      net != null && gross != null && net !== gross ? `${net.toFixed(2)}% after tax` : null,
+      accent,
+    );
+  } catch (err) {
+    console.error("[og] fund image failed:", err);
+    return card("Fund rates in Kenya", null, null, GOLD);
+  }
 }

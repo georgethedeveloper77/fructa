@@ -1,6 +1,10 @@
+import 'dart:async';
+
+import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../data/models/fund.dart';
 import '../data/providers.dart';
 import '../features/alerts/alerts_page.dart';
 import '../features/company/company_page.dart';
@@ -22,6 +26,7 @@ import 'main_scaffold.dart';
 ///   `reports`                             push Reports
 ///   `wrap` | `wrap/<i>`                   open this week's wrap (at story i)
 ///   `fund/<id>`                           push the fund's detail page
+///   `fundslug/<slug>`                     the same, from a fructa.africa link
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 
 String? _pending;
@@ -77,6 +82,19 @@ void _route(BuildContext ctx, String target) {
     return;
   }
 
+  if (target.startsWith('fundslug/')) {
+    final slug = target.substring('fundslug/'.length);
+    final fund = _fundForSlug(c.read(fundsByIdProvider).values, slug);
+    if (fund != null) {
+      rootNavigatorKey.currentState?.push(
+        MaterialPageRoute(builder: (_) => CompanyPage(fund)),
+      );
+    } else {
+      tab(0);
+    }
+    return;
+  }
+
   if (target.startsWith('fund/')) {
     final id = target.substring('fund/'.length);
     final fund = c.read(fundsByIdProvider)[id];
@@ -88,4 +106,51 @@ void _route(BuildContext ctx, String target) {
       tab(0); // fund not in the snapshot yet  land on Markets
     }
   }
+}
+
+// ── fructa.africa links ────────────────────────────────────────────────────
+
+/// The web's slug for a fund name: lowercase, every run of other characters
+/// a dash, no dash at either end. Matches slugify() in fructa-admin, so a
+/// /funds/<slug> link finds the same fund here.
+String _slugify(String s) => s
+    .toLowerCase()
+    .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
+    .replaceAll(RegExp(r'^-+|-+$'), '');
+
+/// The fund a web slug names. The site adds the currency, or the id, when two
+/// funds share a name, so all three forms are tried.
+Fund? _fundForSlug(Iterable<Fund> funds, String slug) {
+  for (final f in funds) {
+    final base = _slugify(f.name);
+    if (slug == base ||
+        slug == '$base-${f.currency.toLowerCase()}' ||
+        slug == '$base-${_slugify(f.id)}') {
+      return f;
+    }
+  }
+  return null;
+}
+
+/// The app target a fructa.africa link points at, or null for one it does
+/// not handle (it then stays in the browser on the next tap).
+String? targetForWebLink(Uri uri) {
+  if (uri.host != 'fructa.africa' && uri.host != 'www.fructa.africa')
+    return null;
+  final parts = uri.pathSegments.where((p) => p.isNotEmpty).toList();
+  if (parts.length >= 2 && parts.first == 'funds')
+    return 'fundslug/${parts[1]}';
+  if (parts.isNotEmpty && parts.first == 'rates') return 'markets';
+  return null;
+}
+
+StreamSubscription<Uri>? _links;
+
+/// Listens for fructa.africa links opening the app, the first one included,
+/// and routes them like a notification tap (buffered until the app is up).
+void startWebLinks() {
+  _links ??= AppLinks().uriLinkStream.listen((uri) {
+    final target = targetForWebLink(uri);
+    if (target != null) handlePushTarget(target);
+  });
 }

@@ -61,6 +61,7 @@ Future<void> main() async {
       // land.
       Push.onOpenTarget = handlePushTarget;
       LocalNotify.onOpenTarget = handlePushTarget;
+      startWebLinks();
 
       // FIRST PAINT. Everything past this point is off the boot path. Nothing
       // that touches a platform SDK or the network is allowed to block the
