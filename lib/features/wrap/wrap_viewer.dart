@@ -1060,16 +1060,19 @@ class _FitWords extends StatelessWidget {
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, box) {
       final scale = MediaQuery.textScalerOf(context);
+      // Measure in the font the Text will actually use (the app's Inter via
+      // DefaultTextStyle), not the platform default, or wide words still break.
+      final real = DefaultTextStyle.of(context).style.merge(style);
       var widest = 0.0;
       for (final w in text.split(' ')) {
         final tp = TextPainter(
-          text: TextSpan(text: w, style: style),
+          text: TextSpan(text: w, style: real),
           textDirection: TextDirection.ltr,
           textScaler: scale,
         )..layout();
         if (tp.width > widest) widest = tp.width;
       }
-      final size = style.fontSize ?? 9;
+      final size = real.fontSize ?? 9;
       final fitted = widest > box.maxWidth && widest > 0
           ? size * box.maxWidth / widest * 0.98
           : size;

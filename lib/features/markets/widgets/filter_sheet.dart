@@ -78,11 +78,12 @@ class _FundFilterBarState extends ConsumerState<FundFilterBar> {
     final filtered =
         ref.watch(marketMoneyCcyProvider) != null ||
         ref.watch(marketSortProvider) != MarketSort.highestYield;
-    return Padding(
+    return Container(
+      height: 40,
       padding: const EdgeInsets.fromLTRB(20, 0, 12, 0),
       child: Row(
         children: [
-          const RateBasisToggle(),
+          const FittedBox(fit: BoxFit.scaleDown, child: RateBasisToggle()),
           Expanded(
             child: Text(
               label,
@@ -150,7 +151,7 @@ class _RevealFilter extends StatelessWidget {
         children: [
           AnimatedSize(
             duration: Duration(milliseconds: calm ? 0 : 420),
-            curve: Curves.easeOutBack,
+            curve: Curves.easeOutCubic,
             child: !open
                 ? const SizedBox.shrink()
                 : Padding(
@@ -229,13 +230,11 @@ class _IconAction extends StatelessWidget {
     required this.icon,
     required this.tooltip,
     required this.onTap,
-    this.dot = false,
   });
 
   final IconData icon;
   final String tooltip;
   final VoidCallback onTap;
-  final bool dot;
 
   @override
   Widget build(BuildContext context) {
@@ -256,22 +255,7 @@ class _IconAction extends StatelessWidget {
             height: 40,
             child: Stack(
               alignment: Alignment.center,
-              children: [
-                Icon(icon, size: 18, color: c.text),
-                if (dot)
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: Container(
-                      width: 7,
-                      height: 7,
-                      decoration: BoxDecoration(
-                        color: c.accent,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-              ],
+              children: [Icon(icon, size: 18, color: c.text)],
             ),
           ),
         ),
