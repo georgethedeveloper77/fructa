@@ -4,9 +4,33 @@ import { getFunds } from "@/lib/funds.server";
 
 const SITE = "https://fructa.africa";
 
+/*
+ * The sitemap Google reads to find every page.
+ *
+ * Search Console reported "Couldn't fetch" on it. It was force-dynamic, so
+ * every Googlebot request waited on two Supabase reads before a byte came
+ * back, and any slow or failed read turned the whole sitemap into an error.
+ * Now it is built at most once an hour and served from cache, and a failed
+ * read still returns the pages that do not depend on it, so the sitemap can
+ * be slow to refresh but never broken.
+ */
+export const revalidate = 3600;
+
+async function safe<T>(read: () => Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await read();
+  } catch (err) {
+    console.error("[sitemap] read failed:", err);
+    return fallback;
+  }
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
-  const [posts, { funds }] = await Promise.all([getPosts(), getFunds()]);
+  const [posts, funds] = await Promise.all([
+    safe(getPosts, [] as Awaited<ReturnType<typeof getPosts>>),
+    safe(async () => (await getFunds()).funds, [] as Awaited<ReturnType<typeof getFunds>>["funds"]),
+  ]);
 
   return [
     { url: `${SITE}/`, lastModified: now, changeFrequency: "daily", priority: 1 },
@@ -17,10 +41,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE}/privacy`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
     { url: `${SITE}/terms`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
 
-    // One entry per fund. These are the pages that answer a named search, and
-    // without them in the sitemap Google has to find 144 URLs by crawl alone.
-    // changeFrequency is daily because the rate genuinely changes daily; lying
-    // about it is one of the few ways to actively lose crawl budget.
+    // One entry per fund: the pages that answer a named search.
     ...funds.map((f) => ({
       url: `${SITE}/funds/${f.slug}`,
       lastModified: f.updatedAt ? new Date(f.updatedAt) : now,
@@ -36,5 +57,3 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
   ];
 }
-
-export const dynamic = "force-dynamic";
