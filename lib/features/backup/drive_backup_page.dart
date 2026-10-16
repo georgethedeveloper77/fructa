@@ -47,18 +47,24 @@ Future<void> connectDrive(BuildContext context, WidgetRef ref) async {
 
     Future<void> backupNow() async {
       final at = await svc.backup(interactive: false);
-      if (at != null) await status.backedUp(at);
+      if (at != null) {
+        await status.backedUp(at);
+      }
     }
 
     Future<void> apply(List<Holding> items, DateTime? at) async {
       await ref.read(backupServiceProvider).applyRestore(items);
       ref.invalidate(holdingsProvider);
-      if (at != null) await status.backedUp(at);
+      if (at != null) {
+        await status.backedUp(at);
+      }
     }
 
     if (found == null || found.isEmpty) {
       if (phone.isNotEmpty) await backupNow();
-      if (context.mounted) _toast(context, t('drive.toast.connected'));
+      if (context.mounted) {
+        _toast(context, t('drive.toast.connected'));
+      }
       return;
     }
 
@@ -85,7 +91,9 @@ Future<void> connectDrive(BuildContext context, WidgetRef ref) async {
     if (plan.conflicts.isEmpty) {
       if (plan.fromDrive == 0) {
         await backupNow();
-        if (context.mounted) _toast(context, t('drive.toast.phoneNewest'));
+        if (context.mounted) {
+          _toast(context, t('drive.toast.phoneNewest'));
+        }
       } else {
         await apply(plan.merged, null);
         await backupNow();
@@ -111,9 +119,13 @@ Future<void> connectDrive(BuildContext context, WidgetRef ref) async {
     if (keepDrive == null) return;
     await apply(keepDrive ? plan.preferDrive() : plan.merged, null);
     await backupNow();
-    if (context.mounted) _toast(context, t('drive.toast.done'));
+    if (context.mounted) {
+      _toast(context, t('drive.toast.done'));
+    }
   } catch (_) {
-    if (context.mounted) _toast(context, t('backup.driveFailed'));
+    if (context.mounted) {
+      _toast(context, t('backup.driveFailed'));
+    }
   }
 }
 
@@ -318,11 +330,12 @@ class _DriveBackupPageState extends ConsumerState<DriveBackupPage> {
                                     await ref
                                         .read(driveStatusProvider.notifier)
                                         .backedUp(at);
-                                    if (context.mounted)
+                                    if (context.mounted) {
                                       _toast(
                                         context,
                                         t('backup.driveBackedUp'),
                                       );
+                                    }
                                   }
                                 }),
                           style: OutlinedButton.styleFrom(
