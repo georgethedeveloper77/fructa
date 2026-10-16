@@ -1518,5 +1518,8 @@
   "tools.today.dueTitle": "Your {manager} statement is due",
   "tools.today.lastTime": "Last time: ",
   "tools.today.check": "Check",
-  "reports.onPhoneLong": "Made on this phone. Your statements and figures never leave it."
+  "reports.onPhoneLong": "Made on this phone. Your statements and figures never leave it.",
+  "tools.stmt.tag": "YOUR LAST CHECK",
+  "tools.goal.noneSub": "At the rate your fund really pays",
+  "tools.goal.add": "Set a goal"
 }

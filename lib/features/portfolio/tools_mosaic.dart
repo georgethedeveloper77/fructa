@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hive/hive.dart';
 
 import '../../core/format.dart';
 import '../../core/i18n.dart';
@@ -29,6 +30,7 @@ class _Tool {
     required this.tone,
     required this.onTap,
     this.locked = false,
+    this.attention = false,
   });
 
   final String key;
@@ -40,6 +42,33 @@ class _Tool {
 
   /// Pro, for a free user: a PRO tag, and the paywall on tap.
   final bool locked;
+
+  /// Needs the user now, while another tool leads: an accent edge and dot.
+  final bool attention;
+
+  _Tool flagged() => _Tool(
+    key: key,
+    icon: icon,
+    name: name,
+    figure: figure,
+    tone: tone,
+    onTap: onTap,
+    locked: locked,
+    attention: true,
+  );
+}
+
+const _usageKey = 'tools_usage';
+
+/// The most opened tool, once tools have been opened [minTaps] times in all.
+String? _favourite(Map<String, int> usage, {required int minTaps}) {
+  final total = usage.values.fold(0, (a, b) => a + b);
+  if (total < minTaps) return null;
+  String? best;
+  for (final e in usage.entries) {
+    if (best == null || e.value > usage[best]!) best = e.key;
+  }
+  return best;
 }
 
 /// What leads the mosaic: the one thing that needs the user most right now.
@@ -71,8 +100,9 @@ class _Featured {
 /// two more as tiles beside it, the rest as wide rows under. Every tile
 /// carries a live figure, so a glance says which is worth a tap.
 ///
-/// What leads, first match wins: a statement due today, a new monthly report,
-/// a fund to watch, the goal nearest its date, else Check a statement.
+/// What leads: the tool the user opens most, counted on the phone. Before
+/// that is known, whatever needs them most. A tool that needs them while
+/// another leads gets an accent edge and a dot.
 class ToolsMosaic extends ConsumerWidget {
   const ToolsMosaic({super.key});
 
@@ -89,6 +119,22 @@ class ToolsMosaic extends ConsumerWidget {
 
     void push(Widget page) =>
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
+
+    // How often each tool is opened, kept on the phone, so the one the user
+    // reaches for most can lead.
+    final box = Hive.box('settings');
+    final usage = Map<String, int>.from(
+      (box.get(_usageKey) as Map?)?.map(
+            (k, v) => MapEntry('$k', (v as num).toInt()),
+          ) ??
+          const <String, int>{},
+    );
+    void use(String key, VoidCallback then) {
+      usage[key] = (usage[key] ?? 0) + 1;
+      box.put(_usageKey, usage);
+      then();
+    }
+
     Future<void> pro(String source, VoidCallback then) async {
       if (!access && !await ensurePro(context, ref, source: source)) return;
       if (!context.mounted) return;
@@ -144,152 +190,207 @@ class ToolsMosaic extends ConsumerWidget {
     String kes(double v) =>
         hide ? 'KES \u2022\u2022\u2022\u2022' : money('KES', v);
 
-    // ── Pick what leads ────────────────────────────────────────────────────
-    final _Featured featured;
-    if (statementsOn && dueManager != null) {
-      featured = _Featured(
-        key: 'stmt',
-        icon: Icons.fact_check_outlined,
-        tag: t('tools.due.tag'),
-        title: t('tools.due.title', {'manager': dueManager}),
-        big: gap == null
-            ? t('tools.due.big')
-            : '${gap >= 0 ? '+' : ''}${gap.toStringAsFixed(2)}',
-        bigTone: gapTone,
-        unit: gap == null ? t('tools.due.unitNew') : t('tools.due.unit'),
-        action: t('tools.due.action'),
-        onTap: () => push(const StatementCheckPage()),
-      );
-    } else if (report != null) {
-      featured = _Featured(
-        key: 'reports',
-        icon: Icons.description_outlined,
-        tag: t('tools.report.tag'),
-        title: t('tools.report.title', {
-          'month': monthName(report.from).split(' ').first,
-        }),
-        big: '+${kes(report.earnedKes)}',
-        bigTone: c.up,
-        unit: t('tools.report.unit', {
-          'month': monthName(report.from).split(' ').first,
-        }),
-        action: t('tools.report.action'),
-        onTap: () => push(const ReportsPage()),
-      );
-    } else if (access && things > 0) {
-      featured = _Featured(
-        key: 'watch',
-        icon: Icons.visibility_outlined,
-        tag: t('tools.watch.tag'),
-        title: t('tools.watch.title'),
-        big: '$things',
-        bigTone: c.down,
-        unit: t(things == 1 ? 'tools.watch.unitOne' : 'tools.watch.unit'),
-        action: t('tools.watch.action'),
-        onTap: () => push(const FundWatchPage()),
-      );
-    } else if (nearest != null) {
-      featured = _Featured(
-        key: 'goals',
-        icon: Icons.flag_outlined,
-        tag: t('tools.goal.tag'),
-        title: nearest.name,
-        big: '$nearestPct%',
-        bigTone: c.accentInk,
-        unit: t('tools.goal.unit', {'target': kes(nearest.target)}),
-        action: t('tools.goal.action'),
-        onTap: () => push(GoalDetailPage(goalId: nearest.id)),
-      );
-    } else if (statementsOn) {
-      featured = _Featured(
-        key: 'stmt',
-        icon: Icons.fact_check_outlined,
-        tag: t('tools.start.tag'),
-        title: t('tools.start.title'),
-        big: gap == null
-            ? ''
-            : '${gap >= 0 ? '+' : ''}${gap.toStringAsFixed(2)}',
-        bigTone: gapTone,
-        unit: gap == null ? t('tools.start.unit') : t('tools.due.unit'),
-        action: t('tools.start.action'),
-        onTap: () => push(const StatementCheckPage()),
-      );
-    } else {
-      featured = _Featured(
-        key: 'reports',
-        icon: Icons.description_outlined,
-        tag: t('tools.reports.tag'),
-        title: t('tools.reports.name'),
-        big: '',
-        bigTone: c.accentInk,
-        unit: t('tools.reports.sub'),
-        action: t('tools.report.action'),
-        onTap: () => push(const ReportsPage()),
-      );
+    // ── What each tool looks like when it leads ────────────────────────────
+    _Featured? leadFor(String key) {
+      switch (key) {
+        case 'stmt':
+          if (!statementsOn) return null;
+          if (dueManager != null) {
+            return _Featured(
+              key: 'stmt',
+              icon: Icons.fact_check_outlined,
+              tag: t('tools.due.tag'),
+              title: t('tools.due.title', {'manager': dueManager}),
+              big: gap == null
+                  ? t('tools.due.big')
+                  : '${gap >= 0 ? '+' : ''}${gap.toStringAsFixed(2)}',
+              bigTone: gapTone,
+              unit: gap == null ? t('tools.due.unitNew') : t('tools.due.unit'),
+              action: t('tools.due.action'),
+              onTap: () => use('stmt', () => push(const StatementCheckPage())),
+            );
+          }
+          return _Featured(
+            key: 'stmt',
+            icon: Icons.fact_check_outlined,
+            tag: gap == null ? t('tools.start.tag') : t('tools.stmt.tag'),
+            title: t('tools.start.title'),
+            big: gap == null
+                ? ''
+                : '${gap >= 0 ? '+' : ''}${gap.toStringAsFixed(2)}',
+            bigTone: gapTone,
+            unit: gap == null ? t('tools.start.unit') : t('tools.due.unit'),
+            action: t('tools.start.action'),
+            onTap: () => use('stmt', () => push(const StatementCheckPage())),
+          );
+        case 'reports':
+          if (report != null) {
+            final month = monthName(report.from).split(' ').first;
+            return _Featured(
+              key: 'reports',
+              icon: Icons.description_outlined,
+              tag: t('tools.report.tag'),
+              title: t('tools.report.title', {'month': month}),
+              big: '+${kes(report.earnedKes)}',
+              bigTone: c.up,
+              unit: t('tools.report.unit', {'month': month}),
+              action: t('tools.report.action'),
+              onTap: () => use('reports', () => push(const ReportsPage())),
+            );
+          }
+          return _Featured(
+            key: 'reports',
+            icon: Icons.description_outlined,
+            tag: t('tools.reports.tag'),
+            title: t('tools.reports.name'),
+            big: '',
+            bigTone: c.accentInk,
+            unit: t('tools.reports.sub'),
+            action: t('tools.report.action'),
+            onTap: () => use('reports', () => push(const ReportsPage())),
+          );
+        case 'watch':
+          if (!access) return null;
+          return _Featured(
+            key: 'watch',
+            icon: Icons.visibility_outlined,
+            tag: t('tools.watch.tag'),
+            title: t('tools.watch.title'),
+            big: '$things',
+            bigTone: things == 0 ? c.up : c.down,
+            unit: things == 0
+                ? t('tools.watch.clear')
+                : t(things == 1 ? 'tools.watch.unitOne' : 'tools.watch.unit'),
+            action: t('tools.watch.action'),
+            onTap: () => use('watch', () => push(const FundWatchPage())),
+          );
+        case 'goals':
+          if (!access) return null;
+          if (nearest == null) {
+            return _Featured(
+              key: 'goals',
+              icon: Icons.flag_outlined,
+              tag: t('tools.goal.tag'),
+              title: t('tools.goal.none'),
+              big: '',
+              bigTone: c.accentInk,
+              unit: t('tools.goal.noneSub'),
+              action: t('tools.goal.add'),
+              onTap: () => use('goals', () => showGoalSheet(context)),
+            );
+          }
+          return _Featured(
+            key: 'goals',
+            icon: Icons.flag_outlined,
+            tag: t('tools.goal.tag'),
+            title: nearest.name,
+            big: '$nearestPct%',
+            bigTone: c.accentInk,
+            unit: t('tools.goal.unit', {'target': kes(nearest.target)}),
+            action: t('tools.goal.action'),
+            onTap: () =>
+                use('goals', () => push(GoalDetailPage(goalId: nearest.id))),
+          );
+      }
+      return null;
     }
 
+    // ── Pick what leads ────────────────────────────────────────────────────
+    // The tool the user opens most leads, once they have opened tools a few
+    // times. Until then, whatever needs them most: a statement due today, a
+    // new monthly report, a fund to watch, their nearest goal, else the
+    // statement check.
+    final urgent = <String>{
+      if (statementsOn && dueManager != null) 'stmt',
+      if (report != null) 'reports',
+      if (access && things > 0) 'watch',
+    };
+    final favourite = _favourite(usage, minTaps: 3);
+    _Featured? lead = favourite == null ? null : leadFor(favourite);
+    for (final k in [
+      if (statementsOn && dueManager != null) 'stmt',
+      if (report != null) 'reports',
+      if (access && things > 0) 'watch',
+      if (nearest != null) 'goals',
+      'stmt',
+      'reports',
+    ]) {
+      lead ??= leadFor(k);
+    }
+    final featured = lead!;
+
     // ── The rest, as tiles ─────────────────────────────────────────────────
-    final tools = <_Tool>[
-      if (statementsOn)
-        _Tool(
-          key: 'stmt',
-          icon: Icons.fact_check_outlined,
-          name: t('tools.stmt.name'),
-          figure: gapText,
-          tone: gapTone,
-          onTap: () => push(const StatementCheckPage()),
-        ),
-      _Tool(
-        key: 'reports',
-        icon: Icons.description_outlined,
-        name: t('tools.reports.name'),
-        figure: report != null
-            ? t('tools.reports.ready', {
-                'month': monthName(report.from).split(' ').first,
-              })
-            : t('tools.reports.sub'),
-        tone: report != null ? c.accentInk : c.muted,
-        onTap: () => push(const ReportsPage()),
-      ),
-      if (access || teaser)
-        _Tool(
-          key: 'watch',
-          icon: Icons.visibility_outlined,
-          name: t('tools.watch.name'),
-          figure: !access
-              ? t('tools.watch.teaser')
-              : things == 0
-              ? t('tools.watch.clear')
-              : t(things == 1 ? 'tools.watch.one' : 'tools.watch.n', {
-                  'n': '$things',
-                }),
-          tone: !access ? c.muted : (things == 0 ? c.up : c.down),
-          locked: !access,
-          onTap: () =>
-              pro('portfolio_watch', () => push(const FundWatchPage())),
-        ),
-      if (access || teaser)
-        _Tool(
-          key: 'goals',
-          icon: Icons.flag_outlined,
-          name: t('tools.goal.name'),
-          figure: nearest == null
-              ? t('tools.goal.none')
-              : t('tools.goal.row', {
-                  'name': nearest.name,
-                  'pct': '$nearestPct',
-                }),
-          tone: nearest == null ? c.muted : c.accentInk,
-          locked: !access,
-          onTap: () => pro('portfolio_goals', () {
-            if (nearest == null) {
-              showGoalSheet(context);
-            } else {
-              push(GoalDetailPage(goalId: nearest.id));
-            }
-          }),
-        ),
-    ].where((x) => x.key != featured.key).toList();
+    final tools =
+        <_Tool>[
+              if (statementsOn)
+                _Tool(
+                  key: 'stmt',
+                  icon: Icons.fact_check_outlined,
+                  name: t('tools.stmt.name'),
+                  figure: gapText,
+                  tone: gapTone,
+                  onTap: () =>
+                      use('stmt', () => push(const StatementCheckPage())),
+                ),
+              _Tool(
+                key: 'reports',
+                icon: Icons.description_outlined,
+                name: t('tools.reports.name'),
+                figure: report != null
+                    ? t('tools.reports.ready', {
+                        'month': monthName(report.from).split(' ').first,
+                      })
+                    : t('tools.reports.sub'),
+                tone: report != null ? c.accentInk : c.muted,
+                onTap: () => use('reports', () => push(const ReportsPage())),
+              ),
+              if (access || teaser)
+                _Tool(
+                  key: 'watch',
+                  icon: Icons.visibility_outlined,
+                  name: t('tools.watch.name'),
+                  figure: !access
+                      ? t('tools.watch.teaser')
+                      : things == 0
+                      ? t('tools.watch.clear')
+                      : t(things == 1 ? 'tools.watch.one' : 'tools.watch.n', {
+                          'n': '$things',
+                        }),
+                  tone: !access ? c.muted : (things == 0 ? c.up : c.down),
+                  locked: !access,
+                  onTap: () => pro(
+                    'portfolio_watch',
+                    () => use('watch', () => push(const FundWatchPage())),
+                  ),
+                ),
+              if (access || teaser)
+                _Tool(
+                  key: 'goals',
+                  icon: Icons.flag_outlined,
+                  name: t('tools.goal.name'),
+                  figure: nearest == null
+                      ? t('tools.goal.none')
+                      : t('tools.goal.row', {
+                          'name': nearest.name,
+                          'pct': '$nearestPct',
+                        }),
+                  tone: nearest == null ? c.muted : c.accentInk,
+                  locked: !access,
+                  onTap: () => pro(
+                    'portfolio_goals',
+                    () => use('goals', () {
+                      if (nearest == null) {
+                        showGoalSheet(context);
+                      } else {
+                        push(GoalDetailPage(goalId: nearest.id));
+                      }
+                    }),
+                  ),
+                ),
+            ]
+            .where((x) => x.key != featured.key)
+            .map((x) => urgent.contains(x.key) ? x.flagged() : x)
+            .toList();
 
     final side = tools.take(2).toList();
     final wide = tools.skip(2).toList();
@@ -557,7 +658,10 @@ class _ToolTile extends StatelessWidget {
       color: c.s1,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
-        side: BorderSide(color: c.line),
+        side: BorderSide(
+          color: tool.attention ? c.accent : c.line,
+          width: tool.attention ? 1.5 : 1,
+        ),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -583,6 +687,15 @@ class _ToolTile extends StatelessWidget {
                         _Icon(tool.icon, size: 36),
                         const Spacer(),
                         if (tool.locked) const ProBadge(),
+                        if (tool.attention)
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: c.accent,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
                       ],
                     ),
                     const Spacer(),

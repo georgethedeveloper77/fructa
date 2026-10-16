@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hive/hive.dart';
 
+import '../../../app/main_scaffold.dart';
 import '../../../core/i18n.dart';
 import '../../../core/motion/motion.dart';
 import '../../../core/theme.dart';
@@ -15,10 +15,10 @@ import '../markets_controller.dart';
 /// in [showFundFilterSheet]; the icon carries a dot while either is changed
 /// from its default, so a filtered list never passes for the whole market.
 ///
-/// The first time Markets opens on a tab with more than one currency, the
+/// Each time the Markets tab opens on a list with more than one currency, the
 /// filter widens into KES and USD chips for five seconds, so the currency
-/// filter is found without opening the sheet. It then folds back into the
-/// icon and never repeats. Reduced motion skips it.
+/// filter is found without opening the sheet, then folds back into the icon.
+/// Reduced motion skips it.
 class FundFilterBar extends ConsumerStatefulWidget {
   const FundFilterBar({super.key, required this.label, this.onCompare});
 
@@ -33,7 +33,6 @@ class FundFilterBar extends ConsumerStatefulWidget {
 }
 
 class _FundFilterBarState extends ConsumerState<FundFilterBar> {
-  static const _seenKey = 'markets_ccy_reveal_seen';
   static const _hold = Duration(seconds: 5);
 
   bool _open = false;
@@ -43,16 +42,18 @@ class _FundFilterBarState extends ConsumerState<FundFilterBar> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeReveal());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && ref.read(selectedTabProvider) == AppTab.markets) _reveal();
+    });
   }
 
-  void _maybeReveal() {
+  void _reveal() {
     if (!mounted) return;
-    final box = Hive.box('settings');
-    if (box.get(_seenKey, defaultValue: false) as bool) return;
     if (ref.read(tabCurrenciesProvider).length < 2) return;
-    box.put(_seenKey, true);
     if (reduceMotion(context)) return;
+    _show?.cancel();
+    _hide?.cancel();
+    setState(() => _open = false);
     _show = Timer(const Duration(milliseconds: 500), () {
       if (mounted) setState(() => _open = true);
     });
@@ -70,6 +71,10 @@ class _FundFilterBarState extends ConsumerState<FundFilterBar> {
 
   @override
   Widget build(BuildContext context) {
+    // Every visit to the Markets tab plays it again.
+    ref.listen(selectedTabProvider, (prev, next) {
+      if (next == AppTab.markets && prev != AppTab.markets) _reveal();
+    });
     final c = context.c;
     final label = widget.label;
     final onCompare = widget.onCompare;
