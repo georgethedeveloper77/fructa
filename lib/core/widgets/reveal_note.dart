@@ -14,6 +14,8 @@ class RevealNote extends StatefulWidget {
     required this.label,
     required this.body,
     this.padding = EdgeInsets.zero,
+    this.actionLabel,
+    this.onAction,
   });
 
   final String label;
@@ -21,6 +23,10 @@ class RevealNote extends StatefulWidget {
   /// The full text. Separate paragraphs with a blank line.
   final String body;
   final EdgeInsets padding;
+
+  /// An optional link shown under the opened text, such as a fuller sheet.
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
   @override
   State<RevealNote> createState() => _RevealNoteState();
@@ -80,13 +86,35 @@ class _RevealNoteState extends State<RevealNote> {
                 child: _open
                     ? Padding(
                         padding: const EdgeInsets.fromLTRB(21, 0, 4, 8),
-                        child: Text(
-                          widget.body,
-                          style: TextStyle(
-                            color: c.muted,
-                            fontSize: 12.5,
-                            height: 1.5,
-                          ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.body,
+                              style: TextStyle(
+                                color: c.muted,
+                                fontSize: 12.5,
+                                height: 1.5,
+                              ),
+                            ),
+                            if (widget.actionLabel != null &&
+                                widget.onAction != null)
+                              TextButton(
+                                style: TextButton.styleFrom(
+                                  padding: EdgeInsets.zero,
+                                  minimumSize: const Size(0, 40),
+                                  foregroundColor: c.accentInk,
+                                ),
+                                onPressed: widget.onAction,
+                                child: Text(
+                                  widget.actionLabel!,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                       )
                     : const SizedBox(width: double.infinity),

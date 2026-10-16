@@ -286,21 +286,30 @@ class MarketsPage extends ConsumerWidget {
                                   ),
                             ),
                           ),
+                        // The footnote under the list: its label shows, the
+                        // text opens on tap. Under SACCOs it is the one about
+                        // savings not coming back on demand.
                         SliverToBoxAdapter(
-                          child: Disclaimer(
-                            isSacco
-                                // Literal, not an i18n key, because the key does
-                                // not exist yet and a missing key would render as
-                                // the key. The one sentence that must never be
-                                // absent from a SACCO list is the one about the
-                                // money not coming back on demand.
-                                ? 'A SACCO pays interest on your savings, but those savings are locked until you resign your membership. The dividend is paid on share capital, which is capped, and is not the same thing. Fructa does not open accounts or hold your money.'
+                          child: RevealNote(
+                            label: t(
+                              isSacco
+                                  ? 'markets.sacco.aboutLabel'
+                                  : isStock
+                                  ? 'stocks.aboutLabel'
+                                  : 'markets.aboutLabel',
+                            ),
+                            body: isSacco
+                                ? t('markets.sacco.about')
                                 : isStock
                                 ? t('stocks.disclaimer')
                                 : t('markets.disclaimer'),
-                            onTap: (!isSacco && !isStock)
+                            actionLabel: !isSacco && !isStock
+                                ? t('markets.aboutMore')
+                                : null,
+                            onAction: !isSacco && !isStock
                                 ? () => showYieldsInfoSheet(context)
                                 : null,
+                            padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
                           ),
                         ),
                         // ── Market context (post-rates): the "beating

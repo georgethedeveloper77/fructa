@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../motion/motion.dart';
 import '../theme.dart';
 
 /// Explanatory text, in a container that says it was placed rather than left
@@ -20,7 +21,11 @@ import '../theme.dart';
 /// One widget, so the treatment is consistent and there is one place to tune
 /// it. [title] is optional: without one this is an icon and a paragraph, which
 /// is enough for a short aside.
-class NoteCard extends StatelessWidget {
+///
+/// A note with a [title] shows only the title until tapped, then its text, so
+/// explanations wait for the reader who wants them. An untitled aside is
+/// short by nature and always shows.
+class NoteCard extends StatefulWidget {
   const NoteCard(
     this.body, {
     super.key,
@@ -42,57 +47,104 @@ class NoteCard extends StatelessWidget {
   final EdgeInsets margin;
 
   @override
+  State<NoteCard> createState() => _NoteCardState();
+}
+
+class _NoteCardState extends State<NoteCard> {
+  bool _open = false;
+
+  @override
   Widget build(BuildContext context) {
+    final body = widget.body;
+    final title = widget.title;
+    final tone = widget.tone;
     if (body.trim().isEmpty) return const SizedBox.shrink();
     final c = context.c;
     final tint = tone ?? c.faint;
+    final folds = title != null;
+    final calm = reduceMotion(context);
+
+    final card = Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: c.s1,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: c.line),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 1),
+            child: Icon(widget.icon, size: 16, color: tint),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (title != null)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: TextStyle(
+                            color: tone ?? c.text,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      AnimatedRotation(
+                        turns: _open ? 0.5 : 0,
+                        duration: Duration(milliseconds: calm ? 0 : 200),
+                        child: Icon(
+                          Icons.expand_more_rounded,
+                          size: 18,
+                          color: c.faint,
+                        ),
+                      ),
+                    ],
+                  ),
+                AnimatedSize(
+                  duration: Duration(milliseconds: calm ? 0 : 220),
+                  curve: Curves.easeOutCubic,
+                  alignment: Alignment.topLeft,
+                  child: !folds || _open
+                      ? Padding(
+                          padding: EdgeInsets.only(top: folds ? 6 : 0),
+                          child: Text(
+                            body,
+                            style: TextStyle(
+                              color: c.muted,
+                              fontSize: 12.5,
+                              height: 1.55,
+                            ),
+                          ),
+                        )
+                      : const SizedBox(width: double.infinity),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
 
     return Padding(
-      padding: margin,
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: c.s1,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: c.line),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(top: 1),
-              child: Icon(icon, size: 16, color: tint),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (title != null) ...[
-                    Text(
-                      title!,
-                      style: TextStyle(
-                        color: tone ?? c.text,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                  ],
-                  Text(
-                    body,
-                    style: TextStyle(
-                      color: c.muted,
-                      fontSize: 12.5,
-                      height: 1.55,
-                    ),
-                  ),
-                ],
+      padding: widget.margin,
+      child: !folds
+          ? card
+          : Semantics(
+              button: true,
+              expanded: _open,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => setState(() => _open = !_open),
+                child: card,
               ),
             ),
-          ],
-        ),
-      ),
     );
   }
 }

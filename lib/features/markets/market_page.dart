@@ -123,7 +123,7 @@ class _MarketPageState extends ConsumerState<MarketPage> {
             tbill: tb91,
           ),
           const _Venues(),
-          NoteCard(t('market.note'), title: t('common.goodToKnow')),
+          NoteCard(t('market.note'), title: t('market.noteTitle')),
         ],
       ),
     );
@@ -1264,6 +1264,10 @@ class _Venues extends ConsumerWidget {
                     title: t('market.venue.sacco'),
                     value: saccoMedian,
                     suffix: '%',
+                    summary: t('market.venue.saccoShort', {
+                      'n': '${saccos.length}',
+                      'j': '$joinable',
+                    }),
                     body: t('market.venue.saccoBody', {
                       'n': '${saccos.length}',
                       'j': '$joinable',
@@ -1277,6 +1281,9 @@ class _Venues extends ConsumerWidget {
                     title: t('market.venue.nse'),
                     value: cap / 1e12,
                     suffix: 'T',
+                    summary: t('market.venue.nseShort', {
+                      'n': '${priced.length}',
+                    }),
                     body: divMedian == null
                         ? t('market.venue.nseBody', {'n': '${priced.length}'})
                         : t('market.venue.nseBodyYield', {
@@ -1301,6 +1308,7 @@ class _Venue extends StatelessWidget {
     required this.title,
     required this.value,
     required this.suffix,
+    required this.summary,
     required this.body,
     required this.divider,
   });
@@ -1310,6 +1318,9 @@ class _Venue extends StatelessWidget {
   final String title;
   final double value;
   final String suffix;
+
+  /// One line under the title; [body] explains it on tap.
+  final String summary;
   final String body;
   final bool divider;
 
@@ -1376,15 +1387,9 @@ class _Venue extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 5),
-                Text(
-                  body,
-                  style: TextStyle(
-                    color: c.muted,
-                    fontSize: 11.5,
-                    height: 1.55,
-                  ),
-                ),
+                const SizedBox(height: 3),
+                Text(summary, style: TextStyle(color: c.muted, fontSize: 12)),
+                RevealNote(label: t('market.venue.why'), body: body),
               ],
             ),
           ),
