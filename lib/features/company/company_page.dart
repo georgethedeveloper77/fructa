@@ -11,9 +11,11 @@ import '../../core/format.dart';
 import '../../core/i18n.dart';
 import '../../core/insights/signal_engine.dart';
 import '../../core/push.dart';
+import '../../core/rate_basis.dart';
 import '../../core/theme.dart';
 import '../../core/widgets/follow_star.dart';
 import '../../core/widgets/kit.dart';
+import '../../core/widgets/rate_basis_toggle.dart';
 import '../../data/models/agent.dart';
 import '../../data/models/company.dart';
 import '../../data/models/fund.dart';
@@ -97,6 +99,14 @@ _ProjScale _projScaleFor(Fund f) {
 
 // Human labels for the stated-benchmark key (funds.benchmark_key, 0026). Used
 // by the benchmark-relative line and the terms card.
+/// Benchmark names short enough for the one-line context strip.
+const _benchShort = {
+  'tbill_91': '91-day bill',
+  'tbill_182': '182-day bill',
+  'tbill_364': '364-day bill',
+  'cbr': 'CBR',
+};
+
 const _benchLabels = {
   'tbill_91': '91-day T-bill',
   'tbill_182': '182-day T-bill',
@@ -379,6 +389,7 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
     );
     final agents = ref.watch(agentsForCompanyProvider(fund.companyId));
     final d7 = ref.watch(fundDeltaProvider(fund.id));
+    final showNet = ref.watch(showNetProvider);
 
     final rate = fund.currentRate;
     // Was `Tax.net(rate)`, which deducted 15% unconditionally and hardcoded the
@@ -633,125 +644,158 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
                 ),
               ],
 
-              // ── Big rate + % gross + inline 7d delta ───────────────────
+              // ── Big rate on the app-wide basis, with the Gross/Net toggle ──
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Glitch(
-                      trigger: rate,
-                      a: c.accent,
-                      b: c.down,
-                      child: Text.rich(
-                        TextSpan(
-                          style: TextStyle(
-                            color: c.text,
-                            fontFamily: fructaFonts.mono,
-                            fontWeight: FontWeight.w600,
-                            height: 1,
+                    Expanded(
+                      child: StretchSwap(
+                        value: showNet,
+                        alignment: Alignment.centerLeft,
+                        child: Glitch(
+                          trigger: rate,
+                          a: c.accent,
+                          b: c.down,
+                          child: Text.rich(
+                            TextSpan(
+                              style: TextStyle(
+                                color: c.text,
+                                fontFamily: fructaFonts.mono,
+                                fontWeight: FontWeight.w600,
+                                height: 1,
+                              ),
+                              // Driven by the sealed Headline rather than by a bool.
+                              // The old two-way branch had nowhere to put a realized
+                              // period return, so a special fund either fell into the
+                              // yield arm and got taxed and compounded, or into the
+                              // NAV arm and rendered a dash. The switch is exhaustive,
+                              // so a fourth kind of number cannot be added later
+                              // without the compiler stopping here first.
+                              children: switch (fund.headlineWith(
+                                latestReturn,
+                              )) {
+                                YieldHeadline(:final gross) => [
+                                  TextSpan(
+                                    text:
+                                        (showNet && !fund.taxFree
+                                                ? netPct
+                                                : gross)
+                                            .toStringAsFixed(2),
+                                    style: const TextStyle(
+                                      fontSize: 46,
+                                      letterSpacing: -1.5,
+                                    ),
+                                  ),
+                                  TextSpan(
+                                    text: t(
+                                      showNet && !fund.taxFree
+                                          ? 'company.unitNet'
+                                          : 'company.unitGross',
+                                    ),
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      color: c.muted,
+                                    ),
+                                  ),
+                                ],
+                                // The period rides WITH the number, never beside it as
+                                // decoration. 4.74% over a quarter and 4.74% over a
+                                // year print identically and are not the same fact.
+                                ReturnHeadline(:final pct, :final label) => [
+                                  TextSpan(
+                                    text:
+                                        '${pct >= 0 ? '+' : ''}${pct.toStringAsFixed(2)}',
+                                    style: TextStyle(
+                                      fontSize: 46,
+                                      letterSpacing: -1.5,
+                                      color: c.delta(pct),
+                                    ),
+                                  ),
+                                  TextSpan(
+                                    text: '% $label',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      color: c.muted,
+                                    ),
+                                  ),
+                                ],
+                                NoHeadline()
+                                    when fund.showsPrice &&
+                                        fund.pricePerUnit != null =>
+                                  [
+                                    TextSpan(
+                                      text: fund.pricePerUnit!.toStringAsFixed(
+                                        2,
+                                      ),
+                                      style: const TextStyle(
+                                        fontSize: 46,
+                                        letterSpacing: -1.5,
+                                      ),
+                                    ),
+                                    TextSpan(
+                                      text: ' / unit',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        color: c.muted,
+                                      ),
+                                    ),
+                                  ],
+                                NoHeadline() => [
+                                  TextSpan(
+                                    text: t('common.dash'),
+                                    style: const TextStyle(
+                                      fontSize: 46,
+                                      letterSpacing: -1.5,
+                                    ),
+                                  ),
+                                ],
+                              },
+                            ),
                           ),
-                          // Driven by the sealed Headline rather than by a bool.
-                          // The old two-way branch had nowhere to put a realized
-                          // period return, so a special fund either fell into the
-                          // yield arm and got taxed and compounded, or into the
-                          // NAV arm and rendered a dash. The switch is exhaustive,
-                          // so a fourth kind of number cannot be added later
-                          // without the compiler stopping here first.
-                          children: switch (fund.headlineWith(latestReturn)) {
-                            YieldHeadline(:final gross) => [
-                              TextSpan(
-                                text: gross.toStringAsFixed(2),
-                                style: const TextStyle(
-                                  fontSize: 46,
-                                  letterSpacing: -1.5,
-                                ),
-                              ),
-                              TextSpan(
-                                text: '% gross',
-                                style: TextStyle(fontSize: 18, color: c.muted),
-                              ),
-                            ],
-                            // The period rides WITH the number, never beside it as
-                            // decoration. 4.74% over a quarter and 4.74% over a
-                            // year print identically and are not the same fact.
-                            ReturnHeadline(:final pct, :final label) => [
-                              TextSpan(
-                                text:
-                                    '${pct >= 0 ? '+' : ''}${pct.toStringAsFixed(2)}',
-                                style: TextStyle(
-                                  fontSize: 46,
-                                  letterSpacing: -1.5,
-                                  color: c.delta(pct),
-                                ),
-                              ),
-                              TextSpan(
-                                text: '% $label',
-                                style: TextStyle(fontSize: 18, color: c.muted),
-                              ),
-                            ],
-                            NoHeadline()
-                                when fund.showsPrice &&
-                                    fund.pricePerUnit != null =>
-                              [
-                                TextSpan(
-                                  text: fund.pricePerUnit!.toStringAsFixed(2),
-                                  style: const TextStyle(
-                                    fontSize: 46,
-                                    letterSpacing: -1.5,
-                                  ),
-                                ),
-                                TextSpan(
-                                  text: ' / unit',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    color: c.muted,
-                                  ),
-                                ),
-                              ],
-                            NoHeadline() => [
-                              TextSpan(
-                                text: t('common.dash'),
-                                style: const TextStyle(
-                                  fontSize: 46,
-                                  letterSpacing: -1.5,
-                                ),
-                              ),
-                            ],
-                          },
                         ),
                       ),
                     ),
-                    if (d7 != null && d7 != 0) ...[
-                      const SizedBox(width: 12),
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 6),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              d7 > 0
-                                  ? Icons.arrow_drop_up
-                                  : Icons.arrow_drop_down,
-                              size: 18,
-                              color: c.delta(d7),
-                            ),
-                            Text(
-                              '${d7.abs().toStringAsFixed(2)} ${t('company.pts7d')}',
-                              style: TextStyle(
-                                color: c.delta(d7),
-                                fontFamily: fructaFonts.mono,
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
+                    // Only where there is a tax to switch between.
+                    if (fund.showsYield && rate != null && !fund.taxFree)
+                      const Padding(
+                        padding: EdgeInsets.only(bottom: 4),
+                        child: RateBasisToggle(),
                       ),
-                    ],
                   ],
                 ),
               ),
+              if (fund.showsYield && rate != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 6, 20, 0),
+                  child: Wrap(
+                    spacing: 12,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(
+                        fund.taxFree
+                            ? t('today.taxFreeCaption')
+                            : showNet
+                            ? t('today.netCaption', {
+                                'wht': cfg.whtPct.toStringAsFixed(0),
+                              })
+                            : t('today.grossCaption'),
+                        style: TextStyle(color: c.muted, fontSize: 12),
+                      ),
+                      if (d7 != null && d7 != 0)
+                        Text(
+                          '${d7 > 0 ? '+' : '-'}${d7.abs().toStringAsFixed(2)} ${t('company.pts7d')}',
+                          style: TextStyle(
+                            color: c.delta(d7),
+                            fontFamily: fructaFonts.mono,
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
 
               // ── Priced as of (NAV funds only) ──────────────────────────
               if (fund.showsPrice && fund.priceAsOf != null)
@@ -783,11 +827,15 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
                     : fund.showsYield
                     ? _Triad(
                         netLabel: fund.taxFree
-                            ? 'TAX-FREE'
-                            : 'NET (${cfg.whtPct.toStringAsFixed(0)}% WHT)',
-                        netValue: rate != null
-                            ? '${netPct.toStringAsFixed(2)}%'
-                            : t('common.dash'),
+                            ? t('company.triad.taxFree')
+                            : showNet
+                            ? t('company.triad.gross')
+                            : t('company.triad.net'),
+                        netValue: rate == null
+                            ? t('common.dash')
+                            : showNet && !fund.taxFree
+                            ? '${rate.toStringAsFixed(2)}%'
+                            : '${netPct.toStringAsFixed(2)}%',
                         real: fund.showsYield ? realPct : null,
                         minValue: fund.minInvest != null
                             ? '${fund.currency} ${_commas(fund.minInvest!)}'
@@ -802,23 +850,18 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
                       ),
               ),
 
-              // ── Rank vs same-type peers (context line) ─────────────────
-              if (fundRank case final r? when rankTotal > 1)
-                _RankLine(
-                  rank: r,
+              // ── Rank and benchmark, one line ───────────────────────────
+              if ((fundRank != null && rankTotal > 1) ||
+                  (bench != null && rate != null))
+                _ContextLine(
+                  rank: rankTotal > 1 ? fundRank : null,
                   total: rankTotal,
-                  typeLabel: _typeName(fund).toLowerCase(),
-                  currency: fund.currency,
+                  peers: '${fund.currency} ${_typeName(fund).toLowerCase()}',
+                  vsBench: bench != null && rate != null
+                      ? rate - bench.rate
+                      : null,
+                  benchLabel: _benchShort[fund.benchmarkKey] ?? 'benchmark',
                 ),
-
-              // ── Beating / trailing its stated benchmark ────────────────
-              if (bench != null && rate != null)
-                _BenchmarkLine(
-                  fundRate: rate,
-                  benchRate: bench.rate,
-                  label: _benchLabels[fund.benchmarkKey] ?? 'benchmark',
-                ),
-
               // ── Detail tabs. Each fact lives in exactly one tab, so the
               //    page reads as four short answers instead of one long
               //    scroll that repeated the rate four times. ───────────────
@@ -1422,129 +1465,81 @@ class _ContactBtn extends StatelessWidget {
   }
 }
 
-class _RankLine extends StatelessWidget {
-  const _RankLine({
+/// Where the fund stands, in one line: its rank among same-type peers in its
+/// currency, and its gross yield against its stated benchmark.
+class _ContextLine extends StatelessWidget {
+  const _ContextLine({
     required this.rank,
     required this.total,
-    required this.typeLabel,
-    required this.currency,
+    required this.peers,
+    required this.vsBench,
+    required this.benchLabel,
   });
-  final int rank;
+
+  final int? rank;
   final int total;
-  final String typeLabel;
-  final String currency;
+  final String peers;
+  final double? vsBench;
+  final String benchLabel;
 
   @override
   Widget build(BuildContext context) {
     final c = context.c;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-        decoration: BoxDecoration(
-          color: c.s1,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: c.line),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.trending_up, size: 15, color: c.accent),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text.rich(
-                TextSpan(
-                  style: TextStyle(
-                    color: c.muted,
-                    fontFamily: fructaFonts.mono,
-                    fontSize: 11,
-                    height: 1.3,
-                  ),
-                  children: [
-                    TextSpan(
-                      text: '#$rank of $total',
-                      style: TextStyle(
-                        color: c.accent,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    TextSpan(text: ' $currency $typeLabel funds by net yield'),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+    final figure = TextStyle(
+      fontFamily: fructaFonts.mono,
+      fontSize: 13,
+      fontWeight: FontWeight.w700,
     );
-  }
-}
-
-/// Under-triad line: this fund's gross yield vs its stated benchmark, on the
-/// same basis the fact sheet uses (fund vs T-bill). Only rendered when a
-/// benchmark is seeded and the fund yields (see the call-site guard).
-class _BenchmarkLine extends StatelessWidget {
-  const _BenchmarkLine({
-    required this.fundRate,
-    required this.benchRate,
-    required this.label,
-  });
-  final double fundRate;
-  final double benchRate;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.c;
-    final delta = fundRate - benchRate;
-    final beating = delta >= 0;
-    final col = c.delta(delta);
-    final mag = beating
-        ? '+${delta.toStringAsFixed(2)}'
-        : delta.abs().toStringAsFixed(2);
+    final word = TextStyle(color: c.muted, fontSize: 13);
+    final v = vsBench;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        constraints: const BoxConstraints(minHeight: 44),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
           color: c.s1,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(color: c.line),
         ),
-        child: Row(
+        child: Wrap(
+          spacing: 10,
+          runSpacing: 6,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            Icon(
-              beating ? Icons.trending_up : Icons.trending_down,
-              size: 15,
-              color: col,
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text.rich(
+            if (rank != null)
+              Text.rich(
                 TextSpan(
-                  style: TextStyle(
-                    color: c.muted,
-                    fontFamily: fructaFonts.mono,
-                    fontSize: 11,
-                    height: 1.3,
-                  ),
                   children: [
-                    TextSpan(text: beating ? 'Beating the ' : 'Trailing the '),
                     TextSpan(
-                      text: label,
-                      style: TextStyle(
-                        color: c.text,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      text: '#$rank',
+                      style: figure.copyWith(color: c.accentInk),
                     ),
-                    const TextSpan(text: ' by '),
                     TextSpan(
-                      text: '$mag pts',
-                      style: TextStyle(color: col, fontWeight: FontWeight.w700),
+                      text:
+                          ' ${t('company.rankOf', {'n': '$total', 'peers': peers})}',
+                      style: word,
                     ),
                   ],
                 ),
               ),
-            ),
+            if (rank != null && v != null)
+              Container(width: 1, height: 16, color: c.line),
+            if (v != null)
+              Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(
+                      text: '${v >= 0 ? '+' : ''}${v.toStringAsFixed(2)}',
+                      style: figure.copyWith(color: c.delta(v)),
+                    ),
+                    TextSpan(
+                      text: ' ${t('company.vsBench', {'bench': benchLabel})}',
+                      style: word,
+                    ),
+                  ],
+                ),
+              ),
           ],
         ),
       ),
@@ -1559,9 +1554,16 @@ class _BenchmarkLine extends StatelessWidget {
 /// it's theme-aware and reads clearly on both surfaces without introducing raw
 /// hex. Renders nothing for a type we haven't placed on the scale (e.g.
 /// `special` or a null legacy type), so it never guesses a level.
-class _RiskBand extends StatelessWidget {
+class _RiskBand extends StatefulWidget {
   const _RiskBand(this.fundType);
   final String? fundType;
+
+  @override
+  State<_RiskBand> createState() => _RiskBandState();
+}
+
+class _RiskBandState extends State<_RiskBand> {
+  bool _open = false;
 
   static const _steps = 4;
 
@@ -1601,7 +1603,7 @@ class _RiskBand extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.c;
-    final s = _spec(fundType);
+    final s = _spec(widget.fundType);
     if (s == null) return const SizedBox.shrink();
     // fraction for a 1-based level on a 4-step scale (0, .33, .67, 1).
     double frac(int level) => (level - 1) / (_steps - 1);
@@ -1609,88 +1611,121 @@ class _RiskBand extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-        decoration: BoxDecoration(
-          color: c.s1,
+      child: Material(
+        color: c.s1,
+        shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: c.line),
+          side: BorderSide(color: c.line),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => setState(() => _open = !_open),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  t('company.risk.title'),
-                  style: TextStyle(
-                    color: c.faint,
-                    fontFamily: fructaFonts.mono,
-                    fontSize: 10.5,
-                    letterSpacing: 1.6,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  s.label.toUpperCase(),
-                  style: TextStyle(
-                    color: labelHue,
-                    fontFamily: fructaFonts.mono,
-                    fontSize: 11,
-                    letterSpacing: 0.6,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                for (var i = 1; i <= _steps; i++) ...[
-                  if (i > 1) const SizedBox(width: 6),
-                  Expanded(
-                    child: Container(
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: i <= s.level ? hueAt(c, frac(i)) : c.s3,
-                        borderRadius: BorderRadius.circular(3),
+                Row(
+                  children: [
+                    Text(
+                      t('company.risk.title'),
+                      style: TextStyle(
+                        color: c.faint,
+                        fontFamily: fructaFonts.mono,
+                        fontSize: 10.5,
+                        letterSpacing: 1.6,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
+                    const Spacer(),
+                    Text(
+                      s.label.toUpperCase(),
+                      style: TextStyle(
+                        color: labelHue,
+                        fontFamily: fructaFonts.mono,
+                        fontSize: 11,
+                        letterSpacing: 0.6,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    AnimatedRotation(
+                      turns: _open ? 0.5 : 0,
+                      duration: Duration(
+                        milliseconds: reduceMotion(context) ? 0 : 200,
+                      ),
+                      child: Icon(
+                        Icons.expand_more_rounded,
+                        size: 18,
+                        color: c.faint,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    for (var i = 1; i <= _steps; i++) ...[
+                      if (i > 1) const SizedBox(width: 6),
+                      Expanded(
+                        child: Container(
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: i <= s.level ? hueAt(c, frac(i)) : c.s3,
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 7),
+                Row(
+                  children: [
+                    Text(
+                      t('company.risk.lower'),
+                      style: TextStyle(
+                        color: c.faint,
+                        fontFamily: fructaFonts.mono,
+                        fontSize: 8.5,
+                        letterSpacing: 0.4,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      t('company.risk.higher'),
+                      style: TextStyle(
+                        color: c.faint,
+                        fontFamily: fructaFonts.mono,
+                        fontSize: 8.5,
+                        letterSpacing: 0.4,
+                      ),
+                    ),
+                  ],
+                ),
+                AnimatedSize(
+                  duration: Duration(
+                    milliseconds: reduceMotion(context) ? 0 : 220,
                   ),
-                ],
+                  curve: Curves.easeOutCubic,
+                  alignment: Alignment.topLeft,
+                  child: _open
+                      ? Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: Text(
+                            s.note,
+                            style: TextStyle(
+                              color: c.muted,
+                              fontSize: 12.5,
+                              height: 1.45,
+                            ),
+                          ),
+                        )
+                      : const SizedBox(width: double.infinity),
+                ),
               ],
             ),
-            const SizedBox(height: 7),
-            Row(
-              children: [
-                Text(
-                  t('company.risk.lower'),
-                  style: TextStyle(
-                    color: c.faint,
-                    fontFamily: fructaFonts.mono,
-                    fontSize: 8.5,
-                    letterSpacing: 0.4,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  t('company.risk.higher'),
-                  style: TextStyle(
-                    color: c.faint,
-                    fontFamily: fructaFonts.mono,
-                    fontSize: 8.5,
-                    letterSpacing: 0.4,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              s.note,
-              style: TextStyle(color: c.muted, fontSize: 12.5, height: 1.45),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -2237,14 +2272,14 @@ class _Triad extends StatelessWidget {
         _TriadCell(k: netLabel, v: netValue),
         divider(),
         _TriadCell(
-          k: 'REAL VS INFL.',
+          k: t('company.triad.real'),
           v: real != null
               ? '${real! >= 0 ? '+' : ''}${real!.toStringAsFixed(2)}%'
               : t('common.dash'),
           color: real != null ? c.delta(real!) : null,
         ),
         divider(),
-        _TriadCell(k: 'MIN INVEST', v: minValue),
+        _TriadCell(k: t('company.triad.min'), v: minValue),
       ],
     );
   }
@@ -2275,7 +2310,7 @@ class _TriadNav extends StatelessWidget {
     return Row(
       children: [
         _TriadCell(
-          k: '1Y RETURN',
+          k: t('company.triad.oneYear'),
           v: oneYear != null
               ? '${oneYear! >= 0 ? '+' : ''}${oneYear!.toStringAsFixed(2)}%'
               : t('common.dash'),
@@ -2283,13 +2318,13 @@ class _TriadNav extends StatelessWidget {
         ),
         divider(),
         _TriadCell(
-          k: 'DISTRIBUTION',
+          k: t('company.triad.distribution'),
           v: distribution != null
               ? '${distribution!.toStringAsFixed(2)}%'
               : t('common.dash'),
         ),
         divider(),
-        _TriadCell(k: 'MIN INVEST', v: minValue),
+        _TriadCell(k: t('company.triad.min'), v: minValue),
       ],
     );
   }
@@ -2329,13 +2364,13 @@ class _TriadReturn extends StatelessWidget {
     );
 
     final avgKey = averageLabel == null
-        ? 'AVERAGE'
-        : 'AVG ${averageLabel!.toUpperCase()}';
+        ? t('company.triad.average')
+        : t('company.triad.averageOf', {'period': averageLabel!.toLowerCase()});
 
     return Row(
       children: [
         _TriadCell(
-          k: 'QUOTED',
+          k: t('company.triad.quoted'),
           v: switch (netOf) {
             NetOf.feesAndTax => 'Net of fees and tax',
             NetOf.fees => 'Net of fees',
@@ -2352,7 +2387,7 @@ class _TriadReturn extends StatelessWidget {
           color: average != null ? c.delta(average!) : null,
         ),
         divider(),
-        _TriadCell(k: 'MIN INVEST', v: minValue),
+        _TriadCell(k: t('company.triad.min'), v: minValue),
       ],
     );
   }
@@ -2371,24 +2406,19 @@ class _TriadCell extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            k,
-            style: TextStyle(
-              color: c.faint,
-              fontFamily: fructaFonts.mono,
-              fontSize: 9.5,
-              letterSpacing: 1,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+          Text(k, style: TextStyle(color: c.muted, fontSize: 11)),
           const SizedBox(height: 3),
-          Text(
-            v,
-            style: TextStyle(
-              color: color ?? c.text,
-              fontFamily: fructaFonts.mono,
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              v,
+              style: TextStyle(
+                color: color ?? c.text,
+                fontFamily: fructaFonts.mono,
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],

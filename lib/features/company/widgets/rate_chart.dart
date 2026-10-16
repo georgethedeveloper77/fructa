@@ -60,11 +60,24 @@ class _RateChartState extends ConsumerState<RateChart> {
     );
   }
 
+  /// The points inside the window that ends on the series' last day (today,
+  /// once anchored). The rate in force when the window opens is carried in as
+  /// its first point, so a fund that has not moved draws a flat line across
+  /// the whole range instead of an empty or shortened one.
   List<RateHistory> _inRange(List<RateHistory> all, ChartRange r) {
     if (all.isEmpty) return all;
     final last = DateTime.parse(all.last.asOf);
     final cutoff = last.subtract(Duration(days: r.days));
-    return all.where((p) => !DateTime.parse(p.asOf).isBefore(cutoff)).toList();
+    final inside = all
+        .where((p) => !DateTime.parse(p.asOf).isBefore(cutoff))
+        .toList();
+    RateHistory? before;
+    for (final p in all) {
+      if (DateTime.parse(p.asOf).isBefore(cutoff)) before = p;
+    }
+    if (before == null) return inside;
+    if (inside.isNotEmpty && inside.first.asOf == _iso(cutoff)) return inside;
+    return [RateHistory(asOf: _iso(cutoff), rate: before.rate), ...inside];
   }
 
   /// Smallest range (by day span) whose window holds >=2 points; falls back
@@ -360,16 +373,24 @@ List<FlSpot> _reveal(List<FlSpot> spots, double t) {
 /// rate disagrees with the headline. Dated today, or the day after the last
 /// point when history is already dated today, so x stays strictly increasing.
 List<RateHistory> _anchored(List<RateHistory> sorted, double? current) {
-  if (current == null || sorted.isEmpty) return sorted;
-  if ((sorted.last.rate - current).abs() < 0.005) return sorted;
+  if (sorted.isEmpty) return sorted;
   final last = DateTime.parse(sorted.last.asOf);
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);
+  final same = current == null || (sorted.last.rate - current).abs() < 0.005;
+  // Unchanged and already dated today: nothing to add.
+  if (same && !today.isAfter(last)) return sorted;
+  // Every range ends today: an unchanged rate is carried to today, a changed
+  // one is added as today's print.
   final at = today.isAfter(last) ? today : last.add(const Duration(days: 1));
-  final iso =
-      '${at.year.toString().padLeft(4, '0')}-${at.month.toString().padLeft(2, '0')}-${at.day.toString().padLeft(2, '0')}';
-  return [...sorted, RateHistory(asOf: iso, rate: current)];
+  return [
+    ...sorted,
+    RateHistory(asOf: _iso(at), rate: same ? sorted.last.rate : current!),
+  ];
 }
+
+String _iso(DateTime d) =>
+    '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
 /// Days covered by [points], first to last.
 int _span(List<RateHistory> points) {
