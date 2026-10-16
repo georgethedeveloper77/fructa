@@ -16,6 +16,7 @@ import '../statements/statement_pages.dart';
 import '../wrap/wrap_engine.dart';
 import '../wrap/wrap_feed.dart';
 import '../wrap/wrap_viewer.dart';
+import 'archive_hybrid.dart';
 import 'report_archive.dart';
 import 'report_notify.dart';
 import 'report_pdf.dart';
@@ -279,12 +280,11 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
 
               if (hasArchive) ...[
                 _Heading(t('reports.archive')),
-                _Archive(
+                ArchiveHybrid(
                   periods: periods,
-                  full: full,
-                  hide: hide,
-                  onFree: _openFree,
-                  onSaved: _openSaved,
+                  isFree: (w, i) => full || _freeToOpen(w, i),
+                  onOpen: (w, free) =>
+                      full || !free ? _openSaved(w) : _openFree(w),
                 ),
               ],
             ],
@@ -857,244 +857,15 @@ class _TaxCard extends StatelessWidget {
 }
 
 /// Past wraps, weeks or months, each led by its headline story.
-/// Past wraps by period: days, weeks, months, quarters and years.
-///
-/// Free: today and last week. Pro: every wrap, with the user's own stories
-/// for that week or month joined on from the phone.
-class _Archive extends StatefulWidget {
-  const _Archive({
-    required this.periods,
-    required this.full,
-    required this.hide,
-    required this.onFree,
-    required this.onSaved,
-  });
-
-  final Map<WrapPeriod, List<ArchiveWrap>> periods;
-  final bool full;
-  final bool hide;
-  final ValueChanged<ArchiveWrap> onFree;
-  final ValueChanged<ArchiveWrap> onSaved;
-
-  @override
-  State<_Archive> createState() => _ArchiveState();
-}
-
-class _ArchiveState extends State<_Archive> {
-  late WrapPeriod _on = (widget.periods[WrapPeriod.week]?.isNotEmpty ?? false)
-      ? WrapPeriod.week
-      : WrapPeriod.values.firstWhere(
-          (p) => widget.periods[p]?.isNotEmpty ?? false,
-          orElse: () => WrapPeriod.week,
-        );
-
-  static const _labels = {
-    WrapPeriod.day: 'reports.days',
-    WrapPeriod.week: 'reports.weeks',
-    WrapPeriod.month: 'reports.months',
-    WrapPeriod.quarter: 'reports.quarters',
-    WrapPeriod.year: 'reports.years',
-  };
-
-  static const _empty = {
-    WrapPeriod.day: 'reports.daysEmpty',
-    WrapPeriod.week: 'reports.weeksEmpty',
-    WrapPeriod.month: 'reports.monthsEmpty',
-    WrapPeriod.quarter: 'reports.quartersEmpty',
-    WrapPeriod.year: 'reports.yearsEmpty',
-  };
-
-  /// Free users open today's stories and the latest past week.
-  bool _free(ArchiveWrap w, int i) {
-    if (widget.full) return true;
-    if (w.period == WrapPeriod.week) return i == 0;
-    if (w.period == WrapPeriod.day) {
-      final n = DateTime.now();
-      return w.to.year == n.year && w.to.month == n.month && w.to.day == n.day;
-    }
-    return false;
+/// Free users open today's stories and the latest past week; everything
+/// else in the archive is Pro. [index] counts from the newest.
+bool _freeToOpen(ArchiveWrap w, int index) {
+  if (w.period == WrapPeriod.week) return index == 0;
+  if (w.period == WrapPeriod.day) {
+    final n = DateTime.now();
+    return w.to.year == n.year && w.to.month == n.month && w.to.day == n.day;
   }
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.c;
-    final items = widget.periods[_on] ?? const <ArchiveWrap>[];
-
-    Widget tab(WrapPeriod p) {
-      final on = p == _on;
-      return Expanded(
-        child: Semantics(
-          selected: on,
-          button: true,
-          child: GestureDetector(
-            onTap: () => setState(() => _on = p),
-            child: AnimatedContainer(
-              duration: Duration(milliseconds: reduceMotion(context) ? 0 : 200),
-              constraints: const BoxConstraints(minHeight: 38),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: on ? c.text : c.s2.withValues(alpha: 0),
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  t(_labels[p]!),
-                  style: TextStyle(
-                    color: on ? c.bg : c.muted,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Column(
-      children: [
-        Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16),
-          padding: const EdgeInsets.all(3),
-          decoration: BoxDecoration(
-            color: c.s2,
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: Row(children: [for (final p in WrapPeriod.values) tab(p)]),
-        ),
-        const SizedBox(height: 10),
-        _Card(
-          child: items.isEmpty
-              ? Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Text(
-                    t(_empty[_on]!),
-                    style: TextStyle(color: c.muted, fontSize: 13),
-                  ),
-                )
-              : Column(
-                  children: [
-                    for (var i = 0; i < items.length; i++)
-                      _ArchiveRow(
-                        wrap: items[i],
-                        first: i == 0,
-                        hide: widget.hide,
-                        locked: !_free(items[i], i),
-                        onTap: () => !widget.full && _free(items[i], i)
-                            ? widget.onFree(items[i])
-                            : widget.onSaved(items[i]),
-                      ),
-                  ],
-                ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ArchiveRow extends StatelessWidget {
-  const _ArchiveRow({
-    required this.wrap,
-    required this.first,
-    required this.hide,
-    required this.locked,
-    required this.onTap,
-  });
-
-  final ArchiveWrap wrap;
-  final bool first;
-  final bool hide;
-  final bool locked;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.c;
-    final monthly = wrap.period == WrapPeriod.month;
-    final earned = monthly ? _earnedIn(wrap.slides) : null;
-    WrapSlide? lead;
-    for (final s in wrap.slides) {
-      if (!s.personal) {
-        lead = s;
-        break;
-      }
-    }
-    final title = wrap.label.isNotEmpty
-        ? wrap.label
-        : monthly
-        ? monthName(wrap.from)
-        : t('reports.range', {
-            'from': dayLabel(wrap.from),
-            'to': dayLabel(wrap.to),
-          });
-    final figure = earned != null ? _kes(earned, hide: hide) : lead?.big ?? '';
-    final what = earned != null
-        ? t('reports.earnedShort')
-        : lead == null
-        ? t('reports.stories', {'n': '${wrap.slides.length}'})
-        : lead.title;
-    final tone = earned != null
-        ? c.up
-        : lead == null
-        ? c.muted
-        : switch (lead.tone) {
-            WrapTone.up => c.up,
-            WrapTone.down => c.down,
-            _ => c.accentInk,
-          };
-
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        constraints: const BoxConstraints(minHeight: 58),
-        padding: const EdgeInsets.fromLTRB(14, 8, 10, 8),
-        decoration: BoxDecoration(
-          border: first ? null : Border(top: BorderSide(color: c.line)),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: c.text,
-                      fontSize: 14.5,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text.rich(
-                    TextSpan(
-                      children: [
-                        if (figure.isNotEmpty)
-                          TextSpan(
-                            text: '$figure  ',
-                            style: fructaFonts.numeric(
-                              color: tone,
-                              size: 12,
-                              weight: FontWeight.w700,
-                            ),
-                          ),
-                        TextSpan(text: what),
-                      ],
-                    ),
-                    style: TextStyle(color: c.muted, fontSize: 12),
-                  ),
-                ],
-              ),
-            ),
-            if (locked) ...[const ProBadge(), const SizedBox(width: 6)],
-            Icon(Icons.chevron_right_rounded, color: c.faint, size: 20),
-          ],
-        ),
-      ),
-    );
-  }
+  return false;
 }
 
 /// Bordered PDF action, sized for a thumb.

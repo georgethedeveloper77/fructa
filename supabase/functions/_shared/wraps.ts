@@ -688,3 +688,32 @@ export const periodLabel = (row: { period: Period; period_start: string; period_
       return String(y);
   }
 };
+
+/** The period's numbers for the archive: the median at the end, its move, and whether a story was big. */
+export interface WrapStats {
+  median: number | null;
+  move: number | null;
+  big: boolean;
+}
+
+export function periodStats(m: Market, from: string, to: string, stories: Story[], cfg: Cfg): WrapStats {
+  const field = m.funds.filter(isKesMmf);
+  const a: number[] = [];
+  const b: number[] = [];
+  for (const f of field) {
+    const ra = rateAt(m, f.id, from);
+    const rb = rateAt(m, f.id, to);
+    if (rb != null) b.push(rb);
+    if (ra != null && rb != null) a.push(ra);
+  }
+  const medB = median(b);
+  const medA = median(a);
+  const big = stories.some((s) =>
+    s.type === "breadth" || s.type === "leader" || (s.stats.ratio != null && s.stats.ratio >= cfg.dailyRatio)
+  );
+  return {
+    median: medB == null ? null : Number(medB.toFixed(3)),
+    move: medA == null || medB == null ? null : Number((medB - medA).toFixed(3)),
+    big,
+  };
+}

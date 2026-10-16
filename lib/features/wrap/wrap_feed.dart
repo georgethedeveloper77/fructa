@@ -23,6 +23,9 @@ class ServerWrap {
     required this.label,
     required this.lead,
     required this.slides,
+    this.median,
+    this.move,
+    this.big = false,
   });
 
   final String id;
@@ -32,6 +35,14 @@ class ServerWrap {
   final String label;
   final String? lead;
   final List<WrapSlide> slides;
+
+  /// The KES money market median at the period's end, and its move over the
+  /// period, for the archive's timeline and calendar.
+  final double? median;
+  final double? move;
+
+  /// The period had an unusually large story.
+  final bool big;
 
   static ServerWrap? fromMap(Map m) {
     final period = WrapPeriod.values.asNameMap()[m['period']];
@@ -45,6 +56,9 @@ class ServerWrap {
       to: to,
       label: '${m['label'] ?? ''}',
       lead: m['lead'] as String?,
+      median: (m['median'] as num?)?.toDouble(),
+      move: (m['move'] as num?)?.toDouble(),
+      big: m['big'] == true,
       slides: [
         for (final s in (m['stories'] as List? ?? const []))
           if (s is Map) ?slideFromServer(s),
@@ -178,6 +192,9 @@ class ArchiveWrap {
     required this.to,
     required this.label,
     required this.slides,
+    this.median,
+    this.move,
+    this.big = false,
   });
 
   final String id;
@@ -186,6 +203,9 @@ class ArchiveWrap {
   final DateTime to;
   final String label;
   final List<WrapSlide> slides;
+  final double? median;
+  final double? move;
+  final bool big;
 }
 
 /// The archive by period, newest first. Weeks the phone kept from before the
@@ -221,6 +241,9 @@ final wrapArchiveByPeriodProvider =
             to: w.to,
             label: w.label,
             slides: [...w.slides, ...?(key == null ? null : mine[key])],
+            median: w.median,
+            move: w.move,
+            big: w.big,
           ),
         );
       }

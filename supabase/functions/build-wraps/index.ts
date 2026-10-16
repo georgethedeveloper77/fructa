@@ -35,9 +35,11 @@ import {
   leadOf,
   loadCfg,
   loadMarket,
+  type Market,
   nairobiNow,
   type Period,
   periodLabel,
+  periodStats,
   type Story,
   weekEnd,
   weekRow,
@@ -101,7 +103,7 @@ Deno.serve(async (req) => {
         : buildRange(m, meta.period_start, to, cfg, await recentWeekStories(db, meta, cfg));
       const cur = await current(db, meta.id);
       const status: Status = cur?.status ?? (meta.period_end > today ? "draft" : "live");
-      await save(db, meta, stories, status, cur, !!body.force);
+      await save(db, meta, stories, status, cur, !!body.force, m, cfg);
       log.push(`rebuilt ${meta.id}: ${stories.length} stories`);
       const n = await publishIndex(db);
       return Response.json({ ok: true, log, published: n });
@@ -123,7 +125,7 @@ Deno.serve(async (req) => {
     const dayStories = buildDay(m, now.day, cfg);
     if (dayStories.length) {
       const meta = dayRow(now.day);
-      await save(db, meta, dayStories, "live", await current(db, meta.id), false);
+      await save(db, meta, dayStories, "live", await current(db, meta.id), false, m, cfg);
       log.push(`day ${now.day}: ${dayStories.length} stories`);
     }
 
@@ -136,7 +138,7 @@ Deno.serve(async (req) => {
       const to = meta.period_end > now.day ? now.day : meta.period_end;
       const stories = buildRange(m, meta.period_start, to, cfg, await recentWeekStories(db, meta, cfg));
       const status: Status = cur?.status === "live" || due ? "live" : "draft";
-      const saved = await save(db, meta, stories, status, cur, false);
+      const saved = await save(db, meta, stories, status, cur, false, m, cfg);
       log.push(`${meta.id}: ${saved.status}, ${saved.stories.length} stories`);
       if (saved.status === "live" && !saved.pushed_at && cfg.weeklyPush && saved.stories.length) {
         log.push(await pushWeek(db, meta, saved.stories));
@@ -148,7 +150,7 @@ Deno.serve(async (req) => {
       const cur = await current(db, meta.id);
       if (cur && cur.status !== "draft") continue;
       const stories = buildRange(m, meta.period_start, meta.period_end, cfg);
-      await save(db, meta, stories, "live", cur, false);
+      await save(db, meta, stories, "live", cur, false, m, cfg);
       log.push(`${meta.id}: ${stories.length} stories`);
     }
 
@@ -185,7 +187,7 @@ async function backfill(db: SupabaseClient, cfg: Cfg, force: boolean, log: strin
 
   const put = async (meta: Meta, stories: Story[]) => {
     if (!stories.length || (exists.has(meta.id) && !force)) return;
-    await save(db, meta, stories, "live", force ? null : await current(db, meta.id), force);
+    await save(db, meta, stories, "live", force ? null : await current(db, meta.id), force, m, cfg);
     // Backfilled weeks are history: mark them pushed so a late run never
     // sends a push for an old week.
     if (meta.period === "week") {
@@ -279,15 +281,20 @@ async function save(
   wanted: Status,
   cur: Current | null,
   force: boolean,
+  m: Market,
+  cfg: Cfg,
 ): Promise<{ status: Status; stories: Story[]; pushed_at: string | null }> {
   const keepEdits = !!cur?.edited && !force;
   const stories = keepEdits ? cur!.stories : built;
+  const to = meta.period_end > nairobiNow().day ? nairobiNow().day : meta.period_end;
+  const stats = periodStats(m, meta.period_start, to, built, cfg);
   const status: Status = cur?.status === "held" ? "held" : wanted;
   const nowIso = new Date().toISOString();
   const { error } = await db.from("wraps").upsert({
     ...meta,
     stories,
     lead: leadOf(stories),
+    stats,
     status,
     edited: keepEdits,
     built_at: nowIso,
@@ -317,7 +324,7 @@ async function publishIndex(db: SupabaseClient): Promise<number> {
   for (const period of Object.keys(KEEP) as Period[]) {
     const { data, error } = await db
       .from("wraps")
-      .select("id,period,period_start,period_end,lead,stories,published_at")
+      .select("id,period,period_start,period_end,lead,stories,stats,published_at")
       .eq("period", period)
       .eq("status", "live")
       .order("period_end", { ascending: false })
@@ -331,6 +338,9 @@ async function publishIndex(db: SupabaseClient): Promise<number> {
         end: r.period_end,
         label: periodLabel(r as { id: string; period: Period; period_start: string; period_end: string }),
         lead: r.lead,
+        median: r.stats?.median ?? null,
+        move: r.stats?.move ?? null,
+        big: r.stats?.big ?? false,
         published_at: r.published_at,
         stories: r.stories,
       });

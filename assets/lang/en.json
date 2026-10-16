@@ -1460,5 +1460,11 @@
   "wrap.trend.falling": "Falling {n} weeks running",
   "wrap.tag.better": "A BETTER FUND FOR YOU",
   "wrap.tag.yourUp": "YOUR FUND MOVED UP",
-  "wrap.tag.yourDown": "YOUR FUND SLIPPED"
+  "wrap.tag.yourDown": "YOUR FUND SLIPPED",
+  "reports.medianTitle": "KES money market median",
+  "reports.calendarTitle": "Coloured by how the median moved",
+  "reports.key.rose": "Rates rose",
+  "reports.key.fell": "Rates fell",
+  "reports.key.big": "Big story",
+  "reports.pro": "Pro"
 }
