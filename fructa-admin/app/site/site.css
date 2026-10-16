@@ -36,3 +36,21 @@
 .fl-post-card p{color:var(--fl-mute);font-size:15px;margin:0}
 .fl-post-cover{width:100%;aspect-ratio:16/8;object-fit:cover;border-radius:14px;border:1px solid var(--fl-line2);margin-bottom:26px}
 .fl-empty{color:var(--fl-faint);font-size:15px;padding:40px 0}
+
+/* Wider main for the rates pages. */
+.fl-site-main.fl-site-wide{max-width:1140px}
+
+/* funds.css reads --fl-muted, which was never defined; alias it. */
+.fl{--fl-muted:var(--fl-mute)}
+
+/* The way to the app on phones: always in reach, never covering content. */
+.fl-getbar{display:none}
+@media (max-width:760px){
+  .fl-getbar{position:fixed;left:12px;right:12px;bottom:12px;z-index:40;display:flex;align-items:center;gap:12px;
+    padding:10px 10px 10px 16px;border-radius:18px;background:var(--fl-panel);border:1px solid var(--fl-line2);
+    box-shadow:0 10px 30px rgba(0,0,0,.35)}
+  .fl-getbar-text{flex:1;min-width:0;font-size:14px;font-weight:600;color:var(--fl-ink)}
+  .fl-getbar-sub{display:block;font-size:12px;font-weight:400;color:var(--fl-mute)}
+  .fl-getbar .fl-btn{min-height:44px}
+  .fl-has-getbar{padding-bottom:96px}
+}

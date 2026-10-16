@@ -16,6 +16,7 @@ import {
   peersOf,
   realRate,
 } from "@/lib/funds.server";
+import { CATEGORIES } from "@/lib/rates.server";
 import "../funds.css";
 
 /*
@@ -115,6 +116,11 @@ export default async function FundPage({
       ? Math.round(((gross - net) / 100) * 100000)
       : null;
 
+  // The rates page this fund is ranked on, for breadcrumbs and links.
+  const cat = CATEGORIES.find((c) => c.fundType === fund.fundType && c.currency === fund.currency);
+  const catName = cat ? cat.title.replace(/ fund$/, " funds") : "Funds";
+  const catHref = cat ? `/rates/${cat.slug}` : "/funds";
+
   const faqs = buildFaqs({
     name: fund.name,
     currency: fund.currency,
@@ -125,6 +131,17 @@ export default async function FundPage({
     minInvest: fund.minInvest,
     manager: fund.manager,
   });
+  // "Is X better than Cytonn or Etica?": answered with today's numbers for the
+  // two best-paying peers, which is exactly the comparison people search.
+  const rivals = peers.slice(0, 2).filter((p) => p.grossRate != null);
+  if (gross != null && rivals.length) {
+    faqs.splice(faqs.length - 1, 0, {
+      q: `Is ${fund.name} better than ${rivals.map((p) => p.name).join(" or ")}?`,
+      a: `Today ${fund.name} pays ${gross.toFixed(2)}%, ${rivals
+        .map((p) => `${p.name} ${p.grossRate!.toFixed(2)}%`)
+        .join(" and ")}, all gross. Compare every fund on the rates page.`,
+    });
+  }
 
   const jsonLd = [
     {
@@ -132,7 +149,7 @@ export default async function FundPage({
       "@type": "BreadcrumbList",
       itemListElement: [
         { "@type": "ListItem", position: 1, name: "Home", item: SITE },
-        { "@type": "ListItem", position: 2, name: "Funds", item: `${SITE}/funds` },
+        { "@type": "ListItem", position: 2, name: catName, item: `${SITE}${catHref}` },
         {
           "@type": "ListItem",
           position: 3,
@@ -173,9 +190,11 @@ export default async function FundPage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <nav className="fu-crumb">
-        <Link href="/funds">All funds</Link>
-        <span aria-hidden="true">/</span>
+      <nav className="fu-crumb" aria-label="Breadcrumb">
+        <Link href="/rates/money-market-funds">Rates today</Link>
+        <span aria-hidden="true">›</span>
+        <Link href={catHref}>{catName}</Link>
+        <span aria-hidden="true">›</span>
         <span>{fund.name}</span>
       </nav>
 
@@ -253,8 +272,7 @@ export default async function FundPage({
           <strong>
             {fund.currency} {taxCost.toLocaleString("en-KE")}
           </strong>{" "}
-          a year going to withholding tax, which is the part the advertised rate
-          does not mention.
+          a year going to withholding tax.
         </p>
       ) : null}
 
@@ -304,6 +322,11 @@ export default async function FundPage({
           <h2>
             Other {typeLabel.toLowerCase()}s in {fund.currency}
           </h2>
+          {cat ? (
+            <p className="fu-note">
+              <Link href={catHref}>All {cat.noun} today</Link>
+            </p>
+          ) : null}
           <ul className="fu-peers">
             {peers.map((p) => (
               <li key={p.id}>
@@ -321,23 +344,16 @@ export default async function FundPage({
       ) : null}
 
       <section className="fu-cta">
-        <h2>Track this fund in the app</h2>
-        <p>
-          Fructa tracks {bundle.funds.length} funds across money market, fixed
-          income, T-bills, SACCOs and the NSE, with gross, net and real on every
-          one. Set an alert and you will know the morning{" "}
-          {fund.name} moves. No account needed.
-        </p>
+        <h2>Track {fund.name} in the app</h2>
+        <p>Get told the morning its rate moves, with what you keep after tax. Free, no account needed.</p>
         <Link className="fl-btn fl-btn-gold" href="/get">
-          Get the app
+          Get Fructa
         </Link>
       </section>
 
       <p className="fu-disclaimer">
-        Rates are collected from fund managers, published factsheets, the CBK and
-        the CMA, and are shown for information only. They are not investment
-        advice, and a yield quoted today is not a promise about tomorrow. Confirm
-        any figure with the fund manager before you invest.
+        Rates come from fund managers, factsheets, the CBK and the CMA, for
+        information only. Not investment advice.
       </p>
     </SiteShell>
   );

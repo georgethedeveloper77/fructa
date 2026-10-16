@@ -1,0 +1,80 @@
+/* Public rates pages. Layered on landing.css and site.css (via SiteShell), so
+   the .fl tokens are in scope. Prefixed .ra- so nothing collides. */
+
+.ra-crumb{display:flex;flex-wrap:wrap;gap:8px;font-size:13px;color:var(--fl-faint);margin-bottom:18px}
+.ra-crumb a{color:var(--fl-mute)}
+.ra-crumb a:hover{color:var(--fl-gold)}
+
+.ra-h1{font-size:clamp(30px,4.4vw,46px);line-height:1.08;letter-spacing:-.025em;font-weight:700;margin:0}
+.ra-dateline{margin-top:10px;color:var(--fl-mute);font-size:16px}
+
+.ra-answer{margin:28px 0;padding:24px 26px;border-radius:22px;border:1px solid color-mix(in srgb,var(--fl-gold) 45%,transparent);
+  background:linear-gradient(135deg,color-mix(in srgb,var(--fl-gold) 14%,transparent),color-mix(in srgb,var(--fl-gold) 2%,transparent));
+  display:flex;flex-wrap:wrap;gap:24px 40px;align-items:center}
+.ra-answer-main{flex:1 1 280px}
+.ra-eyebrow{font-size:12px;font-weight:800;letter-spacing:.1em;color:var(--fl-gold-ink);text-transform:uppercase}
+.ra-big{margin-top:8px;font-family:var(--fl-mono),monospace;font-variant-numeric:tabular-nums;font-size:clamp(40px,6vw,56px);
+  font-weight:600;letter-spacing:-.03em;line-height:1;color:var(--fl-ink)}
+.ra-answer-sub{margin-top:8px;color:var(--fl-mute);font-size:15.5px;line-height:1.5}
+.ra-chips{display:flex;flex-wrap:wrap;gap:10px}
+.ra-chip{padding:12px 16px;border-radius:14px;background:var(--fl-panel);border:1px solid var(--fl-line);min-width:120px}
+.ra-chip-k{display:block;font-size:12px;color:var(--fl-mute)}
+.ra-chip-v{display:block;margin-top:2px;font-family:var(--fl-mono),monospace;font-variant-numeric:tabular-nums;font-size:20px;font-weight:600}
+.ra-up{color:var(--fl-up)}
+.ra-down{color:var(--fl-down)}
+.ra-gold{color:var(--fl-gold-ink)}
+
+.ra-tabs{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:16px}
+.ra-tab{min-height:40px;padding:0 16px;border-radius:999px;border:1px solid var(--fl-line);display:inline-flex;align-items:center;
+  font-size:14px;color:var(--fl-ink)}
+.ra-tab[aria-current="page"]{background:var(--fl-ink);color:var(--fl-bg);border-color:var(--fl-ink);font-weight:700}
+.ra-tabs-more{margin-left:auto;font-size:14px;color:var(--fl-mute)}
+.ra-tabs-more a{text-decoration:underline;text-underline-offset:3px}
+
+.ra-table{border-radius:20px;background:var(--fl-panel);border:1px solid var(--fl-line);overflow:hidden}
+.ra-row{display:grid;grid-template-columns:44px minmax(0,1.9fr) 1fr 1fr 90px;align-items:center;gap:8px;padding:12px 18px;
+  border-top:1px solid var(--fl-line)}
+.ra-row:first-child{border-top:0}
+.ra-head{font-size:11.5px;font-weight:700;letter-spacing:.08em;color:var(--fl-faint);text-transform:uppercase}
+.ra-rank{font-family:var(--fl-mono),monospace;color:var(--fl-faint);font-weight:700}
+.ra-rank.lead{color:var(--fl-gold-ink)}
+.ra-fund{display:flex;align-items:center;gap:12px;min-width:0}
+.ra-fund-name{display:block;font-weight:600}
+.ra-fund a:hover .ra-fund-name{color:var(--fl-gold)}
+.ra-fund-mgr{display:block;font-size:12.5px;color:var(--fl-mute)}
+.ra-num{text-align:right;font-family:var(--fl-mono),monospace;font-variant-numeric:tabular-nums}
+.ra-num.big{font-size:17px;font-weight:600}
+.ra-num.mute{color:var(--fl-mute)}
+@media (max-width:640px){
+  .ra-row{grid-template-columns:30px minmax(0,1fr) 78px 64px}
+  .ra-row .ra-net{display:none}
+}
+
+.ra-grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:24px;margin-top:32px}
+@media (max-width:860px){.ra-grid{grid-template-columns:1fr}}
+
+.ra-card{padding:22px 24px;border-radius:20px;background:var(--fl-panel);border:1px solid var(--fl-line)}
+.ra-card h2{font-size:18px;font-weight:700;margin:0 0 8px}
+.ra-list-row{display:flex;align-items:center;gap:10px;padding:11px 0;border-top:1px solid var(--fl-line)}
+.ra-list-row:first-of-type{border-top:0}
+.ra-list-row .grow{flex:1;min-width:0}
+
+.ra-faq h2{font-size:24px;font-weight:700;letter-spacing:-.01em;margin:0 0 6px}
+.ra-faq div{padding:16px 0;border-top:1px solid var(--fl-line)}
+.ra-faq dt{font-weight:700;font-size:16px}
+.ra-faq dd{margin:6px 0 0;color:var(--fl-mute);font-size:15px;line-height:1.6}
+
+.ra-chart{margin-top:12px}
+.ra-chart svg{display:block;width:100%;height:auto}
+.ra-axis{display:flex;justify-content:space-between;font-family:var(--fl-mono),monospace;font-size:12px;color:var(--fl-mute);margin-top:6px}
+
+.ra-months{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.ra-month{min-height:40px;padding:0 14px;border-radius:12px;border:1px solid var(--fl-line);display:inline-flex;align-items:center;font-size:14px}
+.ra-month:hover{border-color:var(--fl-gold)}
+
+.ra-cta{margin:40px 0 0;padding:26px;border-radius:22px;background:var(--fl-panel);border:1px solid var(--fl-line);
+  display:flex;flex-wrap:wrap;gap:18px;align-items:center}
+.ra-cta-text{flex:1 1 260px}
+.ra-cta h2{font-size:22px;font-weight:700;margin:0}
+.ra-cta p{margin:6px 0 0;color:var(--fl-mute)}
+.ra-note{margin-top:28px;font-size:13px;color:var(--fl-faint);line-height:1.6}
