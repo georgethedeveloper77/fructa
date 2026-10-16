@@ -385,7 +385,7 @@ List<RateHistory> _anchored(List<RateHistory> sorted, double? current) {
   final at = today.isAfter(last) ? today : last.add(const Duration(days: 1));
   return [
     ...sorted,
-    RateHistory(asOf: _iso(at), rate: same ? sorted.last.rate : current!),
+    RateHistory(asOf: _iso(at), rate: same ? sorted.last.rate : current),
   ];
 }
 

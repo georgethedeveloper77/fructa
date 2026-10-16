@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme.dart';
+import '../../../core/i18n.dart';
+import '../../../core/widgets/reveal_note.dart';
 import '../../../data/models/fund.dart';
 
 /// The class picker for a fund sold in several classes.
@@ -68,10 +70,10 @@ class ClassSelector extends StatelessWidget {
               ],
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Longer lock-in, lower fee, higher yield. The classes differ in what they ask of you, not in what they invest in.',
-            style: TextStyle(color: c.faint, fontSize: 11, height: 1.5),
+          const SizedBox(height: 4),
+          RevealNote(
+            label: t('fund.class.howLabel'),
+            body: t('fund.class.howBody'),
           ),
         ],
       ),

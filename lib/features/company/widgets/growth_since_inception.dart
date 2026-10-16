@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../core/format.dart';
 import '../../../core/theme.dart';
 import '../../../data/models/fund.dart';
+import '../../../core/i18n.dart';
+import '../../../core/widgets/reveal_note.dart';
 import '../../../data/models/period_return.dart';
 
 /// What an amount invested at inception is worth now.
@@ -103,25 +105,15 @@ class GrowthSinceInception extends StatelessWidget {
             v: '${cagr >= 0 ? '+' : ''}${cagr.toStringAsFixed(2)}%',
             vColor: c.delta(cagr),
           ),
-        const SizedBox(height: 10),
-        Text(
-          growth.derived
-              ? 'Compounded from the completed periods above. The manager publishes no growth figure of its own, so this is our arithmetic on its published returns, not a number it has quoted.'
-              : 'As published by the fund manager.',
-          style: TextStyle(color: c.faint, fontSize: 11, height: 1.5),
+        const SizedBox(height: 6),
+        RevealNote(
+          label: t('fund.growth.howLabel'),
+          body: [
+            t(growth.derived ? 'fund.growth.derived' : 'fund.growth.published'),
+            t('fund.growth.past'),
+            if (cagr != null) t('fund.growth.cagr'),
+          ].join('\n\n'),
         ),
-        const SizedBox(height: 4),
-        Text(
-          'Past performance of this fund. Not a projection, and not a forecast.',
-          style: TextStyle(color: c.faint, fontSize: 11, height: 1.5),
-        ),
-        if (cagr != null) ...[
-          const SizedBox(height: 4),
-          Text(
-            'The compound annual rate is how fast the money actually grew. A manager quoting an "average annual return" is usually averaging its calendar years instead, which is a different figure.',
-            style: TextStyle(color: c.faint, fontSize: 11, height: 1.5),
-          ),
-        ],
       ],
     );
   }

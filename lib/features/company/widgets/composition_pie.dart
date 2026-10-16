@@ -2,6 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme.dart';
+import '../../../core/i18n.dart';
 import '../../../data/models/fund_composition.dart';
 
 /// "What the fund holds"  a donut of the fund's asset-class split with a
@@ -168,8 +169,7 @@ class _CompositionPieState extends State<CompositionPie>
   String _provenance(String asOf) {
     final d = DateTime.tryParse(asOf);
     final period = d != null ? 'Q${((d.month - 1) ~/ 3) + 1} ${d.year}' : asOf;
-    return 'Portfolio as of $period \u00b7 source: CMA Collective Investment '
-        'Schemes report. Figures are the fund\u2019s own quarterly filing.';
+    return t('fund.comp.source', {'period': period});
   }
 }
 

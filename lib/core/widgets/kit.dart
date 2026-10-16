@@ -16,5 +16,6 @@ export 'markup.dart';
 export 'note_card.dart';
 export 'position_block.dart';
 export 'range_bar.dart';
+export 'reveal_note.dart';
 export 'rows.dart';
 export 'toggle.dart';

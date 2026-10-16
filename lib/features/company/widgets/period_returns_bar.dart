@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme.dart';
 import '../../../data/models/fund.dart';
+import '../../../core/i18n.dart';
+import '../../../core/widgets/reveal_note.dart';
 import '../../../data/models/period_return.dart';
 
 /// The chart a special fund lives on: one bar per CLOSED period, with the
@@ -68,18 +70,15 @@ class PeriodReturnsBar extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 10),
-        Text(
-          avg == null
-              ? 'Each bar is one completed ${kind.label.toLowerCase()}.'
-              : 'Each bar is one completed ${kind.label.toLowerCase()}. '
-                    'The dashed line is the ${avg.toStringAsFixed(2)}% average since inception.',
-          style: TextStyle(color: c.faint, fontSize: 11, height: 1.5),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'Published ${series.first.netOf.shortLabel}. These are periods that have already closed, not a forecast.',
-          style: TextStyle(color: c.faint, fontSize: 11, height: 1.5),
+        const SizedBox(height: 6),
+        RevealNote(
+          label: t('fund.periods.howLabel'),
+          body: [
+            t('fund.periods.bars', {'kind': kind.label.toLowerCase()}),
+            if (avg != null)
+              t('fund.periods.avg', {'avg': avg.toStringAsFixed(2)}),
+            t('fund.periods.closed', {'basis': series.first.netOf.shortLabel}),
+          ].join(' '),
         ),
       ],
     );

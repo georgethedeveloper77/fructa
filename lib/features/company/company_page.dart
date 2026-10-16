@@ -1116,7 +1116,11 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
                   onTap: () => _open(contactUrl),
                 ),
 
-              Disclaimer(t('company.moneyNote'), center: true),
+              RevealNote(
+                label: t('company.moneyLabel'),
+                body: t('company.moneyNote'),
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
+              ),
               const SizedBox(height: 20),
             ],
           ),
@@ -1984,32 +1988,19 @@ class _ProjectionSectionState extends State<_ProjectionSection> {
 
         // ── Fee: shown, not deducted ───────────────────────────────────
         if (fund.mgmtFee != null)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(Icons.info_outline, size: 14, color: c.faint),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    t('company.proj.feeNote', {
-                      'fee': '${fund.mgmtFee}',
-                      'rate': rate.toStringAsFixed(2),
-                    }),
-                    style: TextStyle(color: c.faint, fontSize: 11, height: 1.4),
-                  ),
-                ),
-              ],
-            ),
+          RevealNote(
+            label: t('company.proj.feeLabel'),
+            body: t('company.proj.feeNote', {
+              'fee': '${fund.mgmtFee}',
+              'rate': rate.toStringAsFixed(2),
+            }),
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
           ),
 
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-          child: Text(
-            'Illustration only, at today\u2019s rate held flat. Rates move, so returns aren\u2019t guaranteed. Compounded monthly, net of tax.',
-            style: TextStyle(color: c.faint, fontSize: 10, height: 1.6),
-          ),
+        RevealNote(
+          label: t('company.proj.estimateLabel'),
+          body: t('company.proj.estimateBody'),
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
         ),
       ],
     );

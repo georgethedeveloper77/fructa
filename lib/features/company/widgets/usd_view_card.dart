@@ -6,6 +6,7 @@ import '../../../core/series_colors.dart';
 import '../../../core/theme.dart';
 import '../../../data/models/fund.dart';
 import '../../../data/snapshot_providers.dart';
+import '../../../core/widgets/reveal_note.dart';
 import '../../../engine/fx_engine.dart';
 
 /// The same shilling return, counted in dollars.
@@ -123,14 +124,14 @@ class UsdViewCard extends ConsumerWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 14),
-            Text(
-              t(realised ? 'fund.usd.note' : 'fund.usd.noteYield', {
+            const SizedBox(height: 8),
+            RevealNote(
+              label: t('fund.usd.howLabel'),
+              body: t(realised ? 'fund.usd.note' : 'fund.usd.noteYield', {
                 'kes': rate.toStringAsFixed(2),
                 'usd': inUsd.toStringAsFixed(2),
                 'move': fxMove.abs().toStringAsFixed(1),
               }),
-              style: TextStyle(color: c.muted, fontSize: 12, height: 1.55),
             ),
           ],
         ),

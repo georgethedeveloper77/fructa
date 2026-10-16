@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../core/i18n.dart';
 import '../../../core/series_colors.dart';
 import '../../../core/theme.dart';
+import '../../../core/widgets/reveal_note.dart';
 
 /// The gross yield, carved up into the three things that happen to it.
 ///
@@ -219,9 +220,12 @@ class RealReturnBar extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            Text(
-              kept < 0
+            const SizedBox(height: 6),
+            RevealNote(
+              label: t(
+                kept < 0 ? 'fund.real.belowLabel' : 'fund.real.howLabel',
+              ),
+              body: kept < 0
                   ? t('fund.real.noteBelow', {
                       'gross': gross.toStringAsFixed(2),
                       'infl': inflation.toStringAsFixed(1),
@@ -230,7 +234,6 @@ class RealReturnBar extends StatelessWidget {
                       'gross': gross.toStringAsFixed(2),
                       'infl': inflation.toStringAsFixed(1),
                     }),
-              style: TextStyle(color: c.muted, fontSize: 12, height: 1.55),
             ),
           ],
         ),
