@@ -12,7 +12,20 @@
           "package_name": "com.mindberzerk.fructa"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "665013279649-h02is444ghn8rks6p333pga0ogjchs48.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.mindberzerk.fructa",
+            "certificate_hash": "8302d409043b77a08f14c670ae7910b92680685a"
+          }
+        },
+        {
+          "client_id": "665013279649-6o4hl6mpbag4r7a7glepka2vu8d1haeg.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAM0qhi3kBpHQkMrTagtrdYmZAExDI8ttE"
@@ -20,7 +33,20 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "665013279649-6o4hl6mpbag4r7a7glepka2vu8d1haeg.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "665013279649-4blh319j6qg41jpv552s84pplgv6vj7v.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.mindberzerk.fructa",
+                "app_store_id": "6789087329"
+              }
+            }
+          ]
         }
       }
     }

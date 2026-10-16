@@ -56,13 +56,14 @@ class DefaultFirebaseOptions {
     projectId: 'fructa-africa',
     storageBucket: 'fructa-africa.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyDM2orGfwz_Xb7hOgIIOww9nWSI709iNpY',
     appId: '1:665013279649:ios:377ca114d2bf57758a09e0',
     messagingSenderId: '665013279649',
     projectId: 'fructa-africa',
     storageBucket: 'fructa-africa.firebasestorage.app',
+    androidClientId: '665013279649-h02is444ghn8rks6p333pga0ogjchs48.apps.googleusercontent.com',
+    iosClientId: '665013279649-4blh319j6qg41jpv552s84pplgv6vj7v.apps.googleusercontent.com',
     iosBundleId: 'com.mindberzerk.fructa',
   );
 }

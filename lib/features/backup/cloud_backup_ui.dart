@@ -11,9 +11,10 @@ import '../../core/i18n.dart';
 import '../../core/theme.dart';
 import '../../core/widgets/app_loader.dart';
 import '../../data/backup_service.dart';
-import '../../data/drive_backup_service.dart';
+import '../../data/drive_sync.dart';
 import '../../data/portfolio_codec.dart';
 import '../../data/providers.dart';
+import 'drive_backup_page.dart';
 
 enum CloudMode { backup, restore }
 
@@ -35,83 +36,10 @@ class CloudBackupSection extends ConsumerStatefulWidget {
 }
 
 class _CloudBackupSectionState extends ConsumerState<CloudBackupSection> {
-  String? _email;
-  bool _drive = false;
   bool _file = false;
 
-  bool get _busy => _drive || _file;
+  bool get _busy => _file;
   bool get _isBackup => widget.mode == CloudMode.backup;
-
-  @override
-  void initState() {
-    super.initState();
-    final svc = ref.read(driveBackupServiceProvider);
-    svc.isConnected().then((ok) {
-      if (mounted && ok) setState(() => _email = svc.email);
-    });
-  }
-
-  // Drive ----------------------------------------------------------------------
-
-  Future<void> _connect() async {
-    setState(() => _drive = true);
-    try {
-      final email = await ref.read(driveBackupServiceProvider).connect();
-      if (mounted && email != null) setState(() => _email = email);
-    } catch (_) {
-      if (mounted) _toast(t('backup.driveFailed'));
-    } finally {
-      if (mounted) setState(() => _drive = false);
-    }
-  }
-
-  Future<void> _disconnect() async {
-    await ref.read(driveBackupServiceProvider).disconnect();
-    ref.read(lastDriveSyncProvider.notifier).state = null;
-    if (mounted) setState(() => _email = null);
-  }
-
-  Future<void> _driveBackup() async {
-    setState(() => _drive = true);
-    try {
-      final at = await ref.read(driveBackupServiceProvider).backup();
-      if (at == null) return; // user backed out of the Google prompt
-      ref.read(lastDriveSyncProvider.notifier).state = at;
-      if (mounted) {
-        setState(() => _email = ref.read(driveBackupServiceProvider).email);
-        _toast(t('backup.driveBackedUp'));
-        Navigator.of(context).pop();
-      }
-    } catch (_) {
-      if (mounted) _toast(t('backup.driveFailed'));
-    } finally {
-      if (mounted) setState(() => _drive = false);
-    }
-  }
-
-  Future<void> _driveRestore() async {
-    setState(() => _drive = true);
-    try {
-      final r = await ref.read(driveBackupServiceProvider).restore();
-      if (r == null) {
-        if (mounted) {
-          setState(() => _email = ref.read(driveBackupServiceProvider).email);
-          _toast(t('backup.driveNone'));
-        }
-        return;
-      }
-      await ref.read(backupServiceProvider).applyRestore(r.holdings);
-      ref.invalidate(holdingsProvider);
-      if (mounted) {
-        _toast(t('backup.restored', {'n': '${r.holdings.length}'}));
-        Navigator.of(context).pop();
-      }
-    } catch (_) {
-      if (mounted) _toast(t('backup.driveFailed'));
-    } finally {
-      if (mounted) setState(() => _drive = false);
-    }
-  }
 
   // Encrypted file -------------------------------------------------------------
 
@@ -256,8 +184,6 @@ class _CloudBackupSectionState extends ConsumerState<CloudBackupSection> {
   @override
   Widget build(BuildContext context) {
     final c = context.c;
-    final connected = _email != null;
-    final sync = ref.watch(lastDriveSyncProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -266,94 +192,48 @@ class _CloudBackupSectionState extends ConsumerState<CloudBackupSection> {
         _divider(context, t('backup.orLabel')),
         const SizedBox(height: 16),
 
-        // Google Drive
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: c.s2,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: c.line2),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.cloud_outlined, color: c.accent, size: 20),
-                  const SizedBox(width: 10),
-                  Text(
-                    t('backup.driveTitle'),
-                    style: TextStyle(
-                      color: c.text,
-                      fontSize: 14.5,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
+        // Google Drive lives on its own page now; this row says whether it
+        // is connected and goes there.
+        Consumer(
+          builder: (context, ref, _) {
+            final drive = ref.watch(driveStatusProvider);
+            return Material(
+              color: c.s2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+                side: BorderSide(color: c.line2),
               ),
-              if (connected) ...[
-                const SizedBox(height: 8),
-                Text(
-                  t('backup.driveConnected', {'email': _email!}),
-                  style: TextStyle(color: c.muted, fontSize: 12.5),
-                ),
-                if (_isBackup && sync != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    t('backup.driveSynced', {'when': _fmtWhen(sync)}),
-                    style: TextStyle(color: c.faint, fontSize: 11.5),
-                  ),
-                ],
-                const SizedBox(height: 12),
-                _outlinedBtn(
-                  context,
-                  icon: _isBackup
-                      ? Icons.cloud_upload_outlined
-                      : Icons.cloud_download_outlined,
-                  label: _isBackup
-                      ? t('backup.driveBackupNow')
-                      : t('backup.driveRestore'),
-                  busy: _drive,
-                  onTap: _busy
-                      ? null
-                      : (_isBackup ? _driveBackup : _driveRestore),
-                ),
-                const SizedBox(height: 6),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton(
-                    onPressed: _busy ? null : _disconnect,
-                    style: TextButton.styleFrom(
-                      foregroundColor: c.faint,
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      minimumSize: const Size(0, 32),
-                    ),
-                    child: Text(
-                      t('backup.driveDisconnect'),
-                      style: const TextStyle(fontSize: 12.5),
-                    ),
+              clipBehavior: Clip.antiAlias,
+              child: ListTile(
+                minTileHeight: 56,
+                leading: Icon(Icons.add_to_drive_rounded, color: c.accent),
+                title: Text(
+                  t('drive.name'),
+                  style: TextStyle(
+                    color: c.text,
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-              ] else ...[
-                const SizedBox(height: 6),
-                Text(
-                  _isBackup
-                      ? t('backup.driveConnectBackupBody')
-                      : t('backup.driveConnectRestoreBody'),
-                  style: TextStyle(color: c.muted, fontSize: 12.5, height: 1.5),
+                subtitle: Text(
+                  drive.connected
+                      ? t('drive.connected')
+                      : t('drive.notConnected'),
+                  style: TextStyle(
+                    color: drive.connected ? c.up : c.muted,
+                    fontSize: 12.5,
+                  ),
                 ),
-                const SizedBox(height: 12),
-                _outlinedBtn(
-                  context,
-                  icon: Icons.link,
-                  label: t('backup.driveConnect'),
-                  busy: _drive,
-                  onTap: _busy ? null : _connect,
-                ),
-              ],
-            ],
-          ),
+                trailing: Icon(Icons.chevron_right_rounded, color: c.faint),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const DriveBackupPage()),
+                  );
+                },
+              ),
+            );
+          },
         ),
 
         const SizedBox(height: 12),
@@ -385,25 +265,6 @@ class _CloudBackupSectionState extends ConsumerState<CloudBackupSection> {
 // Shared bits ------------------------------------------------------------------
 
 String _two(int n) => n.toString().padLeft(2, '0');
-
-String _fmtWhen(DateTime d) {
-  const m = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-  final l = d.toLocal();
-  return '${m[l.month - 1]} ${l.day}, ${_two(l.hour)}:${_two(l.minute)}';
-}
 
 Widget _divider(BuildContext context, String label) {
   final c = context.c;

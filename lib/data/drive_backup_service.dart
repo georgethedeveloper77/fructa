@@ -25,6 +25,27 @@ class DriveCancelled implements Exception {
   const DriveCancelled();
 }
 
+/// Google sign-in failed for a reason other than the user backing out, most
+/// often a setup problem (the app's SHA-1 or OAuth client in Google Cloud).
+/// Carries Google's own code, so the screen can say what went wrong instead
+/// of doing nothing.
+class DriveSignInFailed implements Exception {
+  const DriveSignInFailed(this.code, this.detail);
+  final String code;
+  final String? detail;
+
+  @override
+  String toString() =>
+      detail == null || detail!.isEmpty ? code : '$code: $detail';
+}
+
+/// Turns a Google sign-in error into the right exception: a backed-out
+/// prompt is a cancel; anything else is a failure worth showing.
+Exception _signInError(GoogleSignInException e) =>
+    e.code == GoogleSignInExceptionCode.canceled
+    ? const DriveCancelled()
+    : DriveSignInFailed(e.code.name, e.description);
+
 /// Tier 1 of the two tier backup: one JSON file, `fructa-portfolio.json`, in a
 /// folder called Fructa in the user's own Drive. Visible, so the user can see
 /// and download it, and replaced on every backup so there is only ever the
@@ -97,8 +118,8 @@ class DriveBackupService {
       if (!interactive || !gsi.supportsAuthenticate()) return null;
       try {
         account = await gsi.authenticate();
-      } on GoogleSignInException {
-        throw const DriveCancelled();
+      } on GoogleSignInException catch (e) {
+        throw _signInError(e);
       }
     }
     // No null guard here on purpose. authenticate() returns a non-nullable
@@ -115,8 +136,8 @@ class DriveBackupService {
       if (!interactive) return null;
       try {
         authz = await account.authorizationClient.authorizeScopes(_scopes);
-      } on GoogleSignInException {
-        throw const DriveCancelled();
+      } on GoogleSignInException catch (e) {
+        throw _signInError(e);
       }
     }
 

@@ -122,6 +122,11 @@ Future<void> connectDrive(BuildContext context, WidgetRef ref) async {
     if (context.mounted) {
       _toast(context, t('drive.toast.done'));
     }
+  } on DriveSignInFailed catch (e) {
+    // Say what Google said, so a setup problem is visible, not silent.
+    if (context.mounted) {
+      _toast(context, t('drive.toast.signIn', {'why': '$e'}));
+    }
   } catch (_) {
     if (context.mounted) {
       _toast(context, t('backup.driveFailed'));
