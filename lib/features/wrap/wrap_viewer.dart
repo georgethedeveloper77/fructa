@@ -819,13 +819,53 @@ class _LockedSlide extends ConsumerWidget {
 /// Week last written to the archive this session, so the card saves once.
 String? _archivedWeek;
 
-/// Today's way in: one card for the whole week, never a row of circles.
-class WeeklyWrapCard extends ConsumerWidget {
+/// Today's way in: the week's lead story as a card, with the next two
+/// stories peeking out behind it in their brand colours.
+///
+/// The front card is a small story: the fund's logo and brand glow, the tag,
+/// the figure and its line drawing in. "+N more stories" says what else is
+/// waiting. Market stories only, so Today never shows an amount. The cards
+/// behind bob gently; nothing moves under reduced motion.
+class WeeklyWrapCard extends ConsumerStatefulWidget {
   const WeeklyWrapCard({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final c = context.c;
+  ConsumerState<WeeklyWrapCard> createState() => _WeeklyWrapCardState();
+}
+
+class _WeeklyWrapCardState extends ConsumerState<WeeklyWrapCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _bob = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 3000),
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (reduceMotion(context)) {
+      _bob.stop();
+    } else if (!_bob.isAnimating) {
+      _bob.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void dispose() {
+    _bob.dispose();
+    super.dispose();
+  }
+
+  /// A story's glow colour: its fund's brand, lifted to show on black, or
+  /// the story's own tone when it has no fund.
+  Color _glowOf(WrapSlide s) {
+    final id = s.fundId;
+    final brand = id == null ? null : ref.watch(brandColorProvider(id));
+    return brand == null ? _tone(s.tone) : _d.brandOnBg(brand);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final wrap = ref.watch(weeklyWrapProvider);
     if (wrap.market.isEmpty) return const SizedBox.shrink();
     final week = WrapArchive.weekId(wrap.to);
@@ -837,106 +877,302 @@ class WeeklyWrapCard extends ConsumerWidget {
     }
     final unlocked = ref.watch(wrapPersonalUnlockedProvider);
     final unseen = ref.watch(wrapUnseenProvider);
-    final thumbs = [
-      ...wrap.market.take(4),
-      if (wrap.personal.isNotEmpty) wrap.personal.first,
-    ];
     final total =
         wrap.market.length +
         (wrap.personal.isNotEmpty ? (unlocked ? wrap.personal.length : 1) : 0);
+    final lead = wrap.market.first;
+    final behind = wrap.market.skip(1).take(2).toList();
+    final glow = _glowOf(lead);
+    final tone = _tone(lead.tone);
+    final funds = ref.watch(fundsByIdProvider);
+    final fund = lead.fundId == null ? null : funds[lead.fundId];
+    final calm = reduceMotion(context);
+
+    // A card behind the front one: inset, raised, in its story's colour.
+    Widget peek(int depth, WrapSlide s) => AnimatedBuilder(
+      animation: _bob,
+      builder: (_, child) => Positioned(
+        left: 12.0 * depth,
+        right: 12.0 * depth,
+        top: 18.0 - 9 * depth - 3 * Curves.easeInOut.transform(_bob.value),
+        bottom: 18,
+        child: child!,
+      ),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          color: _glowOf(s).withValues(alpha: depth == 1 ? 0.55 : 0.35),
+        ),
+      ),
+    );
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
-      child: Material(
-        color: c.s1,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(22),
-          side: BorderSide(color: unseen ? c.accent : c.line),
-        ),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(22),
-          onTap: () => openWeeklyWrap(context),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        t('wrap.card.kicker', {
-                          'range': '${wrap.from.day} to ${dayLabel(wrap.to)}',
-                        }).toUpperCase(),
-                        style: TextStyle(
-                          color: c.accentInk,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.8,
-                        ),
-                      ),
+      child: Semantics(
+        button: true,
+        label:
+            '${t('wrap.card.title')}. ${t(lead.tagKey)}, ${lead.title}, ${lead.big}',
+        child: SizedBox(
+          height: 300,
+          child: Stack(
+            children: [
+              for (var k = behind.length; k >= 1; k--) peek(k, behind[k - 1]),
+              Positioned(
+                left: 0,
+                right: 0,
+                top: 18,
+                bottom: 0,
+                child: Material(
+                  color: _d.bg,
+                  clipBehavior: Clip.antiAlias,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24),
+                    side: BorderSide(
+                      color: unseen
+                          ? _d.accent.withValues(alpha: 0.7)
+                          : _d.text.withValues(alpha: 0.08),
                     ),
-                    if (unseen) ...[const NewTag(), const SizedBox(width: 8)],
-                    Text(
-                      t('wrap.card.count', {'n': '$total'}),
-                      style: TextStyle(color: c.muted, fontSize: 12),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    for (var k = 0; k < thumbs.length; k++) ...[
-                      if (k > 0) const SizedBox(width: 8),
-                      Expanded(
-                        child: _Thumb(
-                          slide: thumbs[k],
-                          lockedPersonal: thumbs[k].personal && !unlocked,
-                          ring: unseen,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        t(unseen ? 'wrap.card.title' : 'wrap.card.watched'),
-                        style: TextStyle(
-                          color: c.text,
-                          fontSize: 15.5,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 9,
-                      ),
+                  ),
+                  child: InkWell(
+                    onTap: () => openWeeklyWrap(context),
+                    child: DecoratedBox(
                       decoration: BoxDecoration(
-                        color: unseen ? c.accent : c.s2,
-                        borderRadius: BorderRadius.circular(999),
+                        gradient: RadialGradient(
+                          center: const Alignment(-0.9, -1),
+                          radius: 1.3,
+                          colors: [
+                            glow.withValues(alpha: 0.55),
+                            _d.bg.withValues(alpha: 0),
+                          ],
+                        ),
                       ),
-                      child: Text(
-                        t(unseen ? 'wrap.card.play' : 'wrap.card.again'),
-                        style: TextStyle(
-                          color: unseen ? c.onAccent : c.text,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    t('wrap.card.kicker', {
+                                      'range':
+                                          '${wrap.from.day} to ${dayLabel(wrap.to)}',
+                                    }).toUpperCase(),
+                                    style: TextStyle(
+                                      color: _d.accent,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 0.8,
+                                    ),
+                                  ),
+                                ),
+                                if (unseen) const NewTag(),
+                              ],
+                            ),
+                            const SizedBox(height: 14),
+                            Row(
+                              children: [
+                                if (fund != null) ...[
+                                  FundLogo(
+                                    domain: fund.logoDomain,
+                                    seed: fund.manager,
+                                    logoUrl: ref.watch(
+                                      logoUrlProvider(fund.id),
+                                    ),
+                                    brandColor: ref.watch(
+                                      brandColorProvider(fund.id),
+                                    ),
+                                    size: 36,
+                                  ),
+                                  const SizedBox(width: 10),
+                                ],
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        t(lead.tagKey),
+                                        style: TextStyle(
+                                          color: tone,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: 1,
+                                        ),
+                                      ),
+                                      Text(
+                                        lead.title,
+                                        style: TextStyle(
+                                          color: _d.text,
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w700,
+                                          height: 1.25,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Spacer(),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Flexible(
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(
+                                      lead.big,
+                                      style: fructaFonts.numeric(
+                                        color: tone,
+                                        size: 48,
+                                        weight: FontWeight.w600,
+                                        letterSpacing: -1.5,
+                                        height: 1,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                if (lead.series.length >= 2) ...[
+                                  const SizedBox(width: 14),
+                                  Expanded(
+                                    child: TweenAnimationBuilder<double>(
+                                      tween: Tween(
+                                        begin: calm ? 1.0 : 0.0,
+                                        end: 1.0,
+                                      ),
+                                      duration: const Duration(
+                                        milliseconds: 1100,
+                                      ),
+                                      curve: Curves.easeInOutCubic,
+                                      builder: (_, v, _) => SizedBox(
+                                        height: 44,
+                                        child: CustomPaint(
+                                          painter: _CardLine(
+                                            lead.series,
+                                            tone,
+                                            v,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    !unseen
+                                        ? t('wrap.card.watched')
+                                        : total > 1
+                                        ? t('wrap.card.more', {
+                                            'n': '${total - 1}',
+                                          })
+                                        : t('wrap.card.title'),
+                                    style: TextStyle(
+                                      color: _d.muted,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ),
+                                Container(
+                                  constraints: const BoxConstraints(
+                                    minHeight: 40,
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: unseen ? _d.accent : _d.s2,
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        unseen
+                                            ? Icons.play_arrow_rounded
+                                            : Icons.replay_rounded,
+                                        size: 18,
+                                        color: unseen ? _d.onAccent : _d.text,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        t(
+                                          unseen
+                                              ? 'wrap.card.play'
+                                              : 'wrap.card.again',
+                                        ),
+                                        style: TextStyle(
+                                          color: unseen ? _d.onAccent : _d.text,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                  ],
+                  ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
+}
+
+/// The lead story's recent line on the card, drawn in to [progress].
+class _CardLine extends CustomPainter {
+  const _CardLine(this.points, this.color, this.progress);
+
+  final List<double> points;
+  final Color color;
+  final double progress;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final lo = points.reduce(math.min);
+    final hi = points.reduce(math.max);
+    final span = hi - lo < 1e-9 ? 1.0 : hi - lo;
+    final path = Path();
+    for (var i = 0; i < points.length; i++) {
+      final x = size.width * i / (points.length - 1);
+      final y = hi - lo < 1e-9
+          ? size.height / 2
+          : size.height - 3 - (points[i] - lo) / span * (size.height - 6);
+      i == 0 ? path.moveTo(x, y) : path.lineTo(x, y);
+    }
+    final out = Path();
+    for (final m in path.computeMetrics()) {
+      out.addPath(m.extractPath(0, m.length * progress), Offset.zero);
+    }
+    canvas.drawPath(
+      out,
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.5
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_CardLine old) =>
+      old.progress != progress || old.color != color || old.points != points;
 }
 
 /// Small accent tag for something the user has not opened yet.
@@ -963,120 +1199,4 @@ class NewTag extends StatelessWidget {
       ),
     );
   }
-}
-
-class _Thumb extends StatelessWidget {
-  const _Thumb({
-    required this.slide,
-    required this.lockedPersonal,
-    this.ring = false,
-  });
-
-  final WrapSlide slide;
-  final bool lockedPersonal;
-
-  /// Accent ring around an unwatched story, like a story circle.
-  final bool ring;
-
-  @override
-  Widget build(BuildContext context) {
-    final tone = lockedPersonal ? _d.accent : _tone(slide.tone);
-    final c = context.c;
-    return AspectRatio(
-      aspectRatio: 9 / 15,
-      child: Container(
-        foregroundDecoration: ring
-            ? BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: c.accent, width: 2),
-              )
-            : null,
-        padding: const EdgeInsets.fromLTRB(7, 0, 7, 8),
-        decoration: BoxDecoration(
-          color: _d.bg,
-          borderRadius: BorderRadius.circular(12),
-          gradient: RadialGradient(
-            center: const Alignment(-0.4, -1),
-            radius: 1.2,
-            colors: [tone.withValues(alpha: 0.38), _d.bg],
-          ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.end,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Scales down to fit the thumbnail rather than cutting the number.
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                lockedPersonal ? t('wrap.card.pro') : _thumbFigure(slide),
-                style: fructaFonts.numeric(
-                  color: tone,
-                  size: 13.5,
-                  weight: FontWeight.w700,
-                ),
-              ),
-            ),
-            _FitWords(
-              _hidesAmount(slide) ? t('wrap.tag.yourWeek') : t(slide.tagKey),
-              style: TextStyle(
-                color: _d.text.withValues(alpha: 0.8),
-                fontSize: 9,
-                height: 1.2,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// A personal story whose figure is an amount. The card lives on Today,
-/// which never shows KES, so it shows the week in basis points instead.
-bool _hidesAmount(WrapSlide s) => s.personal && s.big.contains('KES');
-
-String _thumbFigure(WrapSlide s) {
-  if (!_hidesAmount(s)) return s.big;
-  final m = RegExp(r'([+-]?\d+(?:\.\d+)?)\s*bps').firstMatch(s.unit);
-  if (m == null) return t('wrap.card.you');
-  final v = m.group(1)!;
-  return t('wrap.card.bps', {
-    'v': v.startsWith('-') || v.startsWith('+') ? v : '+$v',
-  });
-}
-
-/// Text that wraps only between words. When the longest word is wider than
-/// the space, the whole label shrinks until it fits, so "IMPROVED" never
-/// breaks into "IMPROVE" and "D".
-class _FitWords extends StatelessWidget {
-  const _FitWords(this.text, {required this.style});
-
-  final String text;
-  final TextStyle style;
-
-  @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, box) {
-      final scale = MediaQuery.textScalerOf(context);
-      // Measure in the font the Text will actually use (the app's Inter via
-      // DefaultTextStyle), not the platform default, or wide words still break.
-      final real = DefaultTextStyle.of(context).style.merge(style);
-      var widest = 0.0;
-      for (final w in text.split(' ')) {
-        final tp = TextPainter(
-          text: TextSpan(text: w, style: real),
-          textDirection: TextDirection.ltr,
-          textScaler: scale,
-        )..layout();
-        if (tp.width > widest) widest = tp.width;
-      }
-      final size = real.fontSize ?? 9;
-      final fitted = widest > box.maxWidth && widest > 0
-          ? size * box.maxWidth / widest * 0.98
-          : size;
-      return Text(text, style: style.copyWith(fontSize: fitted));
-    },
-  );
 }

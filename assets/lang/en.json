@@ -1420,5 +1420,6 @@
   "market.noteTitle": "How this is measured",
   "market.venue.why": "Why it sits apart",
   "market.venue.saccoShort": "{n} societies, {j} open to join",
-  "market.venue.nseShort": "{n} counters traded"
+  "market.venue.nseShort": "{n} counters traded",
+  "wrap.card.more": "+{n} more stories this week"
 }
