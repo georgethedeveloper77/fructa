@@ -17,6 +17,7 @@ import '../../data/providers.dart';
 import '../../data/snapshot_providers.dart';
 import '../../engine/accrual_engine.dart';
 import '../../engine/portfolio_math.dart';
+import '../backup/drive_backup_page.dart';
 import '../pro/pro_inline.dart';
 import 'add_holding_page.dart';
 import 'manage_holding_sheet.dart';
@@ -355,6 +356,9 @@ class _Full extends ConsumerWidget {
             '+${bal(money('KES', yearlyKes.round()))}',
           ),
         ]),
+
+        // Drive backup: a card to connect, or one line once connected.
+        const DriveBackupStrip(),
 
         // ── Which currency the book sits in ───────────────────────────
         //

@@ -25,13 +25,17 @@ class DriveCancelled implements Exception {
   const DriveCancelled();
 }
 
-/// Tier 1 of the two tier backup: a single private JSON file in the app's Drive
-/// `appDataFolder`. Invisible in the user's Drive UI, readable only by this app,
-/// and it survives a reinstall as long as the same Google account signs in,
-/// which is exactly the phone upgrade path. The payload is the plain
-/// [PortfolioCodec] payload: the Google account boundary is the privacy control
-/// here, so no on device key is involved and a new phone restores with one sign
-/// in and no recovery code.
+/// Tier 1 of the two tier backup: one JSON file, `fructa-portfolio.json`, in a
+/// folder called Fructa in the user's own Drive. Visible, so the user can see
+/// and download it, and replaced on every backup so there is only ever the
+/// latest. The `drive.file` scope lets the app touch only files it created,
+/// never the rest of the Drive, and a new phone signed in to the same account
+/// finds the folder again. The payload is the plain [PortfolioCodec] payload:
+/// the Google account boundary is the privacy control here.
+///
+/// Earlier versions kept the file hidden in the app's `appDataFolder`. That
+/// one is still read, once, when no Fructa folder backup exists yet, and its
+/// contents are written into the folder, so nobody loses a backup.
 ///
 /// Talks to the Drive v3 REST API directly with [http] rather than pulling in
 /// `googleapis` and the google_sign_in auth bridge, whose v7 interaction is
@@ -44,9 +48,14 @@ class DriveBackupService {
   final HoldingsRepository _holdings;
 
   static const _scopes = <String>[
+    'https://www.googleapis.com/auth/drive.file',
+    // Read once, to carry the old hidden backup into the folder.
     'https://www.googleapis.com/auth/drive.appdata',
   ];
-  static const _fileName = 'portfolio.json';
+  static const _legacyName = 'portfolio.json';
+  static const _folderName = 'Fructa';
+  static const _fileName = 'fructa-portfolio.json';
+  static const _folderMime = 'application/vnd.google-apps.folder';
   static const _api = 'https://www.googleapis.com/drive/v3';
   static const _uploadApi = 'https://www.googleapis.com/upload/drive/v3';
 
@@ -151,13 +160,18 @@ class DriveBackupService {
     'Authorization': 'Bearer $token',
   };
 
-  /// The id of the single appData backup file, or null when none exists.
-  Future<String?> _findFileId(String token) async {
+  /// Runs a Drive file query; the first match as (id, modifiedTime), or null.
+  Future<(String, DateTime?)?> _first(
+    String token,
+    String q, {
+    String? spaces,
+  }) async {
     final uri = Uri.parse('$_api/files').replace(
       queryParameters: {
-        'spaces': 'appDataFolder',
-        'q': "name = '$_fileName'",
+        'q': q,
+        'spaces': ?spaces,
         'fields': 'files(id,modifiedTime)',
+        'orderBy': 'modifiedTime desc',
         'pageSize': '1',
       },
     );
@@ -167,28 +181,47 @@ class DriveBackupService {
     }
     final files = (jsonDecode(res.body) as Map)['files'] as List? ?? const [];
     if (files.isEmpty) return null;
-    return (files.first as Map)['id'] as String?;
+    final f = files.first as Map;
+    return (
+      f['id'] as String,
+      DateTime.tryParse('${f['modifiedTime'] ?? ''}')?.toLocal(),
+    );
   }
 
-  /// Push the current portfolio into appDataFolder, creating or overwriting the
-  /// single backup file. Returns Drive's modified time on success, or null if
-  /// the user declined the Google prompt.
-  Future<DateTime?> backup() async {
-    final String? token;
-    try {
-      token = await _token(interactive: true);
-    } on DriveCancelled {
-      return null;
+  /// The Fructa folder's id, created when [create] and it does not exist.
+  Future<String?> _folder(String token, {required bool create}) async {
+    final found = await _first(
+      token,
+      "name = '$_folderName' and mimeType = '$_folderMime' and trashed = false",
+    );
+    if (found != null || !create) return found?.$1;
+    final res = await http.post(
+      Uri.parse('$_api/files').replace(queryParameters: {'fields': 'id'}),
+      headers: {..._authHeader(token), 'Content-Type': 'application/json'},
+      body: jsonEncode({'name': _folderName, 'mimeType': _folderMime}),
+    );
+    if (res.statusCode != 200) {
+      throw Exception('drive folder HTTP ${res.statusCode}');
     }
-    if (token == null) return null;
+    return (jsonDecode(res.body) as Map)['id'] as String?;
+  }
 
-    final payload = jsonEncode(PortfolioCodec.buildPayload(_holdings.all()));
-    final existingId = await _findFileId(token);
+  /// The backup file in the Fructa folder.
+  Future<(String, DateTime?)?> _file(String token, String folderId) => _first(
+    token,
+    "name = '$_fileName' and '$folderId' in parents and trashed = false",
+  );
+
+  /// Writes [payload] as the folder's backup file, replacing it when it exists.
+  Future<DateTime?> _write(String token, String payload) async {
+    final folderId = await _folder(token, create: true);
+    if (folderId == null) throw Exception('drive folder missing');
+    final existing = await _file(token, folderId);
 
     final http.Response res;
-    if (existingId != null) {
+    if (existing != null) {
       res = await http.patch(
-        Uri.parse('$_uploadApi/files/$existingId').replace(
+        Uri.parse('$_uploadApi/files/${existing.$1}').replace(
           queryParameters: {'uploadType': 'media', 'fields': 'id,modifiedTime'},
         ),
         headers: {
@@ -201,7 +234,7 @@ class DriveBackupService {
       const boundary = 'fructa_backup_boundary';
       final meta = jsonEncode({
         'name': _fileName,
-        'parents': ['appDataFolder'],
+        'parents': [folderId],
       });
       final body =
           '--$boundary\r\n'
@@ -225,7 +258,6 @@ class DriveBackupService {
         body: body,
       );
     }
-
     if (res.statusCode != 200) {
       throw Exception('drive upload HTTP ${res.statusCode}');
     }
@@ -233,8 +265,37 @@ class DriveBackupService {
     return DateTime.tryParse((m['modifiedTime'] ?? '') as String)?.toLocal();
   }
 
-  /// Read the appData backup. Null when not connected (and [interactive] false)
-  /// or when no backup file exists.
+  Future<String> _download(String token, String id) async {
+    final res = await http.get(
+      Uri.parse('$_api/files/$id').replace(queryParameters: {'alt': 'media'}),
+      headers: _authHeader(token),
+    );
+    if (res.statusCode != 200) {
+      throw Exception('drive download HTTP ${res.statusCode}');
+    }
+    return res.body;
+  }
+
+  /// Replace the backup in the Fructa folder with the current portfolio.
+  /// Returns Drive's modified time, or null when no token was available (the
+  /// user declined, or [interactive] is false and a prompt would be needed).
+  Future<DateTime?> backup({bool interactive = true}) async {
+    final String? token;
+    try {
+      token = await _token(interactive: interactive);
+    } on DriveCancelled {
+      return null;
+    }
+    if (token == null) return null;
+    return _write(
+      token,
+      jsonEncode(PortfolioCodec.buildPayload(_holdings.all())),
+    );
+  }
+
+  /// Read the backup: the Fructa folder's file, else the old hidden one, which
+  /// is then copied into the folder. Null when not connected (and
+  /// [interactive] false) or when there is no backup anywhere.
   Future<DriveRestore?> restore({bool interactive = true}) async {
     final String? token;
     try {
@@ -244,18 +305,25 @@ class DriveBackupService {
     }
     if (token == null) return null;
 
-    final id = await _findFileId(token);
-    if (id == null) return null;
-
-    final res = await http.get(
-      Uri.parse('$_api/files/$id').replace(queryParameters: {'alt': 'media'}),
-      headers: _authHeader(token),
-    );
-    if (res.statusCode != 200) {
-      throw Exception('drive download HTTP ${res.statusCode}');
+    final folderId = await _folder(token, create: false);
+    final found = folderId == null ? null : await _file(token, folderId);
+    if (found != null) {
+      final data = (jsonDecode(await _download(token, found.$1)) as Map)
+          .cast<String, dynamic>();
+      return DriveRestore(PortfolioCodec.parsePayload(data), found.$2);
     }
-    final data = (jsonDecode(res.body) as Map).cast<String, dynamic>();
-    return DriveRestore(PortfolioCodec.parsePayload(data), null);
+
+    final legacy = await _first(
+      token,
+      "name = '$_legacyName'",
+      spaces: 'appDataFolder',
+    );
+    if (legacy == null) return null;
+    final body = await _download(token, legacy.$1);
+    // Carry it into the folder, so the next phone finds it there.
+    await _write(token, body);
+    final data = (jsonDecode(body) as Map).cast<String, dynamic>();
+    return DriveRestore(PortfolioCodec.parsePayload(data), legacy.$2);
   }
 }
 

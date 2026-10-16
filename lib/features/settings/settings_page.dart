@@ -22,6 +22,8 @@ import 'following_page.dart';
 import 'notifications_page.dart';
 import 'widgets/app_version_footer.dart';
 import 'widgets/appearance_section.dart';
+import '../../data/drive_sync.dart';
+import '../backup/drive_backup_page.dart';
 
 /// The You tab. Membership first, then one row into every notification
 /// switch, the user's reports, how the app looks, learning, privacy and
@@ -203,6 +205,24 @@ class SettingsPage extends ConsumerWidget {
             const SizedBox(height: 4),
             SettingsGroup(
               children: [
+                SettingsRow(
+                  icon: Icons.add_to_drive_rounded,
+                  iconTint: c.accent,
+                  title: t('drive.name'),
+                  sub: ref.watch(driveStatusProvider).connected
+                      ? t('drive.settingsOn', {
+                          'when':
+                              ref.watch(driveStatusProvider).lastBackup == null
+                              ? t('drive.never')
+                              : driveAgo(
+                                  ref.watch(driveStatusProvider).lastBackup!,
+                                ),
+                        })
+                      : t('drive.notConnected'),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const DriveBackupPage()),
+                  ),
+                ),
                 SettingsRow(
                   icon: Icons.cloud_upload_outlined,
                   iconTint: c.accent,

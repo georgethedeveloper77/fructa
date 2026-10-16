@@ -20,6 +20,7 @@ import '../features/reports/report_notify.dart';
 import '../features/settings/settings_page.dart';
 import '../features/today/today_page.dart';
 import 'deep_link.dart';
+import '../data/drive_sync.dart';
 
 /// Page indices for [selectedTabProvider].
 ///
@@ -119,6 +120,8 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
     // Same for story and report notifications: sent only when there is
     // something new to see.
     ref.watch(reportNotifyRunnerProvider);
+    // Backs the portfolio up to Drive after changes, while connected.
+    ref.watch(driveAutoBackupProvider);
 
     // Auto-backup on any portfolio change (debounced). Empty books aren't
     // backed up, so a fresh user never creates a code for nothing.
