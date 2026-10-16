@@ -17,13 +17,11 @@ import '../../data/providers.dart';
 import '../../data/snapshot_providers.dart';
 import '../../engine/accrual_engine.dart';
 import '../../engine/portfolio_math.dart';
-import '../pro/pro_widgets.dart';
 import '../pro/pro_inline.dart';
-import '../reports/reports_page.dart';
-import '../statements/statement_pages.dart';
 import 'add_holding_page.dart';
 import 'manage_holding_sheet.dart';
 import 'projection_card.dart';
+import 'tools_mosaic.dart';
 
 /// Portfolio - markets-first, consolidated in KES.
 ///
@@ -427,14 +425,9 @@ class _Full extends ConsumerWidget {
           ),
         ),
 
-        // Statement check: the way to turn estimates into verified balances.
-        const GoalsSection(),
-        const StatementEntryCard(),
-        const ReportsEntryRow(),
-
-        // Pro upsell for free users. Renders nothing for subscribers or while
-        // the `pro.enabled` remote flag is off.
-        const ProUpsellCard(source: 'portfolio_upsell'),
+        // Statement check, reports, fund watch and goals, as one mosaic led
+        // by whichever needs the user most right now.
+        const ToolsMosaic(),
 
         if (totalKes > 0 && blendedGross > 0) ...[
           SectionHeader(title: t('portfolio.projection')),

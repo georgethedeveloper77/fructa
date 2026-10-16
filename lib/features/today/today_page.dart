@@ -25,6 +25,7 @@ import '../markets/search_overlay.dart';
 import '../markets/widgets/market_allocation_donut.dart';
 import '../markets/widgets/market_pulse.dart';
 import '../portfolio/add_holding_page.dart';
+import '../portfolio/tools_mosaic.dart';
 import '../wrap/wrap_viewer.dart';
 import '../pro/pro_inline.dart';
 import 'portfolio_bubble.dart';
@@ -83,6 +84,7 @@ class TodayPage extends ConsumerWidget {
                   // The Weekly wrap replaces the weekly report card: market stories
                   // for everyone, the user's own week after them (Pro).
                   const WeeklyWrapCard(),
+                  const StatementTodayCard(),
                   if (events.isNotEmpty)
                     _EventsSection(events: events.take(eventCount).toList()),
                   // Kenya's fund market: context, so it sits after the user's own

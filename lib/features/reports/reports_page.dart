@@ -194,17 +194,22 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
           ),
         ),
         actions: [
+          // The shield says it; the words are there on tap.
           Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Row(
-              children: [
-                Icon(Icons.verified_user_outlined, size: 15, color: c.up),
-                const SizedBox(width: 5),
-                Text(
-                  t('reports.onPhone'),
-                  style: TextStyle(color: c.muted, fontSize: 12),
+            padding: const EdgeInsets.only(right: 8),
+            child: Tooltip(
+              message: t('reports.onPhoneLong'),
+              triggerMode: TooltipTriggerMode.tap,
+              showDuration: const Duration(seconds: 4),
+              child: SizedBox(
+                width: 44,
+                height: 44,
+                child: Icon(
+                  Icons.verified_user_outlined,
+                  size: 22,
+                  color: c.up,
                 ),
-              ],
+              ),
             ),
           ),
         ],
