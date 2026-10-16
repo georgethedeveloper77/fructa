@@ -850,7 +850,7 @@ class _Thumb extends StatelessWidget {
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
               child: Text(
-                lockedPersonal ? t('wrap.card.pro') : slide.big,
+                lockedPersonal ? t('wrap.card.pro') : _thumbFigure(slide),
                 style: fructaFonts.numeric(
                   color: tone,
                   size: 13.5,
@@ -859,7 +859,7 @@ class _Thumb extends StatelessWidget {
               ),
             ),
             _FitWords(
-              t(slide.tagKey),
+              _hidesAmount(slide) ? t('wrap.tag.yourWeek') : t(slide.tagKey),
               style: TextStyle(
                 color: _d.text.withValues(alpha: 0.8),
                 fontSize: 9,
@@ -871,6 +871,20 @@ class _Thumb extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A personal story whose figure is an amount. The card lives on Today,
+/// which never shows KES, so it shows the week in basis points instead.
+bool _hidesAmount(WrapSlide s) => s.personal && s.big.contains('KES');
+
+String _thumbFigure(WrapSlide s) {
+  if (!_hidesAmount(s)) return s.big;
+  final m = RegExp(r'([+-]?\d+(?:\.\d+)?)\s*bps').firstMatch(s.unit);
+  if (m == null) return t('wrap.card.you');
+  final v = m.group(1)!;
+  return t('wrap.card.bps', {
+    'v': v.startsWith('-') || v.startsWith('+') ? v : '+$v',
+  });
 }
 
 /// Text that wraps only between words. When the longest word is wider than

@@ -35,14 +35,34 @@ import 'today_state.dart';
 /// The Today tab: one hero rate, then only the modules this user's state calls
 /// for (see [TodayMode]). Every figure appears once on this screen; anything
 /// longer than a line lives one tap away.
-class TodayPage extends ConsumerWidget {
+class TodayPage extends ConsumerStatefulWidget {
   const TodayPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TodayPage> createState() => _TodayPageState();
+}
+
+class _TodayPageState extends ConsumerState<TodayPage> {
+  /// True while the list is moving, so the portfolio pill steps aside.
+  bool _scrolling = false;
+
+  bool _onScroll(ScrollNotification n) {
+    // Only the page itself: the ticker and the chips scroll on their own.
+    if (n.depth != 0) return false;
+    final moving =
+        n is ScrollStartNotification || n is ScrollUpdateNotification;
+    final stopped = n is ScrollEndNotification;
+    if (moving && !_scrolling) setState(() => _scrolling = true);
+    if (stopped && _scrolling) setState(() => _scrolling = false);
+    return false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final c = context.c;
     final mode = ref.watch(todayModeProvider);
     final leaders = ref.watch(todayLeadersProvider);
+    final top = ref.watch(todayTopProvider);
     final hero = ref.watch(todayHeroProvider);
     final dismissed = ref.watch(todayDismissalsProvider);
     final events = ref.watch(todayEventsProvider);
@@ -58,44 +78,45 @@ class TodayPage extends ConsumerWidget {
               color: c.accent,
               backgroundColor: c.s1,
               onRefresh: () => ref.read(ratesProvider.notifier).refresh(),
-              child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.only(bottom: 120),
-                children: [
-                  const _TopBar(),
-                  _Greeting(mode: mode),
-                  if (hero != null && leaders.length > 1)
-                    _LeaderTicker(
-                      leaders: [
-                        for (final l in leaders)
-                          if (l.category != hero.category) l,
-                      ],
-                    ),
-                  if (leaders.length > 1)
-                    _CategoryChips(leaders: leaders, selected: hero?.category),
-                  if (hero != null) _HeroCard(leader: hero),
-                  // The user's own money: watch, switch, goals, statement week.
-                  YourMoneySection(mode: mode),
-                  const _LearnPrimer(),
-                  if (mode == TodayMode.newcomer &&
-                      !dismissed.contains('start'))
-                    const _StartCard(),
-                  if (mode == TodayMode.viewer) const _RecentSection(),
-                  if (mode == TodayMode.follower || mode == TodayMode.investor)
-                    const _FollowingSection(),
-                  if (mode == TodayMode.follower &&
-                      !dismissed.contains('nudge'))
-                    const _AddNudge(),
-                  // The Weekly wrap replaces the weekly report card: market stories
-                  // for everyone, the user's own week after them (Pro).
-                  const WeeklyWrapCard(),
-                  if (events.isNotEmpty)
-                    _EventsSection(events: events.take(eventCount).toList()),
-                  // Kenya's fund market: context, so it sits after the user's own
-                  // modules and the news, never above them.
-                  const MarketAllocationDonut(),
-                  const _TbillRow(),
-                ],
+              child: NotificationListener<ScrollNotification>(
+                onNotification: _onScroll,
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.only(bottom: 120),
+                  children: [
+                    const _TopBar(),
+                    _Greeting(mode: mode),
+                    if (top.isNotEmpty) _LeaderTicker(top: top),
+                    if (leaders.length > 1)
+                      _CategoryChips(
+                        leaders: leaders,
+                        selected: hero?.category,
+                      ),
+                    if (hero != null) _HeroCard(leader: hero),
+                    // The user's own money: watch, switch, goals, statement week.
+                    YourMoneySection(mode: mode),
+                    const _LearnPrimer(),
+                    if (mode == TodayMode.newcomer &&
+                        !dismissed.contains('start'))
+                      const _StartCard(),
+                    if (mode == TodayMode.viewer) const _RecentSection(),
+                    if (mode == TodayMode.follower ||
+                        mode == TodayMode.investor)
+                      const _FollowingSection(),
+                    if (mode == TodayMode.follower &&
+                        !dismissed.contains('nudge'))
+                      const _AddNudge(),
+                    // The Weekly wrap replaces the weekly report card: market stories
+                    // for everyone, the user's own week after them (Pro).
+                    const WeeklyWrapCard(),
+                    if (events.isNotEmpty)
+                      _EventsSection(events: events.take(eventCount).toList()),
+                    // Kenya's fund market: context, so it sits after the user's own
+                    // modules and the news, never above them.
+                    const MarketAllocationDonut(),
+                    const _TbillRow(),
+                  ],
+                ),
               ),
             ),
           ),
@@ -106,7 +127,7 @@ class TodayPage extends ConsumerWidget {
               left: 0,
               right: 0,
               bottom: MediaQuery.paddingOf(context).bottom + 16,
-              child: const PortfolioBubble(),
+              child: PortfolioPill(hidden: _scrolling),
             ),
         ],
       ),
@@ -134,11 +155,14 @@ String _signedPts(double v) =>
 
 /// Section title in the app's display weight.
 class _SectionTitle extends StatelessWidget {
-  const _SectionTitle(this.text, {this.trailing, this.onTrailing});
+  const _SectionTitle(this.text, {this.trailing, this.onTrailing, this.action});
 
   final String text;
   final String? trailing;
   final VoidCallback? onTrailing;
+
+  /// A control beside the title, such as the Gross/Net toggle.
+  final Widget? action;
 
   @override
   Widget build(BuildContext context) {
@@ -158,6 +182,7 @@ class _SectionTitle extends StatelessWidget {
               ),
             ),
           ),
+          if (action != null) ...[action!, const SizedBox(width: 4)],
           if (trailing != null)
             TextButton(
               onPressed: onTrailing,
@@ -388,11 +413,18 @@ class _LiveBadgeState extends State<_LiveBadge>
   }
 }
 
-// ── Ticker: the OTHER categories' leaders, scrolling ────────────────────────
-class _LeaderTicker extends ConsumerStatefulWidget {
-  const _LeaderTicker({required this.leaders});
+// ── Ticker: the top five in every category, scrolling ─────────────────────
+/// Shortens a fund name for the ticker: "Cytonn Money Market Fund" reads as
+/// "Cytonn MMF".
+String _tickerName(String name) => name
+    .replaceAll(RegExp(r'\s*money market fund', caseSensitive: false), ' MMF')
+    .replaceAll(RegExp(r'\s+fund$', caseSensitive: false), '')
+    .trim();
 
-  final List<TodayLeader> leaders;
+class _LeaderTicker extends ConsumerStatefulWidget {
+  const _LeaderTicker({required this.top});
+
+  final Map<TodayCategory, List<TodayLeader>> top;
 
   @override
   ConsumerState<_LeaderTicker> createState() => _LeaderTickerState();
@@ -447,34 +479,62 @@ class _LeaderTickerState extends ConsumerState<_LeaderTicker>
   @override
   Widget build(BuildContext context) {
     final c = context.c;
-    final copies = _fits || reduceMotion(context) ? 1 : 2;
-    final items = [
-      for (var k = 0; k < copies; k++)
-        for (final l in widget.leaders)
+    final net = ref.watch(showNetProvider);
+    final calm = reduceMotion(context);
+    final copies = _fits || calm ? 1 : 2;
+
+    // A category label, then its five funds, numbered.
+    final once = <Widget>[
+      for (final entry in widget.top.entries) ...[
+        InkWell(
+          onTap: () =>
+              ref.read(todayCategoryProvider.notifier).state = entry.key,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(19, 11, 9, 11),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 7,
+                  height: 7,
+                  decoration: BoxDecoration(
+                    color: entry.key.color,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 7),
+                Text(
+                  t(entry.key.shortKey),
+                  style: TextStyle(
+                    color: c.text,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        for (var i = 0; i < entry.value.length; i++)
           InkWell(
-            onTap: () =>
-                ref.read(todayCategoryProvider.notifier).state = l.category,
+            onTap: () => _openFund(context, entry.value[i].fund),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 11),
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 11),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    width: 7,
-                    height: 7,
-                    decoration: BoxDecoration(
-                      color: l.category.color,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 7),
                   Text(
-                    t(l.category.shortKey),
+                    '${i + 1}',
+                    style: fructaFonts.numeric(color: c.faint, size: 11),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    _tickerName(entry.value[i].fund.name),
                     style: TextStyle(color: c.muted, fontSize: 13),
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    '${l.shown(ref.watch(showNetProvider)).toStringAsFixed(2)}%',
+                    '${entry.value[i].shown(net).toStringAsFixed(2)}%',
                     style: fructaFonts.numeric(
                       color: c.text,
                       size: 13,
@@ -485,7 +545,9 @@ class _LeaderTickerState extends ConsumerState<_LeaderTicker>
               ),
             ),
           ),
+      ],
     ];
+
     return Container(
       margin: const EdgeInsets.only(top: 14),
       decoration: BoxDecoration(
@@ -499,9 +561,9 @@ class _LeaderTickerState extends ConsumerState<_LeaderTicker>
       child: Semantics(
         container: true,
         label: [
-          for (final l in widget.leaders)
-            '${t(l.category.shortKey)} ${l.shown(ref.watch(showNetProvider)).toStringAsFixed(2)}%',
-        ].join(', '),
+          for (final entry in widget.top.entries)
+            '${t(entry.key.shortKey)}: ${[for (final l in entry.value) '${l.fund.name} ${l.shown(net).toStringAsFixed(2)}%'].join(', ')}',
+        ].join('. '),
         excludeSemantics: true,
         child: Listener(
           onPointerDown: (_) => _held = true,
@@ -510,9 +572,11 @@ class _LeaderTickerState extends ConsumerState<_LeaderTicker>
           child: SingleChildScrollView(
             controller: _scroll,
             scrollDirection: Axis.horizontal,
-            physics: const NeverScrollableScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 9),
-            child: Row(children: items),
+            // Under reduced motion nothing moves, so the user scrolls it.
+            physics: calm
+                ? const BouncingScrollPhysics()
+                : const NeverScrollableScrollPhysics(),
+            child: Row(children: [for (var k = 0; k < copies; k++) ...once]),
           ),
         ),
       ),
@@ -520,7 +584,6 @@ class _LeaderTickerState extends ConsumerState<_LeaderTicker>
   }
 }
 
-// ── Category chips ──────────────────────────────────────────────────────────
 class _CategoryChips extends ConsumerWidget {
   const _CategoryChips({required this.leaders, required this.selected});
 
@@ -1299,16 +1362,19 @@ class _FollowingSection extends ConsumerWidget {
     final c = context.c;
     final byId = ref.watch(fundsByIdProvider);
     final wht = ref.watch(remoteConfigProvider).whtPct;
+    final net = ref.watch(showNetProvider);
+    double? shown(Fund f) => net ? f.netRate(wht) : f.currentRate;
     final funds = [
       for (final id in ref.watch(subscriptionsProvider))
         if (byId[id] != null) byId[id]!,
-    ]..sort((a, b) => (b.netRate(wht) ?? -1).compareTo(a.netRate(wht) ?? -1));
+    ]..sort((a, b) => (shown(b) ?? -1).compareTo(shown(a) ?? -1));
     if (funds.isEmpty) return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _SectionTitle(
           t('today.following'),
+          action: const RateBasisToggle(),
           trailing: funds.length > 5 ? t('today.all') : null,
           onTrailing: () => Navigator.of(
             context,
@@ -1318,7 +1384,7 @@ class _FollowingSection extends ConsumerWidget {
           Builder(
             builder: (context) {
               final delta = ref.watch(fundDeltaProvider(f.id));
-              final net = f.netRate(wht);
+              final rate = shown(f);
               return _FundRow(
                 fund: f,
                 sub: '${f.manager} \u00b7 ${f.currency}',
@@ -1329,14 +1395,18 @@ class _FollowingSection extends ConsumerWidget {
                 trailing: Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(
-                      net == null
-                          ? t('common.dash')
-                          : '${net.toStringAsFixed(2)}%',
-                      style: fructaFonts.numeric(
-                        color: c.text,
-                        size: 17,
-                        weight: FontWeight.w600,
+                    StretchSwap(
+                      value: net,
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        rate == null
+                            ? t('common.dash')
+                            : '${rate.toStringAsFixed(2)}%',
+                        style: fructaFonts.numeric(
+                          color: c.text,
+                          size: 17,
+                          weight: FontWeight.w600,
+                        ),
                       ),
                     ),
                     if (delta != null && delta != 0)
@@ -1546,46 +1616,67 @@ class _EventsSection extends ConsumerWidget {
                   decoration: BoxDecoration(
                     border: Border(top: BorderSide(color: c.line)),
                   ),
-                  child: Column(
+                  child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 7,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: color.withValues(
-                                alpha: c.isDark ? 0.16 : 0.12,
+                      // A rate move leads with its size; other events with
+                      // what they are.
+                      SizedBox(
+                        width: 62,
+                        child: e.delta != null && e.delta != 0
+                            ? Text(
+                                '${e.delta! > 0 ? '+' : ''}${e.delta!.toStringAsFixed(2)}',
+                                style: fructaFonts.numeric(
+                                  color: c.delta(e.delta!),
+                                  size: 15,
+                                  weight: FontWeight.w600,
+                                ),
+                              )
+                            : Align(
+                                alignment: Alignment.centerLeft,
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 7,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: color.withValues(
+                                        alpha: c.isDark ? 0.16 : 0.12,
+                                      ),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      label,
+                                      style: TextStyle(
+                                        color: c.dataInk(color),
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 0.6,
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              label,
-                              style: TextStyle(
-                                color: c.dataInk(color),
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.6,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            _when(e.createdAt),
-                            style: TextStyle(color: c.muted, fontSize: 11),
-                          ),
-                        ],
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        e.headline,
-                        style: TextStyle(
-                          color: c.text,
-                          fontSize: 15,
-                          height: 1.35,
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          e.headline,
+                          style: TextStyle(
+                            color: c.text,
+                            fontSize: 15,
+                            height: 1.35,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 3),
+                        child: Text(
+                          _when(e.createdAt),
+                          style: TextStyle(color: c.muted, fontSize: 11),
                         ),
                       ),
                     ],
@@ -1630,6 +1721,12 @@ class _TbillRow extends ConsumerWidget {
     final cfg = ref.watch(remoteConfigProvider);
     final b = cfg.benchmark('benchmark.tbill_91');
     final rate = b?.rate ?? cfg.tbill91Pct;
+    final asOf = b?.asOf == null ? null : DateTime.tryParse(b!.asOf!);
+    // Auctions run weekly. Older than three weeks means the feed stopped,
+    // and a months-old rate on Today is worse than none.
+    if (asOf != null && DateTime.now().difference(asOf).inDays > 21) {
+      return const SizedBox.shrink();
+    }
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 14, 20, 0),
       padding: const EdgeInsets.symmetric(vertical: 14),
@@ -1652,9 +1749,12 @@ class _TbillRow extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  b?.asOf == null
+                  asOf == null
                       ? t('today.tbill')
-                      : t('today.tbillAsOf', {'date': b!.asOf!}),
+                      : t('today.tbillAsOf', {
+                          'date':
+                              '${asOf.day} ${_months[asOf.month - 1].substring(0, 3)}',
+                        }),
                   style: TextStyle(color: c.muted, fontSize: 12),
                 ),
                 const SizedBox(height: 2),

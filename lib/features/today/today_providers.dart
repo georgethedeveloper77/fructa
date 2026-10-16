@@ -100,6 +100,25 @@ final todayLeadersProvider = Provider<List<TodayLeader>>((ref) {
   return out;
 });
 
+/// The five best funds in each category, ranked on the basis the app is
+/// showing, for the ticker. Categories with nothing to show are absent; the
+/// map keeps the tab order.
+final todayTopProvider = Provider<Map<TodayCategory, List<TodayLeader>>>((ref) {
+  final funds = ref.watch(ratesProvider).value ?? const <Fund>[];
+  final wht = ref.watch(remoteConfigProvider).whtPct;
+  final showNet = ref.watch(showNetProvider);
+  final out = <TodayCategory, List<TodayLeader>>{};
+  for (final cat in TodayCategory.values) {
+    final rows = <TodayLeader>[
+      for (final f in funds)
+        if (f.showsYield && f.currentRate != null && cat.matches(f))
+          TodayLeader(cat, f, f.netRate(wht) ?? f.currentRate!, f.currentRate!),
+    ]..sort((a, b) => b.shown(showNet).compareTo(a.shown(showNet)));
+    if (rows.isNotEmpty) out[cat] = rows.take(5).toList();
+  }
+  return out;
+});
+
 /// The category the hero shows. Null means the first available one.
 final todayCategoryProvider = StateProvider<TodayCategory?>((_) => null);
 

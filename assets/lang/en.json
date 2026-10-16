@@ -812,7 +812,7 @@
   "today.when.today": "Today",
   "today.when.yesterday": "Yesterday",
   "today.tbill": "91-day T-bill",
-  "today.tbillAsOf": "91-day T-bill · as of {date}",
+  "today.tbillAsOf": "91-day T-bill · {date}",
   "today.tbillLine": "Last cleared at {rate}",
   "markets.overview": "Overview",
   "markets.marketWord": "market",
@@ -1340,5 +1340,10 @@
   "reports.months": "Months",
   "reports.weeksEmpty": "Past weeks show here once a week ends.",
   "reports.monthsEmpty": "Past months show here once a month ends.",
-  "reports.archiveNote": "Every wrap is kept on this phone after its week or month ends."
+  "reports.archiveNote": "Every wrap is kept on this phone after its week or month ends.",
+  "wrap.tag.yourWeek": "YOUR WEEK",
+  "wrap.card.you": "You",
+  "wrap.card.bps": "{v} bps",
+  "today.pill.label": "Your portfolio today",
+  "today.pill.bps": "{v} bps"
 }

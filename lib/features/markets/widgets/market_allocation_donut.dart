@@ -5,9 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/category_colors.dart';
 import '../../../core/theme.dart';
 import '../../../core/widgets/quarter_stat.dart';
-import '../../../data/models/fund.dart';
 import '../../../data/models/remote_config.dart';
-import '../../../data/providers.dart';
 import '../../../data/snapshot_providers.dart';
 import '../market_by_aum_page.dart';
 
@@ -79,9 +77,6 @@ class _MarketAllocationDonutState extends ConsumerState<MarketAllocationDonut> {
     final asOf = size?.asOf ?? cfg.marketAsOf;
     final source =
         size?.source ?? cfg.marketSource ?? 'CMA CIS Quarterly Report';
-
-    final funds = ref.watch(ratesProvider).value ?? const <Fund>[];
-    final tracked = funds.where((f) => f.retail).length;
 
     void open() => Navigator.of(
       context,
@@ -157,17 +152,6 @@ class _MarketAllocationDonutState extends ConsumerState<MarketAllocationDonut> {
               ),
             ),
           ),
-          if (tracked > 0) ...[
-            const SizedBox(height: 8),
-            Text(
-              'Tracking $tracked retail ${tracked == 1 ? 'fund' : 'funds'}',
-              style: TextStyle(
-                color: c.faint,
-                fontFamily: fructaFonts.mono,
-                fontSize: 10,
-              ),
-            ),
-          ],
         ],
       ),
     );
