@@ -1378,5 +1378,16 @@
   "fund.usd.howLabel": "How it's worked out",
   "fund.comp.source": "As of {period} · the fund's CMA quarterly filing",
   "wrap.share.site": "fructa.africa",
-  "wrap.share.tagline": "Kenyan rates, checked weekly"
+  "wrap.share.tagline": "Kenyan rates, checked weekly",
+  "watch.healthy": "{ok} of {n} healthy",
+  "watch.thingsIn": "{things}, in {fund}",
+  "watch.how": "How the score works",
+  "watch.howBody": "Out of 10, from the checks Fructa could judge: your statements, how the rate moves against similar funds, its rank, and what its CMA filing says it holds. Notes for information don't count.",
+  "watch.filter.all": "All {n}",
+  "watch.filter.watch": "To watch {n}",
+  "watch.filter.clear": "All clear {n}",
+  "watch.act.switch": "Should I switch?",
+  "watch.act.statement": "See the statement",
+  "watch.act.check": "Check a statement",
+  "watch.openFund": "Open fund"
 }
