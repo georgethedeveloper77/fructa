@@ -156,9 +156,13 @@ class StoryChart extends ConsumerStatefulWidget {
     required this.tone,
     required this.palette,
     this.onScrub,
+    this.finished = false,
   });
 
   final WrapSlide slide;
+
+  /// Jump to the final frame (the story is being captured for sharing).
+  final bool finished;
   final Color tone;
 
   /// Story palette; stories always draw on the dark tokens.
@@ -192,6 +196,17 @@ class _StoryChartState extends ConsumerState<StoryChart>
         _ring.repeat();
       }
     });
+  }
+
+  @override
+  void didUpdateWidget(StoryChart old) {
+    super.didUpdateWidget(old);
+    if (widget.finished && !old.finished) {
+      _intro.value = 1;
+      _ring
+        ..stop()
+        ..value = 0;
+    }
   }
 
   @override
@@ -329,9 +344,12 @@ class _StoryChartState extends ConsumerState<StoryChart>
         : ref.watch(fundsByIdProvider)[s.fundId];
     var pts = <_Pt>[];
     if (fund != null) {
+      // Until dated history arrives, draw from the snapshot line below, so
+      // the chart is never blank while it loads.
       final hist = ref.watch(historyProvider(fund.id));
-      if (hist.isLoading && !hist.hasValue) return null;
-      pts = _daily(hist.value ?? const [], fund.currentRate, s.windowDays);
+      if (hist.hasValue) {
+        pts = _daily(hist.value!, fund.currentRate, s.windowDays);
+      }
     }
     if (pts.length < 2) pts = [for (final v in s.series) (day: null, v: v)];
     if (pts.length < 2) return null;

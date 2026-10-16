@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -13,8 +14,10 @@ import '../../core/local_notify.dart';
 import '../../core/motion/motion.dart';
 import '../../core/settings_prefs.dart';
 import '../../core/theme.dart';
+import '../../core/widgets/fund_logo.dart';
 import '../../core/widgets/reveal_text.dart';
 import '../../data/providers.dart';
+import '../../data/snapshot_providers.dart';
 import '../company/company_page.dart';
 import '../pro/pro_widgets.dart';
 import '../statements/statement_controller.dart';
@@ -99,6 +102,13 @@ class _WrapViewerState extends ConsumerState<WrapViewer>
           if (s == AnimationStatus.completed) _next();
         });
   final _shot = GlobalKey();
+
+  /// True for the frame the story is captured in: buttons give way to the
+  /// share footer and every animation shows its final state.
+  bool _sharing = false;
+
+  /// The current story's glow colour, kept for the share image's margins.
+  Color _glow = _d.accent;
   int _count = 1;
 
   @override
@@ -139,11 +149,16 @@ class _WrapViewerState extends ConsumerState<WrapViewer>
 
   Future<void> _share() async {
     _clock.stop();
+    setState(() => _sharing = true);
     try {
+      // Two frames: one to lay out the share footer, one to paint it.
+      await WidgetsBinding.instance.endOfFrame;
+      await WidgetsBinding.instance.endOfFrame;
       final boundary =
           _shot.currentContext?.findRenderObject() as RenderRepaintBoundary?;
       if (boundary == null) return;
-      final image = await boundary.toImage(pixelRatio: 3);
+      final shot = await boundary.toImage(pixelRatio: 3);
+      final image = await _storyFrame(shot, _glow);
       final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
       if (bytes == null) return;
       final dir = await getTemporaryDirectory();
@@ -153,8 +168,41 @@ class _WrapViewerState extends ConsumerState<WrapViewer>
         ShareParams(files: [XFile(file.path)], text: t('wrap.shareText')),
       );
     } finally {
-      if (mounted) _clock.forward();
+      if (mounted) {
+        setState(() => _sharing = false);
+        _clock.forward();
+      }
     }
+  }
+
+  /// Places the captured story on a 1080 by 1920 frame, the size stories and
+  /// status updates use, with the same glow filling any margin.
+  static Future<ui.Image> _storyFrame(ui.Image shot, Color glow) async {
+    const w = 1080.0;
+    const h = 1920.0;
+    const frame = Rect.fromLTWH(0, 0, w, h);
+    final rec = ui.PictureRecorder();
+    final canvas = Canvas(rec, frame);
+    canvas.drawRect(frame, Paint()..color = _d.bg);
+    canvas.drawRect(
+      frame,
+      Paint()
+        ..shader = RadialGradient(
+          center: const Alignment(-0.6, -1.1),
+          radius: 1.3,
+          colors: [glow.withValues(alpha: 0.30), _d.bg.withValues(alpha: 0)],
+        ).createShader(frame),
+    );
+    final scale = math.min(w / shot.width, h / shot.height);
+    final dw = shot.width * scale;
+    final dh = shot.height * scale;
+    canvas.drawImageRect(
+      shot,
+      Rect.fromLTWH(0, 0, shot.width.toDouble(), shot.height.toDouble()),
+      Rect.fromLTWH((w - dw) / 2, (h - dh) / 2, dw, dh),
+      Paint()..filterQuality = FilterQuality.high,
+    );
+    return rec.endRecording().toImage(w.toInt(), h.toInt());
   }
 
   @override
@@ -176,6 +224,18 @@ class _WrapViewerState extends ConsumerState<WrapViewer>
     final onLocked = locked && i == slides.length;
     final slide = onLocked ? null : slides[i];
     final tone = slide == null ? _d.accent : _tone(slide.tone);
+    // The glow takes the fund's brand colour; the figures keep the story's
+    // tone, so a drop still reads as a drop on any brand.
+    final fundId = slide?.fundId;
+    final brand = fundId == null ? null : ref.watch(brandColorProvider(fundId));
+    final glow = brand == null ? tone : _d.brandOnBg(brand);
+    _glow = glow;
+    // Every story's history starts loading now, so each chart is ready (or
+    // drawing from the snapshot line) the moment its story opens.
+    for (final s in slides) {
+      final id = s.fundId;
+      if (id != null) ref.listen(historyProvider(id), (_, _) {});
+    }
 
     return Scaffold(
       backgroundColor: _d.bg,
@@ -189,13 +249,16 @@ class _WrapViewerState extends ConsumerState<WrapViewer>
         child: Stack(
           children: [
             Positioned.fill(
-              child: DecoratedBox(
+              child: AnimatedContainer(
+                duration: Duration(
+                  milliseconds: reduceMotion(context) ? 0 : 420,
+                ),
                 decoration: BoxDecoration(
                   gradient: RadialGradient(
                     center: const Alignment(-0.6, -1.1),
                     radius: 1.3,
                     colors: [
-                      tone.withValues(alpha: 0.30),
+                      glow.withValues(alpha: 0.30),
                       _d.bg.withValues(alpha: 0),
                     ],
                   ),
@@ -229,13 +292,29 @@ class _WrapViewerState extends ConsumerState<WrapViewer>
                         ? _LockedSlide(onUnlocked: () => setState(() {}))
                         : RepaintBoundary(
                             key: _shot,
-                            child: ColoredBox(
-                              color: _d.bg,
+                            child: AnimatedContainer(
+                              duration: Duration(
+                                milliseconds: reduceMotion(context) ? 0 : 420,
+                              ),
+                              // The glow continues under the story, so the
+                              // shared image carries it too.
+                              decoration: BoxDecoration(
+                                color: _d.bg,
+                                gradient: RadialGradient(
+                                  center: const Alignment(-0.7, -1.25),
+                                  radius: 1.25,
+                                  colors: [
+                                    glow.withValues(alpha: 0.18),
+                                    _d.bg.withValues(alpha: 0),
+                                  ],
+                                ),
+                              ),
                               child: _SlideBody(
                                 key: ValueKey(i),
                                 slide: slide!,
                                 tone: tone,
                                 index: i,
+                                sharing: _sharing,
                                 // Scrubbing a chart holds the story, like a
                                 // long press does.
                                 onScrub: (on) =>
@@ -376,12 +455,16 @@ class _SlideBody extends ConsumerWidget {
     required this.tone,
     required this.index,
     required this.onScrub,
+    this.sharing = false,
   });
 
   final WrapSlide slide;
   final Color tone;
   final int index;
   final ValueChanged<bool> onScrub;
+
+  /// Capturing for share: final frame, no buttons, the share footer.
+  final bool sharing;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -397,16 +480,46 @@ class _SlideBody extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            t(slide.tagKey),
-            style: TextStyle(
-              color: tone,
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.1,
-            ),
+          // The fund's own logo beside the story tag; stories about the market
+          // as a whole keep the tag alone.
+          Row(
+            children: [
+              if (fund != null) ...[
+                FundLogo(
+                  domain: fund.logoDomain,
+                  seed: fund.manager,
+                  logoUrl: ref.watch(logoUrlProvider(fund.id)),
+                  brandColor: ref.watch(brandColorProvider(fund.id)),
+                  size: 40,
+                ),
+                const SizedBox(width: 10),
+              ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      t(slide.tagKey),
+                      style: TextStyle(
+                        color: tone,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.1,
+                      ),
+                    ),
+                    if (fund != null && fund.manager.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        fund.manager,
+                        style: TextStyle(color: _d.muted, fontSize: 12),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Text(
             slide.title,
             style: TextStyle(
@@ -426,6 +539,7 @@ class _SlideBody extends ConsumerWidget {
               alignment: Alignment.centerLeft,
               child: _CountUp(
                 masked ? 'KES \u2022\u2022\u2022\u2022' : slide.big,
+                done: sharing,
                 style: fructaFonts.numeric(
                   color: tone,
                   size: 64,
@@ -454,6 +568,7 @@ class _SlideBody extends ConsumerWidget {
                     tone: tone,
                     palette: _d,
                     onScrub: onScrub,
+                    finished: sharing,
                   ),
                 ),
               ),
@@ -467,7 +582,9 @@ class _SlideBody extends ConsumerWidget {
             style: TextStyle(color: _d.text, fontSize: 17, height: 1.45),
           ),
           if (!charted) const Spacer() else const SizedBox(height: 16),
-          if (fund != null)
+          if (sharing)
+            const _ShareFooter()
+          else if (fund != null)
             SizedBox(
               width: double.infinity,
               child: OutlinedButton(
@@ -485,27 +602,68 @@ class _SlideBody extends ConsumerWidget {
                 child: Text(t('wrap.openFund')),
               ),
             ),
-          const SizedBox(height: 10),
-          // Branding inside the captured area, so every shared card says
-          // where it came from.
-          Text(
-            t('wrap.brand'),
-            style: TextStyle(color: _d.faint, fontSize: 11.5),
-          ),
+          if (!sharing) ...[
+            const SizedBox(height: 10),
+            // Branding inside the captured area, so every shared card says
+            // where it came from.
+            Text(
+              t('wrap.brand'),
+              style: TextStyle(color: _d.faint, fontSize: 11.5),
+            ),
+          ],
         ],
       ),
     );
   }
 }
 
+/// What a shared story ends with in place of its buttons: the Fructa mark,
+/// the address and one line on what Fructa is.
+class _ShareFooter extends StatelessWidget {
+  const _ShareFooter();
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: 8),
+    child: Row(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: Image.asset('assets/icons/logo.png', width: 24, height: 24),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          t('wrap.share.site'),
+          style: TextStyle(
+            color: _d.text,
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            t('wrap.share.tagline'),
+            textAlign: TextAlign.right,
+            style: TextStyle(color: _d.faint, fontSize: 11.5),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 /// The headline figure counting up from zero to its value, keeping the sign,
 /// decimals and digit grouping of the text. Text with no number, or reduced
 /// motion, shows as is.
 class _CountUp extends StatefulWidget {
-  const _CountUp(this.text, {required this.style});
+  const _CountUp(this.text, {required this.style, this.done = false});
 
   final String text;
   final TextStyle style;
+
+  /// Shows the final value at once (the story is being captured).
+  final bool done;
 
   @override
   State<_CountUp> createState() => _CountUpState();
@@ -561,8 +719,10 @@ class _CountUpState extends State<_CountUp>
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: _c,
-    builder: (_, _) =>
-        Text(_at(Curves.easeOutCubic.transform(_c.value)), style: widget.style),
+    builder: (_, _) => Text(
+      widget.done ? widget.text : _at(Curves.easeOutCubic.transform(_c.value)),
+      style: widget.style,
+    ),
   );
 }
 

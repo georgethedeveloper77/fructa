@@ -1376,5 +1376,7 @@
   "fund.real.howLabel": "How it's worked out",
   "fund.real.belowLabel": "Losing buying power",
   "fund.usd.howLabel": "How it's worked out",
-  "fund.comp.source": "As of {period} · the fund's CMA quarterly filing"
+  "fund.comp.source": "As of {period} · the fund's CMA quarterly filing",
+  "wrap.share.site": "fructa.africa",
+  "wrap.share.tagline": "Kenyan rates, checked weekly"
 }
