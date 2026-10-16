@@ -11,6 +11,7 @@ import '../statements/statement_pages.dart';
 import '../wrap/wrap_engine.dart';
 import '../wrap/wrap_viewer.dart';
 import 'report_archive.dart';
+import 'report_notify.dart';
 import 'report_pdf.dart';
 
 /// Every report in one place: this week's wrap, last month's, past wraps,
@@ -33,9 +34,12 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     super.initState();
     // Keep this week and last month in the archive.
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      final month = ref.read(monthWrapProvider);
       ref.read(wrapArchiveProvider.notifier)
         ..saveWeek(ref.read(weeklyWrapProvider))
-        ..saveMonth(ref.read(monthWrapProvider));
+        ..saveMonth(month);
+      // Opening Reports clears the dot on its entry rows.
+      ref.read(reportSeenProvider.notifier).mark(monthId(month.from));
     });
   }
 
@@ -385,13 +389,15 @@ class _PdfButton extends StatelessWidget {
   }
 }
 
-/// Portfolio's way into Reports.
-class ReportsEntryRow extends StatelessWidget {
+/// Portfolio's (and You's) way into Reports. Shows a dot and says so when
+/// last month's report is ready and not yet opened.
+class ReportsEntryRow extends ConsumerWidget {
   const ReportsEntryRow({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final c = context.c;
+    final ready = ref.watch(newReportProvider);
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
       child: Material(
@@ -437,12 +443,33 @@ class ReportsEntryRow extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        t('reports.entrySub'),
-                        style: TextStyle(color: c.muted, fontSize: 12.5),
+                        ready == null
+                            ? t('reports.entrySub')
+                            : t('reports.ready', {
+                                'month': monthName(ready.from).split(' ').first,
+                              }),
+                        style: TextStyle(
+                          color: ready == null ? c.muted : c.accentInk,
+                          fontSize: 12.5,
+                        ),
                       ),
                     ],
                   ),
                 ),
+                if (ready != null) ...[
+                  Semantics(
+                    label: t('common.new'),
+                    child: Container(
+                      width: 9,
+                      height: 9,
+                      decoration: BoxDecoration(
+                        color: c.accent,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                ],
                 Icon(Icons.chevron_right_rounded, color: c.faint),
               ],
             ),

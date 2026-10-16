@@ -6,80 +6,45 @@ import '../../core/i18n.dart';
 import '../../core/settings_prefs.dart';
 import '../../core/theme.dart';
 import '../../core/widgets/kit.dart';
+import '../../core/widgets/rate_basis_toggle.dart';
 import '../../data/pro/pro_providers.dart';
 import '../../data/providers.dart';
 import '../../data/snapshot_providers.dart';
 import '../backup/backup_ui.dart';
 import '../blog/blog_page.dart';
 import '../learn/learn_home_page.dart';
-import '../learn/learn_progress.dart';
-import '../learn/learn_reminder.dart';
 import '../pro/pro_settings_group.dart';
+import '../reports/report_notify.dart';
+import '../reports/reports_page.dart';
+import '../wrap/wrap_engine.dart';
+import '../wrap/wrap_viewer.dart';
 import 'following_page.dart';
+import 'notifications_page.dart';
 import 'widgets/app_version_footer.dart';
 import 'widgets/appearance_section.dart';
 
-/// Settings, grouped. Related rows sit in rounded [SettingsGroup] cards, each
-/// section tinted one calm colour, so the screen reads as organized rather than
-/// a wall of flat rows. The developer notification-diagnostics panel is gone:
-/// the master switch already tells a user (via snackbar) when push can't land,
-/// so the four-condition dev readout has no place in user settings.
+/// The You tab. Membership first, then one row into every notification
+/// switch, the user's reports, how the app looks, learning, privacy and
+/// their data. Each group holds one kind of thing, so a setting is found by
+/// what it is about rather than by remembering where it was put.
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
-
-  /// The master switch used to flip a bool and call Push.setEnabled. On a phone
-  /// that never granted the OS notification permission that was a no-op dressed
-  /// up as a control: the toggle went green, and every alert kept being dropped
-  /// silently by the OS. It now prompts, and if the user declines, says so
-  /// rather than leaving a green switch that means nothing.
-  Future<void> _setMaster(BuildContext context, WidgetRef ref, bool on) async {
-    final deliverable = await ref
-        .read(settingsControllerProvider.notifier)
-        .setMasterAlerts(on);
-
-    if (!context.mounted || !on || deliverable) return;
-
-    final c = context.c;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          backgroundColor: c.s3,
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 6),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          content: Text(
-            t('settings.notif.blocked'),
-            style: TextStyle(color: c.text, fontSize: 13.5, height: 1.4),
-          ),
-        ),
-      );
-  }
-
-  /// The learn reminder is now a ladder of dated notifications rebuilt from
-  /// live progress, not one repeating string. Settings passes the content and
-  /// progress it can already reach: relying on the persisted ladder here would
-  /// arm almost nothing for a user who switches the reminder on before ever
-  /// opening Learn.
-  Future<void> _syncLearn(WidgetRef ref) => syncLearnReminders(
-    content: ref.read(learnProvider),
-    progress: ref.read(learnProgressProvider),
-    prefs: ref.read(learnReminderProvider),
-  );
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.c;
     final prefs = ref.watch(settingsControllerProvider);
     final ctrl = ref.read(settingsControllerProvider.notifier);
-    final master = prefs.masterAlerts;
     // Live value the LockGate actually reads; the pref persists the choice.
     final lockOn = ref.watch(appLockProvider);
     final followCount = ref.watch(subscriptionsProvider).length;
-    final reminder = ref.watch(learnReminderProvider);
-    final cfg = ref.watch(remoteConfigProvider); // V6 admin-controlled copy
+    final cfg = ref.watch(remoteConfigProvider);
+    final wrap = ref.watch(weeklyWrapProvider);
+    final wrapNew = ref.watch(wrapUnseenProvider);
+    final report = ref.watch(newReportProvider);
+
+    void push(Widget page) =>
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
 
     return Scaffold(
       backgroundColor: c.bg,
@@ -91,12 +56,91 @@ class SettingsPage extends ConsumerWidget {
             DisplayHeader(title: t('nav.you'), sub: t('settings.sub')),
             const SizedBox(height: 18),
 
-            // Fructa Pro: status, restore, manage. Renders nothing while the
+            // Membership: status, restore, manage. Renders nothing while the
             // `pro.enabled` remote flag is off.
             const ProSettingsGroup(),
             if (kDebugMode) const _DebugProSwitch(),
 
-            // Learn (D2 stub - honest copy, no fake streaks)
+            SectionHeader(title: t('settings.notifications')),
+            const SizedBox(height: 4),
+            SettingsGroup(
+              children: [
+                SettingsRow(
+                  icon: Icons.notifications_none,
+                  iconTint: c.accent,
+                  title: t('settings.notifications'),
+                  sub: t(prefs.masterAlerts ? 'you.notif.on' : 'you.notif.off'),
+                  onTap: () => push(const NotificationsPage()),
+                ),
+                SettingsRow(
+                  icon: Icons.star_outline,
+                  iconTint: c.accent,
+                  title: t('you.following'),
+                  sub: t(
+                    followCount == 1 ? 'you.followingOne' : 'you.followingMany',
+                    {'n': '$followCount'},
+                  ),
+                  showDivider: false,
+                  onTap: () => push(const FollowingPage()),
+                ),
+              ],
+            ),
+
+            SectionHeader(title: t('reports.title')),
+            const SizedBox(height: 4),
+            SettingsGroup(
+              children: [
+                if (wrap.market.isNotEmpty)
+                  SettingsRow(
+                    icon: Icons.play_circle_outline,
+                    iconTint: c.accent,
+                    title: t('you.wrap'),
+                    sub: t('wrap.card.count', {'n': '${wrap.market.length}'}),
+                    trailing: wrapNew ? const NewTag() : null,
+                    onTap: () => openWeeklyWrap(context),
+                  ),
+                SettingsRow(
+                  icon: Icons.summarize_outlined,
+                  iconTint: c.accent,
+                  title: t('reports.title'),
+                  sub: report == null
+                      ? t('reports.entrySub')
+                      : t('reports.ready', {
+                          'month': monthName(report.from).split(' ').first,
+                        }),
+                  trailing: report == null ? null : const NewTag(),
+                  showDivider: false,
+                  onTap: () => push(const ReportsPage()),
+                ),
+              ],
+            ),
+
+            SectionHeader(title: t('settings.appearance')),
+            const SizedBox(height: 4),
+            SettingsGroup(
+              children: [
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(16, 14, 16, 14),
+                  child: AppearanceSection(),
+                ),
+                Container(
+                  decoration: BoxDecoration(
+                    border: Border(top: BorderSide(color: c.line)),
+                  ),
+                  child: SettingsRow(
+                    icon: Icons.percent_rounded,
+                    iconTint: c.accent,
+                    title: t('you.basis'),
+                    sub: t('you.basisSub'),
+                    trailing: const RateBasisToggle(),
+                    showDivider: false,
+                  ),
+                ),
+              ],
+            ),
+
+            SectionHeader(title: t('settings.learn.title')),
+            const SizedBox(height: 4),
             SettingsGroup(
               children: [
                 SettingsRow(
@@ -110,9 +154,7 @@ class SettingsPage extends ConsumerWidget {
                     'learn.card.subtitle',
                     t('settings.learn.subtitle'),
                   ),
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const LearnHomePage()),
-                  ),
+                  onTap: () => push(const LearnHomePage()),
                 ),
                 SettingsRow(
                   icon: Icons.menu_book_outlined,
@@ -120,161 +162,12 @@ class SettingsPage extends ConsumerWidget {
                   title: t('settings.blog.title'),
                   sub: t('settings.blog.subtitle'),
                   showDivider: false,
-                  onTap: () => Navigator.of(
-                    context,
-                  ).push(MaterialPageRoute(builder: (_) => const BlogPage())),
+                  onTap: () => push(const BlogPage()),
                 ),
               ],
             ),
 
-            SectionHeader(
-              title: t('settings.notifications'),
-              //trailing: t('settings.notif.trailing'),
-            ),
-            const SizedBox(height: 4),
-            SettingsGroup(
-              children: [
-                SettingsRow(
-                  icon: Icons.star_outline,
-                  iconTint: c.accent,
-                  title: 'Following',
-                  sub: '$followCount ${followCount == 1 ? 'fund' : 'funds'}',
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const FollowingPage()),
-                  ),
-                ),
-                SettingsRow(
-                  icon: Icons.notifications_none,
-                  iconTint: c.accent,
-                  title: t('settings.notif.master'),
-                  sub: t('settings.notif.masterSub'),
-                  trailing: fructaToggle(
-                    value: master,
-                    // setMasterAlerts already drives Push.setEnabled and the OS
-                    // prompt. No duplicate side effect here: two owners of one
-                    // side effect is how they drift.
-                    onChanged: (v) => _setMaster(context, ref, v),
-                  ),
-                ),
-                // Children of the master switch: dimmed + inert while master is
-                // off, keeping each child's own stored value intact.
-                _Gated(
-                  enabled: master,
-                  child: Column(
-                    children: [
-                      SettingsRow(
-                        icon: Icons.trending_up,
-                        iconTint: c.accent,
-                        title: t('settings.notif.rateMoves'),
-                        sub: t('settings.notif.rateMovesSub'),
-                        trailing: fructaToggle(
-                          value: prefs.rateMoves,
-                          onChanged: ctrl.setRateMoves,
-                        ),
-                      ),
-                      SettingsRow(
-                        icon: Icons.swap_horiz,
-                        iconTint: c.accent,
-                        title: t('settings.notif.saved'),
-                        sub: t('settings.notif.savedSub'),
-                        trailing: fructaToggle(
-                          value: prefs.savedComparisons,
-                          onChanged: ctrl.setSavedComparisons,
-                        ),
-                      ),
-                      SettingsRow(
-                        icon: Icons.paid_outlined,
-                        iconTint: c.accent,
-                        title: t('settings.notif.coupons'),
-                        trailing: fructaToggle(
-                          value: prefs.couponsMaturities,
-                          onChanged: ctrl.setCouponsMaturities,
-                        ),
-                      ),
-                      SettingsRow(
-                        icon: Icons.newspaper_outlined,
-                        iconTint: c.accent,
-                        title: t('settings.notif.digest'),
-                        sub: t('settings.notif.digestSub'),
-                        showDivider: false,
-                        trailing: fructaToggle(
-                          value: prefs.weeklyDigest,
-                          onChanged: ctrl.setWeeklyDigest,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 4),
-            SettingsGroup(
-              children: [
-                SettingsRow(
-                  icon: Icons.local_fire_department_rounded,
-                  iconTint: c.accent,
-                  title: 'Learn reminder',
-                  sub: 'Daily nudge to keep your streak',
-                  showDivider: reminder.enabled,
-                  trailing: fructaToggle(
-                    value: reminder.enabled,
-                    onChanged: (v) async {
-                      await ref
-                          .read(learnReminderProvider.notifier)
-                          .setEnabled(v);
-                      await _syncLearn(ref);
-                    },
-                  ),
-                ),
-                if (reminder.enabled)
-                  SettingsRow(
-                    icon: Icons.schedule,
-                    iconTint: c.accent,
-                    title: 'Reminder time',
-                    showDivider: false,
-                    onTap: () async {
-                      final picked = await showTimePicker(
-                        context: context,
-                        initialTime: reminder.time,
-                      );
-                      if (picked == null) return;
-                      await ref
-                          .read(learnReminderProvider.notifier)
-                          .setTime(picked.hour, picked.minute);
-                      await _syncLearn(ref);
-                    },
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          _fmtTime(reminder.time),
-                          style: TextStyle(
-                            color: c.accent,
-                            fontFamily: fructaFonts.mono,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        Icon(Icons.chevron_right, color: c.faint, size: 18),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
-
-            SectionHeader(title: t('settings.appearance')),
-            const SizedBox(height: 4),
-            const SettingsGroup(
-              children: [
-                Padding(
-                  padding: EdgeInsets.fromLTRB(16, 14, 16, 14),
-                  child: AppearanceSection(),
-                ),
-              ],
-            ),
-
-            SectionHeader(title: t('settings.security')),
+            SectionHeader(title: t('you.privacy')),
             const SizedBox(height: 4),
             SettingsGroup(
               children: [
@@ -286,8 +179,7 @@ class SettingsPage extends ConsumerWidget {
                   trailing: fructaToggle(
                     value: lockOn,
                     onChanged: (v) {
-                      // set() persists to Hive AND updates the live value; the
-                      // old direct `.state = v` bypassed persistence.
+                      // set() persists to Hive and updates the live value.
                       ref.read(appLockProvider.notifier).set(v);
                       ctrl.setBiometricLock(v); // persisted mirror
                     },
@@ -298,11 +190,19 @@ class SettingsPage extends ConsumerWidget {
                   iconTint: c.accent,
                   title: t('settings.security.hideBalances'),
                   sub: t('settings.security.hideBalancesSub'),
+                  showDivider: false,
                   trailing: fructaToggle(
                     value: prefs.hideBalances,
                     onChanged: ctrl.setHideBalances,
                   ),
                 ),
+              ],
+            ),
+
+            SectionHeader(title: t('you.data')),
+            const SizedBox(height: 4),
+            SettingsGroup(
+              children: [
                 SettingsRow(
                   icon: Icons.cloud_upload_outlined,
                   iconTint: c.accent,
@@ -320,6 +220,13 @@ class SettingsPage extends ConsumerWidget {
                 ),
               ],
             ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(22, 8, 22, 0),
+              child: Text(
+                t('you.dataNote'),
+                style: TextStyle(color: c.faint, fontSize: 12, height: 1.45),
+              ),
+            ),
 
             const SizedBox(height: 22),
             const AppVersionFooter(),
@@ -328,31 +235,6 @@ class SettingsPage extends ConsumerWidget {
       ),
     );
   }
-}
-
-/// Children of the master switch: dimmed + inert while master is off, keeping
-/// each child's own stored value intact.
-class _Gated extends StatelessWidget {
-  const _Gated({required this.enabled, required this.child});
-  final bool enabled;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => IgnorePointer(
-    ignoring: !enabled,
-    child: AnimatedOpacity(
-      duration: const Duration(milliseconds: 180),
-      opacity: enabled ? 1 : 0.45,
-      child: child,
-    ),
-  );
-}
-
-String _fmtTime(TimeOfDay t) {
-  final h = t.hourOfPeriod == 0 ? 12 : t.hourOfPeriod;
-  final m = t.minute.toString().padLeft(2, '0');
-  final ap = t.period == DayPeriod.am ? 'AM' : 'PM';
-  return '$h:$m $ap';
 }
 
 /// Debug builds only: unlock Pro on this phone for testing.

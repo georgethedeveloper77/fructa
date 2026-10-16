@@ -28,6 +28,9 @@ class SettingsPrefs {
     required this.savedComparisons,
     required this.couponsMaturities,
     required this.weeklyDigest,
+    required this.fundStories,
+    required this.monthlyReport,
+    required this.statementDue,
     required this.biometricLock,
     required this.hideBalances,
   });
@@ -37,7 +40,20 @@ class SettingsPrefs {
   final bool rateMoves; // 0.15 pts either way
   final bool savedComparisons; // leader flip / gap > 0.25
   final bool couponsMaturities;
+
+  /// The Weekly wrap switch. Kept under its old name and key so installed
+  /// devices keep their choice; it still mirrors the server digest tag, so one
+  /// switch covers both.
   final bool weeklyDigest;
+
+  /// A fund the user holds or follows earns a story in this week's wrap.
+  final bool fundStories;
+
+  /// Last month's report is ready (Pro).
+  final bool monthlyReport;
+
+  /// The morning a manager usually releases a statement the user checks (Pro).
+  final bool statementDue;
 
   // Security: default OFF.
   final bool biometricLock;
@@ -49,6 +65,9 @@ class SettingsPrefs {
     savedComparisons: true,
     couponsMaturities: true,
     weeklyDigest: true,
+    fundStories: true,
+    monthlyReport: true,
+    statementDue: true,
     biometricLock: false,
     hideBalances: false,
   );
@@ -82,6 +101,9 @@ class SettingsPrefs {
     bool? savedComparisons,
     bool? couponsMaturities,
     bool? weeklyDigest,
+    bool? fundStories,
+    bool? monthlyReport,
+    bool? statementDue,
     bool? biometricLock,
     bool? hideBalances,
   }) {
@@ -91,6 +113,9 @@ class SettingsPrefs {
       savedComparisons: savedComparisons ?? this.savedComparisons,
       couponsMaturities: couponsMaturities ?? this.couponsMaturities,
       weeklyDigest: weeklyDigest ?? this.weeklyDigest,
+      fundStories: fundStories ?? this.fundStories,
+      monthlyReport: monthlyReport ?? this.monthlyReport,
+      statementDue: statementDue ?? this.statementDue,
       biometricLock: biometricLock ?? this.biometricLock,
       hideBalances: hideBalances ?? this.hideBalances,
     );
@@ -113,6 +138,9 @@ class SettingsController extends Notifier<SettingsPrefs> {
       savedComparisons: _get('savedComparisons', i.savedComparisons),
       couponsMaturities: _get('couponsMaturities', i.couponsMaturities),
       weeklyDigest: _get('weeklyDigest', i.weeklyDigest),
+      fundStories: _get('fundStories', i.fundStories),
+      monthlyReport: _get('monthlyReport', i.monthlyReport),
+      statementDue: _get('statementDue', i.statementDue),
       biometricLock: _get('biometricLock', i.biometricLock),
       hideBalances: _get('hideBalances', i.hideBalances),
     );
@@ -161,6 +189,23 @@ class SettingsController extends Notifier<SettingsPrefs> {
     // This one stays an opt-IN tag: the digest is a broadcast, so there is no
     // per-user hook like `follow_<id>` for the server to hang a mute off.
     Push.setDigest(v);
+  }
+
+  // Local only: these notifications are worked out and raised on the phone,
+  // so there is no server tag to mirror.
+  void setFundStories(bool v) {
+    state = state.copyWith(fundStories: v);
+    _put('fundStories', v);
+  }
+
+  void setMonthlyReport(bool v) {
+    state = state.copyWith(monthlyReport: v);
+    _put('monthlyReport', v);
+  }
+
+  void setStatementDue(bool v) {
+    state = state.copyWith(statementDue: v);
+    _put('statementDue', v);
   }
 
   void setBiometricLock(bool v) {

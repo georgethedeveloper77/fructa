@@ -83,8 +83,9 @@ final switchOpportunityProvider = Provider.autoDispose
       if (from == null ||
           h == null ||
           from.currentRate == null ||
-          !from.showsYield)
+          !from.showsYield) {
         return null;
+      }
       final wht = ref.watch(remoteConfigProvider).whtPct;
       final peers =
           funds.values
@@ -128,8 +129,9 @@ final bestSwitchProvider = Provider.autoDispose<SwitchOpportunity?>((ref) {
   SwitchOpportunity? best;
   for (final h in ref.watch(holdingsProvider)) {
     final o = ref.watch(switchOpportunityProvider(h.fundId));
-    if (o == null || o.ptsNet < ref.watch(proTuningProvider).todaySwitchPts)
+    if (o == null || o.ptsNet < ref.watch(proTuningProvider).todaySwitchPts) {
       continue;
+    }
     if (best == null || o.gain > best.gain) best = o;
   }
   return best;
@@ -661,8 +663,9 @@ class GoalsSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.c;
     final access = ref.watch(proAccessProvider);
-    if (!access && !ref.watch(proTeaserProvider))
+    if (!access && !ref.watch(proTeaserProvider)) {
       return const SizedBox.shrink();
+    }
     final goals = access ? ref.watch(goalsProvider) : const <Goal>[];
 
     return Padding(

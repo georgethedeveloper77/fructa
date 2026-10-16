@@ -103,8 +103,9 @@ Future<void> _runMarket(
     for (final h in ref.read(holdingsProvider)) {
       if (h.isSacco) continue;
       final mine = byId[h.fundId];
-      if (mine == null || mine.currentRate == null || !mine.showsYield)
+      if (mine == null || mine.currentRate == null || !mine.showsYield) {
         continue;
+      }
       final peers = _peers(mine, fresh)
         ..sort((a, b) => net(b).compareTo(net(a)));
       if (peers.isEmpty || peers.first.id == mine.id) continue;
@@ -146,8 +147,9 @@ Future<void> _runMarket(
       if (f == null ||
           was == null ||
           f.currentRate == null ||
-          was.currentRate == null)
+          was.currentRate == null) {
         continue;
+      }
       int rankIn(Fund x, List<Fund> list) {
         final peers = _peers(x, list)
           ..sort((a, b) => b.currentRate!.compareTo(a.currentRate!));

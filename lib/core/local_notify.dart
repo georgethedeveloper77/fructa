@@ -46,6 +46,14 @@ class LocalNotify {
   static const learnChannelDescription =
       'Nudges to keep your learning streak going.';
 
+  /// Stories and reports get their own channel too, so a user who only wants
+  /// rate moves can silence the wrap from system settings, and the other way
+  /// round.
+  static const reportsChannelId = 'fructa_reports';
+  static const reportsChannelName = 'Stories and reports';
+  static const reportsChannelDescription =
+      'Your weekly wrap, monthly report and statement reminders.';
+
   /// Fructa gold. This is an OS-level notification tint applied outside the
   /// widget tree, where there is no BuildContext and therefore no `context.c`
   /// to read the token from. It is the one place a literal is unavoidable.
@@ -112,6 +120,15 @@ class LocalNotify {
 
     await androidImpl?.createNotificationChannel(
       const AndroidNotificationChannel(
+        reportsChannelId,
+        reportsChannelName,
+        description: reportsChannelDescription,
+        importance: Importance.defaultImportance,
+      ),
+    );
+
+    await androidImpl?.createNotificationChannel(
+      const AndroidNotificationChannel(
         learnChannelId,
         learnChannelName,
         description: learnChannelDescription,
@@ -163,18 +180,28 @@ class LocalNotify {
     priority: Priority.defaultPriority,
   );
 
+  static NotificationDetails get _reportDetails => _details(
+    id: reportsChannelId,
+    name: reportsChannelName,
+    description: reportsChannelDescription,
+    importance: Importance.defaultImportance,
+    priority: Priority.defaultPriority,
+  );
+
+  /// [report] puts it on the Stories and reports channel instead of rates.
   static Future<void> show({
     required int id,
     required String title,
     required String body,
     String? target,
+    bool report = false,
   }) async {
     if (!_ready) return;
     await _plugin.show(
       id: id,
       title: title,
       body: body,
-      notificationDetails: _rateDetails,
+      notificationDetails: report ? _reportDetails : _rateDetails,
       payload: target,
     );
   }
@@ -207,6 +234,7 @@ class LocalNotify {
     required DateTime when,
     String? target,
     bool learn = false,
+    bool report = false,
     bool repeatDaily = false,
   }) async {
     await ensureInit();
@@ -216,7 +244,11 @@ class LocalNotify {
         title: title,
         body: body,
         scheduledDate: tz.TZDateTime.from(when, tz.local),
-        notificationDetails: learn ? _learnDetails : _rateDetails,
+        notificationDetails: learn
+            ? _learnDetails
+            : report
+            ? _reportDetails
+            : _rateDetails,
         payload: target,
         // Inexact avoids the exact-alarm permission on Android 12+; none of
         // these need to fire to the second.
@@ -250,7 +282,7 @@ class LocalNotify {
   /// same move can be re-detected across a cold start (cached snapshot vs fresh
   /// fetch). Keyed on fund plus the resulting rate, so a genuine second move on
   /// the same fund still notifies.
-  static bool _claim(String key) {
+  static bool claim(String key) {
     final seen =
         ((_box.get('notifiedKeys', defaultValue: <String>[]) as List)
                 .cast<String>())
@@ -271,7 +303,7 @@ class LocalNotify {
     required double newRate,
   }) async {
     final key = '$fundId|${newRate.toStringAsFixed(4)}';
-    if (!_claim(key)) return;
+    if (!claim(key)) return;
 
     final rose = newRate > oldRate;
     await show(
@@ -288,7 +320,7 @@ class LocalNotify {
   /// how an app gets its notifications turned off permanently, so collapse.
   static Future<void> rateChangeSummary(int count) async {
     final key = 'summary|${DateTime.now().toIso8601String().substring(0, 13)}';
-    if (!_claim(key)) return;
+    if (!claim(key)) return;
 
     await show(
       id: key.hashCode & 0x7fffffff,

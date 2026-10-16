@@ -9,6 +9,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../core/category_colors.dart';
 import '../../core/i18n.dart';
+import '../../core/local_notify.dart';
 import '../../core/motion/motion.dart';
 import '../../core/settings_prefs.dart';
 import '../../core/theme.dart';
@@ -18,6 +19,7 @@ import '../company/company_page.dart';
 import '../pro/pro_widgets.dart';
 import '../statements/statement_controller.dart';
 import '../reports/report_archive.dart';
+import '../reports/report_notify.dart';
 import 'wrap_chart.dart';
 import 'wrap_engine.dart';
 
@@ -103,6 +105,16 @@ class _WrapViewerState extends ConsumerState<WrapViewer>
   void initState() {
     super.initState();
     _clock.forward();
+    // Opening the live wrap counts as watching it: the NEW tag clears and
+    // Friday's notification is no longer needed.
+    if (widget.slides == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final to = ref.read(weeklyWrapProvider).to;
+        ref.read(wrapSeenProvider.notifier).mark(WrapArchive.weekId(to));
+        LocalNotify.cancelIds([wrapNotificationId(to)]);
+      });
+    }
   }
 
   @override
@@ -664,6 +676,7 @@ class WeeklyWrapCard extends ConsumerWidget {
       );
     }
     final unlocked = ref.watch(wrapPersonalUnlockedProvider);
+    final unseen = ref.watch(wrapUnseenProvider);
     final thumbs = [
       ...wrap.market.take(4),
       if (wrap.personal.isNotEmpty) wrap.personal.first,
@@ -677,7 +690,7 @@ class WeeklyWrapCard extends ConsumerWidget {
         color: c.s1,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(22),
-          side: BorderSide(color: c.line),
+          side: BorderSide(color: unseen ? c.accent : c.line),
         ),
         child: InkWell(
           borderRadius: BorderRadius.circular(22),
@@ -702,6 +715,7 @@ class WeeklyWrapCard extends ConsumerWidget {
                         ),
                       ),
                     ),
+                    if (unseen) ...[const NewTag(), const SizedBox(width: 8)],
                     Text(
                       t('wrap.card.count', {'n': '$total'}),
                       style: TextStyle(color: c.muted, fontSize: 12),
@@ -717,6 +731,7 @@ class WeeklyWrapCard extends ConsumerWidget {
                         child: _Thumb(
                           slide: thumbs[k],
                           lockedPersonal: thumbs[k].personal && !unlocked,
+                          ring: unseen,
                         ),
                       ),
                     ],
@@ -727,7 +742,7 @@ class WeeklyWrapCard extends ConsumerWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        t('wrap.card.title'),
+                        t(unseen ? 'wrap.card.title' : 'wrap.card.watched'),
                         style: TextStyle(
                           color: c.text,
                           fontSize: 15.5,
@@ -741,13 +756,13 @@ class WeeklyWrapCard extends ConsumerWidget {
                         vertical: 9,
                       ),
                       decoration: BoxDecoration(
-                        color: c.accent,
+                        color: unseen ? c.accent : c.s2,
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: Text(
-                        t('wrap.card.play'),
+                        t(unseen ? 'wrap.card.play' : 'wrap.card.again'),
                         style: TextStyle(
-                          color: c.onAccent,
+                          color: unseen ? c.onAccent : c.text,
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
                         ),
@@ -764,18 +779,58 @@ class WeeklyWrapCard extends ConsumerWidget {
   }
 }
 
+/// Small accent tag for something the user has not opened yet.
+class NewTag extends StatelessWidget {
+  const NewTag({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: c.accent,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        t('common.new'),
+        style: TextStyle(
+          color: c.onAccent,
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.6,
+        ),
+      ),
+    );
+  }
+}
+
 class _Thumb extends StatelessWidget {
-  const _Thumb({required this.slide, required this.lockedPersonal});
+  const _Thumb({
+    required this.slide,
+    required this.lockedPersonal,
+    this.ring = false,
+  });
 
   final WrapSlide slide;
   final bool lockedPersonal;
 
+  /// Accent ring around an unwatched story, like a story circle.
+  final bool ring;
+
   @override
   Widget build(BuildContext context) {
     final tone = lockedPersonal ? _d.accent : _tone(slide.tone);
+    final c = context.c;
     return AspectRatio(
       aspectRatio: 9 / 15,
       child: Container(
+        foregroundDecoration: ring
+            ? BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: c.accent, width: 2),
+              )
+            : null,
         padding: const EdgeInsets.fromLTRB(7, 0, 7, 8),
         decoration: BoxDecoration(
           color: _d.bg,

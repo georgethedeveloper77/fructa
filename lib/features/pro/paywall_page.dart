@@ -300,7 +300,7 @@ class _PaywallPageState extends ConsumerState<PaywallPage> {
                       const SizedBox(height: 16),
                       if (personal) ...[
                         Text(
-                          gap!.toStringAsFixed(2),
+                          gap.toStringAsFixed(2),
                           textAlign: TextAlign.center,
                           style: fructaFonts.numeric(
                             color: c.down,
@@ -445,8 +445,9 @@ int? _annualSaving(List<Package> plans) {
   if (m == null ||
       a == null ||
       m.currencyCode != a.currencyCode ||
-      m.price <= 0)
+      m.price <= 0) {
     return null;
+  }
   final pct = ((1 - a.price / (m.price * 12)) * 100).round();
   return pct >= 5 ? pct : null;
 }

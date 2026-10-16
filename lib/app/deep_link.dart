@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/providers.dart';
 import '../features/alerts/alerts_page.dart';
 import '../features/company/company_page.dart';
+import '../features/reports/reports_page.dart';
+import '../features/wrap/wrap_viewer.dart';
 import 'main_scaffold.dart';
 
 /// Global navigator + notification-tap router.
@@ -15,7 +17,10 @@ import 'main_scaffold.dart';
 ///
 /// Targets:
 ///   `markets` | `portfolio` | `settings`   switch bottom tab
+///   `today`                               switch to Today
 ///   `alerts`                              push the Alerts feed
+///   `reports`                             push Reports
+///   `wrap` | `wrap/<i>`                   open this week's wrap (at story i)
 ///   `fund/<id>`                           push the fund's detail page
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -49,11 +54,27 @@ void _route(BuildContext ctx, String target) {
       return tab(1);
     case 'settings':
       return tab(2);
+    case 'today':
+      return tab(3);
+    case 'reports':
+      rootNavigatorKey.currentState?.push(
+        MaterialPageRoute(builder: (_) => const ReportsPage()),
+      );
+      return;
     case 'alerts':
       rootNavigatorKey.currentState?.push(
         MaterialPageRoute(builder: (_) => const AlertsPage()),
       );
       return;
+  }
+
+  if (target == 'wrap' || target.startsWith('wrap/')) {
+    final at = int.tryParse(
+      target.substring('wrap'.length).replaceAll('/', ''),
+    );
+    tab(3);
+    openWeeklyWrap(ctx, start: at ?? 0);
+    return;
   }
 
   if (target.startsWith('fund/')) {

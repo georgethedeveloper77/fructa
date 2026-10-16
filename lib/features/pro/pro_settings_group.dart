@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/analytics.dart';
 import '../../core/config.dart';
+import '../../core/i18n.dart';
 import '../../core/theme.dart';
 import '../../core/widgets/kit.dart';
 import '../../data/pro/pro_providers.dart';
@@ -44,20 +45,15 @@ class _ProSettingsGroupState extends ConsumerState<ProSettingsGroup> {
   /// One line describing where the subscription stands. Billing trouble wins
   /// over everything else because it is the only state that needs action.
   String _statusLine(ProState s) {
-    if (!s.active) return 'Weekly report, full rate history';
-    if (s.billingIssue) {
-      return 'Payment problem. Update it in your store account';
-    }
+    if (!s.active) return t('you.pro.pitch');
+    if (s.billingIssue) return t('you.pro.billing');
     final end = s.expiresAt;
-    if (end == null) return 'Active';
+    if (end == null) return t('you.pro.active');
+    final d = {'date': _date(end)};
     if (s.inTrial) {
-      return s.willRenew
-          ? 'Free trial, first payment ${_date(end)}'
-          : 'Free trial, ends ${_date(end)}';
+      return t(s.willRenew ? 'you.pro.trialRenews' : 'you.pro.trialEnds', d);
     }
-    return s.willRenew
-        ? 'Active, renews ${_date(end)}'
-        : 'Active, ends ${_date(end)}';
+    return t(s.willRenew ? 'you.pro.renews' : 'you.pro.ends', d);
   }
 
   Future<void> _manage(ProState s) async {
@@ -85,10 +81,9 @@ class _ProSettingsGroupState extends ConsumerState<ProSettingsGroup> {
     setState(() => _restoring = false);
 
     final msg = switch (outcome) {
-      PurchaseOutcome.success => 'Fructa Pro restored.',
-      PurchaseOutcome.offline =>
-        'You appear to be offline. Connect and try again.',
-      _ => 'No active Fructa Pro subscription was found on this store account.',
+      PurchaseOutcome.success => t('you.restore.done'),
+      PurchaseOutcome.offline => t('you.restore.offline'),
+      _ => t('you.restore.none'),
     };
     messenger
       ..hideCurrentSnackBar()
@@ -116,7 +111,8 @@ class _ProSettingsGroupState extends ConsumerState<ProSettingsGroup> {
           SettingsRow(
             icon: Icons.workspace_premium_outlined,
             iconTint: s.billingIssue ? c.down : c.accent,
-            title: 'Fructa Pro',
+            // Subscribers see their membership, never the word Pro.
+            title: t(s.active ? 'you.membership' : 'you.pro.title'),
             sub: _statusLine(s),
             trailing: s.active
                 ? Icon(Icons.open_in_new, color: c.faint, size: 18)
@@ -128,8 +124,8 @@ class _ProSettingsGroupState extends ConsumerState<ProSettingsGroup> {
           SettingsRow(
             icon: Icons.restore,
             iconTint: c.accent,
-            title: 'Restore purchases',
-            sub: 'Already subscribed on this store account',
+            title: t('you.restore'),
+            sub: t('you.restoreSub'),
             showDivider: false,
             trailing: _restoring
                 ? SizedBox(
