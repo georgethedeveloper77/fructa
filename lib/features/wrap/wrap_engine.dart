@@ -220,7 +220,9 @@ String _whole(double v) {
   final s = v.abs().round().toString();
   final b = StringBuffer();
   for (var i = 0; i < s.length; i++) {
-    if (i > 0 && (s.length - i) % 3 == 0) b.write(',');
+    if (i > 0 && (s.length - i) % 3 == 0) {
+      b.write(',');
+    }
     b.write(s[i]);
   }
   return b.toString();
@@ -503,7 +505,7 @@ final localWeeklyWrapProvider = Provider.autoDispose<WeeklyWrap>((ref) {
           big: '+KES ${_whole(mine.h.balance * gap / 100)}',
           unit: 'a year more on your balance, after tax',
           line:
-              '${_pct(top.currentRate!)} against ${_pct(mine.f.currentRate!)}, both gross. Rates move, so this is a guide.',
+              '${_pct(top.currentRate!)} against ${_pct(mine.f.currentRate!)}, both gross.',
           tone: WrapTone.up,
           fundId: top.id,
           personal: true,

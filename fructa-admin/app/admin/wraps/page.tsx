@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import {
+  backfillWraps,
   deleteWrap,
   rebuildWrap,
   runWrapsNow,
@@ -80,6 +81,9 @@ export default async function WrapsPage() {
           Publishes on its own, from approved rates only. Step in here when you need to.
         </span>
         <div className="spacer" />
+        <form action={backfillWraps}>
+          <button className="btn xs">Build past wraps</button>
+        </form>
         <form action={runWrapsNow}>
           <button className="btn xs">Run now</button>
         </form>

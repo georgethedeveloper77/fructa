@@ -16,6 +16,8 @@
 //   { "rebuild": "week-2026-10-16" }            rebuild one wrap (keeps hold)
 //   { "rebuild": "...", "force": true }         also replace operator edits
 //   { "publish_only": true }                    rewrite wraps.json only
+//   { "backfill": true }                        build every past period the
+//                                               history supports (no pushes)
 //
 // A wrap an operator edited keeps its stories on every automatic run. A held
 // wrap stays held and is left out of wraps.json and the push.
@@ -69,6 +71,7 @@ Deno.serve(async (req) => {
     rebuild?: string;
     force?: boolean;
     publish_only?: boolean;
+    backfill?: boolean;
   };
   const db = adminClient();
   const log: string[] = [];
@@ -80,6 +83,12 @@ Deno.serve(async (req) => {
     }
 
     const cfg = await loadCfg(db);
+
+    if (body.backfill) {
+      const n = await backfill(db, cfg, !!body.force, log);
+      const published = await publishIndex(db);
+      return Response.json({ ok: true, built: n, published, log: log.slice(-20) });
+    }
 
     if (body.rebuild) {
       const meta = metaFromId(body.rebuild);
@@ -150,6 +159,67 @@ Deno.serve(async (req) => {
     return Response.json({ ok: false, error, log }, { status: 500 });
   }
 });
+
+/**
+ * Builds every past period the rate history can support, oldest first, so
+ * the archive is complete from the first week with enough data. Days only go
+ * back 90 days and only where something moved. Existing wraps are left alone
+ * unless [force]. Nothing is pushed: these are history, not news.
+ */
+async function backfill(db: SupabaseClient, cfg: Cfg, force: boolean, log: string[]): Promise<number> {
+  const { data: first } = await db
+    .from("rate_history")
+    .select("as_of")
+    .order("as_of", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (!first?.as_of) return 0;
+  const now = nairobiNow();
+  // A fund's normal week needs some weeks behind it; start four weeks in.
+  const start = addDays(first.as_of as string, 28);
+  const m = await loadMarket(db, first.as_of as string, now.day);
+
+  const { data: have } = await db.from("wraps").select("id");
+  const exists = new Set((have ?? []).map((r) => r.id as string));
+  let built = 0;
+
+  const put = async (meta: Meta, stories: Story[]) => {
+    if (!stories.length || (exists.has(meta.id) && !force)) return;
+    await save(db, meta, stories, "live", force ? null : await current(db, meta.id), force);
+    // Backfilled weeks are history: mark them pushed so a late run never
+    // sends a push for an old week.
+    if (meta.period === "week") {
+      await db.from("wraps").update({ pushed_at: new Date().toISOString() }).eq("id", meta.id).is("pushed_at", null);
+    }
+    exists.add(meta.id);
+    built++;
+  };
+
+  // Weeks, up to the last one that has closed.
+  const thisWeekEnd = weekEnd(now.day, cfg.publishDow);
+  for (let end = weekEnd(start, cfg.publishDow); end < thisWeekEnd; end = addDays(end, 7)) {
+    const meta = weekRow(end);
+    await put(meta, buildRange(m, meta.period_start, end, cfg, await recentWeekStories(db, meta, cfg)));
+  }
+
+  // Months, quarters and years, as each closed.
+  for (let day = start; day <= now.day; day = addDays(day, 1)) {
+    if (!day.endsWith("-01")) continue;
+    for (const meta of closedPeriods(day)) {
+      if (meta.period_start < first.as_of) continue;
+      await put(meta, buildRange(m, meta.period_start, meta.period_end, cfg));
+    }
+  }
+
+  // Days that moved, over the last 90 days.
+  for (let day = addDays(now.day, -90); day < now.day; day = addDays(day, 1)) {
+    if (day < start) continue;
+    await put(dayRow(day), buildDay(m, day, cfg));
+  }
+
+  log.push(`backfilled ${built} wraps from ${start}`);
+  return built;
+}
 
 /** The period a wrap id names, or null. */
 function metaFromId(id: string): Meta | null {

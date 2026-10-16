@@ -195,13 +195,17 @@ export async function loadMarket(db: SupabaseClient, from: string, to: string): 
 /** The rate in force on [day]: the last print on or before it. */
 function rateAt(m: Market, id: string, day: string): number | null {
   const p = m.prints.get(id);
-  if (!p) return null;
-  let out: number | null = null;
-  for (const [d, r] of p) {
-    if (d > day) break;
-    out = r;
+  if (!p || !p.length || p[0][0] > day) return null;
+  // Binary search for the last print on or before [day]: backfills ask this
+  // millions of times.
+  let lo = 0;
+  let hi = p.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (p[mid][0] <= day) lo = mid;
+    else hi = mid - 1;
   }
-  return out;
+  return p[lo][1];
 }
 
 /** Prints strictly after [from] and on or before [to]. */

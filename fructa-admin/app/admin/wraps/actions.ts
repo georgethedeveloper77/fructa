@@ -38,6 +38,12 @@ export async function runWrapsNow(): Promise<void> {
   done();
 }
 
+/** Build every past day, week, month, quarter and year the history supports. */
+export async function backfillWraps(): Promise<void> {
+  await invoke({ backfill: true });
+  done();
+}
+
 /** Rebuild one wrap from the data. Keeps a hold; keeps edits unless forced. */
 export async function rebuildWrap(formData: FormData): Promise<void> {
   const id = String(formData.get("id") ?? "");

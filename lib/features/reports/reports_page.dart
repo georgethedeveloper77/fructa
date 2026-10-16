@@ -286,13 +286,6 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                   onFree: _openFree,
                   onSaved: _openSaved,
                 ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
-                  child: Text(
-                    t('reports.archiveNote'),
-                    style: TextStyle(color: c.faint, fontSize: 12),
-                  ),
-                ),
               ],
             ],
           ),

@@ -42,7 +42,9 @@ String _kes(double v) {
   final s = v.abs().round().toString();
   final b = StringBuffer();
   for (var i = 0; i < s.length; i++) {
-    if (i > 0 && (s.length - i) % 3 == 0) b.write(',');
+    if (i > 0 && (s.length - i) % 3 == 0) {
+      b.write(',');
+    }
     b.write(s[i]);
   }
   return 'KES $b';
@@ -322,8 +324,9 @@ class TrendStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     final r = slide.ratio;
     final w = slide.trendWeeks;
-    if ((r == null || r < 1.5) && (w == null || w < 2))
+    if ((r == null || r < 1.5) && (w == null || w < 2)) {
       return const SizedBox.shrink();
+    }
     final d = palette;
     final up = slide.tone == WrapTone.up;
     Widget cell(String k, String v, Color c) => Expanded(
