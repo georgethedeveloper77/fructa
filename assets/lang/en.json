@@ -1410,5 +1410,6 @@
   "statement.short.partCredit": "Part-month interest",
   "statement.short.days": "{n} days",
   "statement.short.totalsOff": "Totals don't add up",
-  "statement.match.note": "Uses the statement's real dates and balance."
+  "statement.match.note": "Uses the statement's real dates and balance.",
+  "common.showLess": "Show less"
 }

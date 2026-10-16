@@ -25,7 +25,6 @@ import '../markets/search_overlay.dart';
 import '../markets/widgets/market_allocation_donut.dart';
 import '../markets/widgets/market_pulse.dart';
 import '../portfolio/add_holding_page.dart';
-import '../settings/following_page.dart';
 import '../wrap/wrap_viewer.dart';
 import '../pro/pro_inline.dart';
 import 'portfolio_bubble.dart';
@@ -1328,11 +1327,22 @@ class _RecentSection extends ConsumerWidget {
 }
 
 // ── Follower and investor: the watchlist with this week's moves ─────────────
-class _FollowingSection extends ConsumerWidget {
+/// The funds the user follows, best rate first on the chosen basis. Three
+/// show; more open in place with "Show N more", and fold back with "Show
+/// less", so a long follow list never pushes the rest of Today down.
+class _FollowingSection extends ConsumerStatefulWidget {
   const _FollowingSection();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_FollowingSection> createState() => _FollowingSectionState();
+}
+
+class _FollowingSectionState extends ConsumerState<_FollowingSection> {
+  static const _shown = 3;
+  bool _open = false;
+
+  @override
+  Widget build(BuildContext context) {
     final c = context.c;
     final byId = ref.watch(fundsByIdProvider);
     final wht = ref.watch(remoteConfigProvider).whtPct;
@@ -1343,56 +1353,96 @@ class _FollowingSection extends ConsumerWidget {
         if (byId[id] != null) byId[id]!,
     ]..sort((a, b) => (shown(b) ?? -1).compareTo(shown(a) ?? -1));
     if (funds.isEmpty) return const SizedBox.shrink();
+    final more = funds.length - _shown;
+    final calm = reduceMotion(context);
+
+    Widget row(Fund f) {
+      final delta = ref.watch(fundDeltaProvider(f.id));
+      final rate = shown(f);
+      return _FundRow(
+        fund: f,
+        sub: '${f.manager} \u00b7 ${f.currency}',
+        spark: f.spark,
+        sparkColor: delta == null || delta == 0 ? c.faint : c.delta(delta),
+        trailing: Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            StretchSwap(
+              value: net,
+              alignment: Alignment.centerRight,
+              child: Text(
+                rate == null ? t('common.dash') : '${rate.toStringAsFixed(2)}%',
+                style: fructaFonts.numeric(
+                  color: c.text,
+                  size: 17,
+                  weight: FontWeight.w600,
+                ),
+              ),
+            ),
+            if (delta != null && delta != 0)
+              Text(
+                _signedPts(delta),
+                style: TextStyle(color: c.delta(delta), fontSize: 12),
+              ),
+          ],
+        ),
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _SectionTitle(
-          t('today.following'),
-          action: const RateBasisToggle(),
-          trailing: funds.length > 5 ? t('today.all') : null,
-          onTrailing: () => Navigator.of(
-            context,
-          ).push(MaterialPageRoute(builder: (_) => const FollowingPage())),
-        ),
-        for (final f in funds.take(5))
-          Builder(
-            builder: (context) {
-              final delta = ref.watch(fundDeltaProvider(f.id));
-              final rate = shown(f);
-              return _FundRow(
-                fund: f,
-                sub: '${f.manager} \u00b7 ${f.currency}',
-                spark: f.spark,
-                sparkColor: delta == null || delta == 0
-                    ? c.faint
-                    : c.delta(delta),
-                trailing: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+        _SectionTitle(t('today.following'), action: const RateBasisToggle()),
+        for (final f in funds.take(_shown)) row(f),
+        if (more > 0) ...[
+          AnimatedSize(
+            duration: Duration(milliseconds: calm ? 0 : 260),
+            curve: Curves.easeOutCubic,
+            alignment: Alignment.topCenter,
+            child: _open
+                ? Column(children: [for (final f in funds.skip(_shown)) row(f)])
+                : const SizedBox(width: double.infinity),
+          ),
+          Semantics(
+            button: true,
+            expanded: _open,
+            child: InkWell(
+              onTap: () => setState(() => _open = !_open),
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 20),
+                constraints: const BoxConstraints(minHeight: 46),
+                decoration: BoxDecoration(
+                  border: Border(top: BorderSide(color: c.line)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    StretchSwap(
-                      value: net,
-                      alignment: Alignment.centerRight,
-                      child: Text(
-                        rate == null
-                            ? t('common.dash')
-                            : '${rate.toStringAsFixed(2)}%',
-                        style: fructaFonts.numeric(
-                          color: c.text,
-                          size: 17,
-                          weight: FontWeight.w600,
-                        ),
+                    Text(
+                      _open
+                          ? t('common.showLess')
+                          : t('common.showMore', {'n': '$more'}),
+                      style: TextStyle(
+                        color: c.accentInk,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                    if (delta != null && delta != 0)
-                      Text(
-                        _signedPts(delta),
-                        style: TextStyle(color: c.delta(delta), fontSize: 12),
+                    const SizedBox(width: 4),
+                    AnimatedRotation(
+                      turns: _open ? 0.5 : 0,
+                      duration: Duration(milliseconds: calm ? 0 : 200),
+                      child: Icon(
+                        Icons.expand_more_rounded,
+                        size: 18,
+                        color: c.accentInk,
                       ),
+                    ),
                   ],
                 ),
-              );
-            },
+              ),
+            ),
           ),
+        ],
       ],
     );
   }
