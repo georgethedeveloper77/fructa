@@ -1343,7 +1343,5 @@
   "reports.archiveNote": "Every wrap is kept on this phone after its week or month ends.",
   "wrap.tag.yourWeek": "YOUR WEEK",
   "wrap.card.you": "You",
-  "wrap.card.bps": "{v} bps",
-  "today.pill.label": "Your portfolio today",
-  "today.pill.bps": "{v} bps"
+  "wrap.card.bps": "{v} bps"
 }

@@ -35,30 +35,11 @@ import 'today_state.dart';
 /// The Today tab: one hero rate, then only the modules this user's state calls
 /// for (see [TodayMode]). Every figure appears once on this screen; anything
 /// longer than a line lives one tap away.
-class TodayPage extends ConsumerStatefulWidget {
+class TodayPage extends ConsumerWidget {
   const TodayPage({super.key});
 
   @override
-  ConsumerState<TodayPage> createState() => _TodayPageState();
-}
-
-class _TodayPageState extends ConsumerState<TodayPage> {
-  /// True while the list is moving, so the portfolio pill steps aside.
-  bool _scrolling = false;
-
-  bool _onScroll(ScrollNotification n) {
-    // Only the page itself: the ticker and the chips scroll on their own.
-    if (n.depth != 0) return false;
-    final moving =
-        n is ScrollStartNotification || n is ScrollUpdateNotification;
-    final stopped = n is ScrollEndNotification;
-    if (moving && !_scrolling) setState(() => _scrolling = true);
-    if (stopped && _scrolling) setState(() => _scrolling = false);
-    return false;
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final c = context.c;
     final mode = ref.watch(todayModeProvider);
     final leaders = ref.watch(todayLeadersProvider);
@@ -78,45 +59,38 @@ class _TodayPageState extends ConsumerState<TodayPage> {
               color: c.accent,
               backgroundColor: c.s1,
               onRefresh: () => ref.read(ratesProvider.notifier).refresh(),
-              child: NotificationListener<ScrollNotification>(
-                onNotification: _onScroll,
-                child: ListView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.only(bottom: 120),
-                  children: [
-                    const _TopBar(),
-                    _Greeting(mode: mode),
-                    if (top.isNotEmpty) _LeaderTicker(top: top),
-                    if (leaders.length > 1)
-                      _CategoryChips(
-                        leaders: leaders,
-                        selected: hero?.category,
-                      ),
-                    if (hero != null) _HeroCard(leader: hero),
-                    // The user's own money: watch, switch, goals, statement week.
-                    YourMoneySection(mode: mode),
-                    const _LearnPrimer(),
-                    if (mode == TodayMode.newcomer &&
-                        !dismissed.contains('start'))
-                      const _StartCard(),
-                    if (mode == TodayMode.viewer) const _RecentSection(),
-                    if (mode == TodayMode.follower ||
-                        mode == TodayMode.investor)
-                      const _FollowingSection(),
-                    if (mode == TodayMode.follower &&
-                        !dismissed.contains('nudge'))
-                      const _AddNudge(),
-                    // The Weekly wrap replaces the weekly report card: market stories
-                    // for everyone, the user's own week after them (Pro).
-                    const WeeklyWrapCard(),
-                    if (events.isNotEmpty)
-                      _EventsSection(events: events.take(eventCount).toList()),
-                    // Kenya's fund market: context, so it sits after the user's own
-                    // modules and the news, never above them.
-                    const MarketAllocationDonut(),
-                    const _TbillRow(),
-                  ],
-                ),
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.only(bottom: 120),
+                children: [
+                  const _TopBar(),
+                  _Greeting(mode: mode),
+                  if (top.isNotEmpty) _LeaderTicker(top: top),
+                  if (leaders.length > 1)
+                    _CategoryChips(leaders: leaders, selected: hero?.category),
+                  if (hero != null) _HeroCard(leader: hero),
+                  // The user's own money: watch, switch, goals, statement week.
+                  YourMoneySection(mode: mode),
+                  const _LearnPrimer(),
+                  if (mode == TodayMode.newcomer &&
+                      !dismissed.contains('start'))
+                    const _StartCard(),
+                  if (mode == TodayMode.viewer) const _RecentSection(),
+                  if (mode == TodayMode.follower || mode == TodayMode.investor)
+                    const _FollowingSection(),
+                  if (mode == TodayMode.follower &&
+                      !dismissed.contains('nudge'))
+                    const _AddNudge(),
+                  // The Weekly wrap replaces the weekly report card: market stories
+                  // for everyone, the user's own week after them (Pro).
+                  const WeeklyWrapCard(),
+                  if (events.isNotEmpty)
+                    _EventsSection(events: events.take(eventCount).toList()),
+                  // Kenya's fund market: context, so it sits after the user's own
+                  // modules and the news, never above them.
+                  const MarketAllocationDonut(),
+                  const _TbillRow(),
+                ],
               ),
             ),
           ),
@@ -127,7 +101,7 @@ class _TodayPageState extends ConsumerState<TodayPage> {
               left: 0,
               right: 0,
               bottom: MediaQuery.paddingOf(context).bottom + 16,
-              child: PortfolioPill(hidden: _scrolling),
+              child: const PortfolioBubble(),
             ),
         ],
       ),
