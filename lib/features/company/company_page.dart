@@ -1,5 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive/hive.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -871,230 +872,273 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
                 onSelect: (i) => setState(() => _tab = i),
               ),
 
-              if (_tab == 0) ...[
-                // ── Your money in this fund: health, switch, statement ────
-                FundProCards(fund: fund),
+              // Swipe left or right anywhere on the tab body to change tab.
+              _SwipeTabs(
+                index: _tab,
+                count: 4,
+                onChange: (i) => setState(() => _tab = i),
+                child: Column(
+                  key: ValueKey(_tab),
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (_tab == 0) ...[
+                      // ── Your money in this fund: health, switch, statement ────
+                      FundProCards(fund: fund),
 
-                // ── Risk profile - editorial band from fund_type ───────────
-                _RiskBand(fund.fundType),
+                      // ── Risk profile - editorial band from fund_type ───────────
+                      _RiskBand(fund.fundType),
 
-                // ── Rate history (carded)  yield funds only. A NAV fund has no
-                //    yield series to plot; its price/returns show below. ──────
-                if (fund.showsYield) ...[
-                  const SizedBox(height: 18),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: _card(
-                      context,
-                      child: RateChart(fund.id, color: tint, currentRate: rate),
-                    ),
-                  ),
-                ],
-
-                // ── Unit price - the same slot the rate history occupies for a
-                //    yield fund. A priced fund had NO chart at all: RateChart
-                //    sits behind showsYield, so the one page where a price
-                //    movement IS the return showed no movement. ─────────────
-                if (fund.showsPrice) ...[
-                  _eyebrow(context, 'UNIT PRICE'),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: _card(
-                      context,
-                      child: NavChart(
-                        fund.id,
-                        currency: fund.currency,
-                        color: tint,
-                      ),
-                    ),
-                  ),
-                ],
-
-                // ── Completed periods - the chart a return-basis fund lives
-                //    on. A yield fund's rate history is above; this is the same
-                //    slot for a fund whose number is a closed quarter. ────────
-                if (fund.showsPeriodReturn && !returns.isEmpty) ...[
-                  _eyebrow(context, 'COMPLETED PERIODS'),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: _card(
-                      context,
-                      child: PeriodReturnsBar(fund, returns, tint: tint),
-                    ),
-                  ),
-                ],
-
-                // ── Trailing performance vs benchmark (Bucket B) ───────────
-                if (fund.hasReturns) FundPerformance(fund, tint: tint),
-
-                // ── Signals ────────────────────────────────────────────────
-                if (signals.isNotEmpty) ...[
-                  SectionHeader(title: t('company.signals')),
-                  for (var i = 0; i < signals.length; i++)
-                    SignalRow(
-                      tag: _tagLabel(signals[i].tag),
-                      text: signals[i].text,
-                      tone: _tone(signals[i].tag),
-                      showDivider: i < signals.length - 1,
-                    ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
-                    child: Text(
-                      t('company.signalsFoot'),
-                      style: TextStyle(color: c.faint, fontSize: 9.5),
-                    ),
-                  ),
-                ],
-              ],
-
-              if (_tab == 1) ...[
-                // A priced fund has nothing to project forward; say so rather
-                // than open on an empty tab.
-                if (!fund.canProject &&
-                    !(fund.showsPeriodReturn && returns.growthMultiple != null))
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
-                    child: Text(
-                      t('company.tab.noReturns'),
-                      style: TextStyle(
-                        color: c.muted,
-                        fontSize: 13,
-                        height: 1.5,
-                      ),
-                    ),
-                  ),
-                // ── Project your returns - reuses ProjectionEngine. Renders
-                //    only where compounding a number forward is a claim the fund
-                //    is entitled to make, which means a yield. ────────────────
-                _ProjectionSection(fund, whtPct: cfg.whtPct, tint: tint),
-
-                // ── Growth since inception - what a return fund gets INSTEAD of
-                //    the projection. Same slot, opposite direction in time, so
-                //    it promises nothing. ─────────────────────────────────────
-                if (fund.showsPeriodReturn &&
-                    returns.growthMultiple != null) ...[
-                  _eyebrow(context, 'GROWTH SINCE INCEPTION'),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: _card(
-                      context,
-                      padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
-                      child: GrowthSinceInception(fund, returns, tint: tint),
-                    ),
-                  ),
-                ],
-
-                // ── What you actually keep - the REAL cell in the triad, at
-                //    size. That cell is a bare number three rows up with no
-                //    sense of scale: 13.74 gross against 4.67 real is a two
-                //    thirds haircut and nothing on the page said so. Shown only
-                //    where every figure behind it is real, which means a yield
-                //    fund with a rate and a seeded CPI for its OWN currency.
-                if (fund.showsYield &&
-                    rate != null &&
-                    inflation != null &&
-                    realPct != null)
-                  RealReturnBar(
-                    gross: rate,
-                    net: netPct,
-                    real: realPct,
-                    inflation: inflation,
-                  ),
-
-                // ── The same return counted in dollars. Self-gating: KES funds
-                //    only, and only once the FX history covers a full year.
-                UsdViewCard(fund),
-              ],
-
-              if (_tab == 2) ...[
-                // ── What the fund holds - donut + legend + provenance ──────
-                if (fc != null) CompositionPie(fc),
-
-                // ── Vs category leaders - net-yield bars (carded widget) ───
-                PeerCompare(fund, tint: tint),
-
-                // ── Manager · CMA CIS position ─────────────────────────────
-                if (manager?.aumKes != null ||
-                    manager?.marketShare != null) ...[
-                  _eyebrow(
-                    context,
-                    'MANAGER${manager?.aumAsOf != null ? ' \u00b7 CMA CIS ${_quarter(manager!.aumAsOf!)}' : ''}',
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: _card(
-                      context,
-                      child: _Stat3(
-                        aum: manager?.aumKes,
-                        rank: managerRank,
-                        rankTotal: rankedCount,
-                        share: manager?.marketShare,
-                      ),
-                    ),
-                  ),
-                ],
-
-                // ── Credentials - age + independent custody (trust strip) ──
-                FundCredentials(fund, manager),
-              ],
-
-              if (_tab == 3) ...[
-                // ── Terms ──────────────────────────────────────────────────
-                _eyebrow(context, 'TERMS'),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: _card(
-                    context,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: _Facts(
-                      rows: [
-                        if (fund.mgmtFee != null)
-                          _Fact(fund.feeLabel, '${fund.mgmtFee}% p.a.'),
-                        if (fund.hasPerfFee)
-                          _Fact(
-                            'Performance charge',
-                            '${fund.perfFeePct}% above ${fund.hurdlePct}% p.a.',
+                      // ── Rate history (carded)  yield funds only. A NAV fund has no
+                      //    yield series to plot; its price/returns show below. ──────
+                      if (fund.showsYield) ...[
+                        const SizedBox(height: 18),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: _card(
+                            context,
+                            child: _NoSwipe(
+                              child: RateChart(
+                                fund.id,
+                                color: tint,
+                                currentRate: rate,
+                              ),
+                            ),
                           ),
-                        if (fund.expenseRatio != null)
-                          _Fact('Expense ratio', '${fund.expenseRatio}% p.a.'),
-                        if (fund.distributionPct != null)
-                          _Fact(
-                            'Distribution',
-                            '${fund.distributionPct}% p.a.',
-                          ),
-                        _Fact(
-                          'Tax',
-                          fund.taxFree
-                              ? 'Tax-free'
-                              : fund.whtStillDue
-                              ? '${cfg.whtPct.toStringAsFixed(0)}% WHT'
-                              // Already deducted by the manager. Printing
-                              // the rate here would imply it is still to
-                              // come and understate what the holder keeps.
-                              : 'Already deducted',
                         ),
-                        if (benchLabel != null) _Fact('Benchmark', benchLabel),
-                        if (fund.topUpMin != null)
-                          _Fact(
-                            'Top-up min',
-                            '${fund.currency} ${_commas(fund.topUpMin!)}',
-                          ),
-                        if (hasLiquidity) _Fact('Liquidity', liquidityText()),
                       ],
-                    ),
-                  ),
+
+                      // ── Unit price - the same slot the rate history occupies for a
+                      //    yield fund. A priced fund had NO chart at all: RateChart
+                      //    sits behind showsYield, so the one page where a price
+                      //    movement IS the return showed no movement. ─────────────
+                      if (fund.showsPrice) ...[
+                        _eyebrow(context, 'UNIT PRICE'),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: _card(
+                            context,
+                            child: _NoSwipe(
+                              child: NavChart(
+                                fund.id,
+                                currency: fund.currency,
+                                color: tint,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+
+                      // ── Completed periods - the chart a return-basis fund lives
+                      //    on. A yield fund's rate history is above; this is the same
+                      //    slot for a fund whose number is a closed quarter. ────────
+                      if (fund.showsPeriodReturn && !returns.isEmpty) ...[
+                        _eyebrow(context, 'COMPLETED PERIODS'),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: _card(
+                            context,
+                            child: _NoSwipe(
+                              child: PeriodReturnsBar(
+                                fund,
+                                returns,
+                                tint: tint,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+
+                      // ── Trailing performance vs benchmark (Bucket B) ───────────
+                      if (fund.hasReturns)
+                        _NoSwipe(child: FundPerformance(fund, tint: tint)),
+
+                      // ── Signals ────────────────────────────────────────────────
+                      if (signals.isNotEmpty) ...[
+                        SectionHeader(title: t('company.signals')),
+                        for (var i = 0; i < signals.length; i++)
+                          SignalRow(
+                            tag: _tagLabel(signals[i].tag),
+                            text: signals[i].text,
+                            tone: _tone(signals[i].tag),
+                            showDivider: i < signals.length - 1,
+                          ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+                          child: Text(
+                            t('company.signalsFoot'),
+                            style: TextStyle(color: c.faint, fontSize: 9.5),
+                          ),
+                        ),
+                      ],
+                    ],
+
+                    if (_tab == 1) ...[
+                      // A priced fund has nothing to project forward; say so rather
+                      // than open on an empty tab.
+                      if (!fund.canProject &&
+                          !(fund.showsPeriodReturn &&
+                              returns.growthMultiple != null))
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+                          child: Text(
+                            t('company.tab.noReturns'),
+                            style: TextStyle(
+                              color: c.muted,
+                              fontSize: 13,
+                              height: 1.5,
+                            ),
+                          ),
+                        ),
+                      // ── Project your returns - reuses ProjectionEngine. Renders
+                      //    only where compounding a number forward is a claim the fund
+                      //    is entitled to make, which means a yield. ────────────────
+                      _NoSwipe(
+                        child: _ProjectionSection(
+                          fund,
+                          whtPct: cfg.whtPct,
+                          tint: tint,
+                        ),
+                      ),
+
+                      // ── Growth since inception - what a return fund gets INSTEAD of
+                      //    the projection. Same slot, opposite direction in time, so
+                      //    it promises nothing. ─────────────────────────────────────
+                      if (fund.showsPeriodReturn &&
+                          returns.growthMultiple != null) ...[
+                        _eyebrow(context, 'GROWTH SINCE INCEPTION'),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: _card(
+                            context,
+                            padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
+                            child: GrowthSinceInception(
+                              fund,
+                              returns,
+                              tint: tint,
+                            ),
+                          ),
+                        ),
+                      ],
+
+                      // ── What you actually keep - the REAL cell in the triad, at
+                      //    size. That cell is a bare number three rows up with no
+                      //    sense of scale: 13.74 gross against 4.67 real is a two
+                      //    thirds haircut and nothing on the page said so. Shown only
+                      //    where every figure behind it is real, which means a yield
+                      //    fund with a rate and a seeded CPI for its OWN currency.
+                      if (fund.showsYield &&
+                          rate != null &&
+                          inflation != null &&
+                          realPct != null)
+                        RealReturnBar(
+                          gross: rate,
+                          net: netPct,
+                          real: realPct,
+                          inflation: inflation,
+                        ),
+
+                      // ── The same return counted in dollars. Self-gating: KES funds
+                      //    only, and only once the FX history covers a full year.
+                      UsdViewCard(fund),
+                    ],
+
+                    if (_tab == 2) ...[
+                      // ── What the fund holds - donut + legend + provenance ──────
+                      if (fc != null) _NoSwipe(child: CompositionPie(fc)),
+
+                      // ── Vs category leaders - net-yield bars (carded widget) ───
+                      PeerCompare(fund, tint: tint),
+
+                      // ── Manager · CMA CIS position ─────────────────────────────
+                      if (manager?.aumKes != null ||
+                          manager?.marketShare != null) ...[
+                        _eyebrow(
+                          context,
+                          'MANAGER${manager?.aumAsOf != null ? ' \u00b7 CMA CIS ${_quarter(manager!.aumAsOf!)}' : ''}',
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: _card(
+                            context,
+                            child: _Stat3(
+                              aum: manager?.aumKes,
+                              rank: managerRank,
+                              rankTotal: rankedCount,
+                              share: manager?.marketShare,
+                            ),
+                          ),
+                        ),
+                      ],
+
+                      // ── Credentials - age + independent custody (trust strip) ──
+                      FundCredentials(fund, manager),
+                    ],
+
+                    if (_tab == 3) ...[
+                      // ── Terms ──────────────────────────────────────────────────
+                      _eyebrow(context, 'TERMS'),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: _card(
+                          context,
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: _Facts(
+                            rows: [
+                              if (fund.mgmtFee != null)
+                                _Fact(fund.feeLabel, '${fund.mgmtFee}% p.a.'),
+                              if (fund.hasPerfFee)
+                                _Fact(
+                                  'Performance charge',
+                                  '${fund.perfFeePct}% above ${fund.hurdlePct}% p.a.',
+                                ),
+                              if (fund.expenseRatio != null)
+                                _Fact(
+                                  'Expense ratio',
+                                  '${fund.expenseRatio}% p.a.',
+                                ),
+                              if (fund.distributionPct != null)
+                                _Fact(
+                                  'Distribution',
+                                  '${fund.distributionPct}% p.a.',
+                                ),
+                              _Fact(
+                                'Tax',
+                                fund.taxFree
+                                    ? 'Tax-free'
+                                    : fund.whtStillDue
+                                    ? '${cfg.whtPct.toStringAsFixed(0)}% WHT'
+                                    // Already deducted by the manager. Printing
+                                    // the rate here would imply it is still to
+                                    // come and understate what the holder keeps.
+                                    : 'Already deducted',
+                              ),
+                              if (benchLabel != null)
+                                _Fact('Benchmark', benchLabel),
+                              if (fund.topUpMin != null)
+                                _Fact(
+                                  'Top-up min',
+                                  '${fund.currency} ${_commas(fund.topUpMin!)}',
+                                ),
+                              if (hasLiquidity)
+                                _Fact('Liquidity', liquidityText()),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      // ── Talk to an agent ───────────────────────────────────────
+                      if (agents.isNotEmpty) ...[
+                        SectionHeader(title: t('company.talkToAgent')),
+                        for (var i = 0; i < agents.length; i++)
+                          _agentRow(agents[i], tint, i < agents.length - 1),
+                      ],
+
+                      // ── Contact - the manager's own published channels ─────────
+                      ?contactCard,
+                    ],
+                  ],
                 ),
-
-                // ── Talk to an agent ───────────────────────────────────────
-                if (agents.isNotEmpty) ...[
-                  SectionHeader(title: t('company.talkToAgent')),
-                  for (var i = 0; i < agents.length; i++)
-                    _agentRow(agents[i], tint, i < agents.length - 1),
-                ],
-
-                // ── Contact - the manager's own published channels ─────────
-                ?contactCard,
-              ],
+              ),
 
               // ── CTAs ───────────────────────────────────────────────────
               if (topUpUrl != null)
@@ -1310,6 +1354,126 @@ class _CompanyPageState extends ConsumerState<CompanyPage> {
 // ── Detail tabs ───────────────────────────────────────────────────────────
 /// Overview, Returns, Holdings, About. Underlined text tabs in the fund's own
 /// tint; the selected label stretches in so the switch reads as the user's.
+/// The tab body, changed by a horizontal swipe as well as by the tab bar.
+///
+/// Reads raw pointers instead of joining the gesture arena, so the page still
+/// scrolls vertically and charts and sliders inside keep their own drags
+/// (they are wrapped in [_NoSwipe]). A swipe is a quick, mostly horizontal
+/// move; the new tab slides in from the side it was swiped towards.
+class _SwipeTabs extends StatefulWidget {
+  const _SwipeTabs({
+    required this.index,
+    required this.count,
+    required this.onChange,
+    required this.child,
+  });
+
+  final int index;
+  final int count;
+  final ValueChanged<int> onChange;
+  final Widget child;
+
+  @override
+  State<_SwipeTabs> createState() => _SwipeTabsState();
+}
+
+class _SwipeTabsState extends State<_SwipeTabs> {
+  Offset? _from;
+  DateTime? _at;
+  int? _pointer;
+
+  /// Set by a [_NoSwipe] under the finger for the current touch.
+  bool _blocked = false;
+  int _dir = 1;
+
+  @override
+  void didUpdateWidget(_SwipeTabs old) {
+    super.didUpdateWidget(old);
+    if (old.index != widget.index) _dir = widget.index > old.index ? 1 : -1;
+  }
+
+  void _down(PointerDownEvent e) {
+    if (_pointer != null) return;
+    _pointer = e.pointer;
+    _from = e.position;
+    _at = DateTime.now();
+  }
+
+  void _up(PointerUpEvent e) {
+    if (e.pointer != _pointer) return;
+    final from = _from;
+    final at = _at;
+    final blocked = _blocked;
+    _reset();
+    if (blocked || from == null || at == null) return;
+    final d = e.position - from;
+    final quick = DateTime.now().difference(at).inMilliseconds < 600;
+    if (!quick || d.dx.abs() < 64 || d.dx.abs() < d.dy.abs() * 2) return;
+    final next = widget.index + (d.dx < 0 ? 1 : -1);
+    if (next < 0 || next >= widget.count) return;
+    HapticFeedback.selectionClick();
+    widget.onChange(next);
+  }
+
+  void _reset() {
+    _pointer = null;
+    _from = null;
+    _at = null;
+    _blocked = false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final calm = reduceMotion(context);
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: _down,
+      onPointerUp: _up,
+      onPointerCancel: (e) {
+        if (e.pointer == _pointer) _reset();
+      },
+      child: AnimatedSwitcher(
+        duration: Duration(milliseconds: calm ? 0 : 240),
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeInCubic,
+        layoutBuilder: (current, previous) => Stack(
+          alignment: Alignment.topCenter,
+          children: [...previous, ?current],
+        ),
+        transitionBuilder: (child, anim) {
+          final incoming = child.key == ValueKey(widget.index);
+          final from = Offset(0.12 * _dir * (incoming ? 1 : -1), 0);
+          return FadeTransition(
+            opacity: anim,
+            child: SlideTransition(
+              position: Tween(begin: from, end: Offset.zero).animate(anim),
+              child: child,
+            ),
+          );
+        },
+        child: widget.child,
+      ),
+    );
+  }
+}
+
+/// Marks a chart or slider: a touch that starts here belongs to it, so the
+/// tab swipe around it ignores that touch.
+class _NoSwipe extends StatelessWidget {
+  const _NoSwipe({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Listener(
+    onPointerDown: (_) {
+      final tabs = context.findAncestorStateOfType<_SwipeTabsState>();
+      if (tabs != null) tabs._blocked = true;
+    },
+    child: child,
+  );
+}
+
 class _DetailTabs extends StatelessWidget {
   const _DetailTabs({
     required this.index,
