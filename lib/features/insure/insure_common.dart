@@ -7,6 +7,7 @@ import '../../core/category_colors.dart';
 import '../../core/format.dart';
 import '../../core/i18n.dart';
 import '../../core/theme.dart';
+import '../../core/widgets/reveal_note.dart';
 import '../../core/widgets/kit.dart';
 import '../../data/models/insurer.dart';
 import '../../data/models/remote_config.dart';
@@ -521,16 +522,28 @@ class ClassChips extends StatelessWidget {
 }
 
 /// Small footnote under a section (mockup `.sigfoot`).
+/// A page's footnote. A short one shows as is; a long one becomes a label
+/// that opens on tap, so explanations wait for the reader who wants them.
 class InsureFoot extends StatelessWidget {
-  const InsureFoot(this.text, {super.key});
+  const InsureFoot(this.text, {super.key, this.label});
   final String text;
+
+  /// The label shown when the note is long. Defaults to "About these figures".
+  final String? label;
 
   @override
   Widget build(BuildContext context) {
     final c = context.c;
+    if (text.length > 80) {
+      return RevealNote(
+        label: label ?? t('insure.foot.label'),
+        body: text,
+        padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+      );
+    }
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
-      child: Text(text, style: TextStyle(color: c.faint, fontSize: 9.5)),
+      child: Text(text, style: TextStyle(color: c.faint, fontSize: 11)),
     );
   }
 }

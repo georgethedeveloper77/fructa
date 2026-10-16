@@ -2,7 +2,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../core/i18n.dart';
 import '../../core/theme.dart';
+import '../../core/widgets/reveal_note.dart';
 
 /// V8 motion primitives, shared by the insure surfaces.
 ///
@@ -251,16 +253,15 @@ class BarChart extends StatelessWidget {
               child: _Bar(datum: bars[i], index: i, labelWidth: labelWidth),
             ),
           if (foot != null) ...[
-            const SizedBox(height: 14),
-            Text(
-              foot!,
-              style: TextStyle(
-                color: c.faint,
-                fontSize: 9.5,
-                height: 1.6,
-                fontFamily: fructaFonts.mono,
+            const SizedBox(height: 10),
+            // A long footnote opens on tap; a short one shows as is.
+            if (foot!.length > 80)
+              RevealNote(label: t('insure.foot.chart'), body: foot!)
+            else
+              Text(
+                foot!,
+                style: TextStyle(color: c.faint, fontSize: 11, height: 1.5),
               ),
-            ),
           ],
         ],
       ),

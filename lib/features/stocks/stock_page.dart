@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/i18n.dart';
 import '../../core/theme.dart';
+import '../../core/widgets/reveal_note.dart';
 import '../../core/widgets/follow_star.dart';
 import '../../core/widgets/kit.dart';
 import '../../data/models/stock.dart';
@@ -447,10 +448,10 @@ class StockPage extends ConsumerWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 14),
-            Text(
-              t('stocks.risk.body'),
-              style: TextStyle(color: c.text, fontSize: 14.5, height: 1.5),
+            const SizedBox(height: 6),
+            RevealNote(
+              label: t('stocks.risk.why'),
+              body: t('stocks.risk.body'),
             ),
           ],
         ),
@@ -612,10 +613,10 @@ class StockPage extends ConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            t('stocks.vsBill.caveat'),
-            style: TextStyle(color: c.faint, fontSize: 12, height: 1.4),
+          const SizedBox(height: 2),
+          RevealNote(
+            label: t('stocks.vsBill.caveatLabel'),
+            body: t('stocks.vsBill.caveat'),
           ),
         ],
       ),

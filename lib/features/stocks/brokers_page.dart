@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/i18n.dart';
 import '../../core/theme.dart';
+import '../../core/widgets/reveal_note.dart';
 import '../../data/snapshot_providers.dart';
 import 'widgets/broker_row.dart';
 
@@ -61,12 +62,10 @@ class BrokersPage extends ConsumerWidget {
               ),
             ),
           const SizedBox(height: 12),
-          Padding(
+          RevealNote(
+            label: t('stocks.brokers.registerLabel'),
+            body: t('stocks.brokers.register'),
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Text(
-              t('stocks.brokers.register'),
-              style: TextStyle(color: c.faint, fontSize: 12, height: 1.5),
-            ),
           ),
         ],
       ),
