@@ -13,6 +13,7 @@ import {
   serializeValue,
   validate,
 } from "./schema";
+import { fmtDate } from "../../../lib/dates";
 
 // ── shared field styles ─────────────────────────────────────────────────────
 
@@ -382,7 +383,7 @@ export function ConfigCard({
         <h3 className="text-sm font-semibold text-ink">{field.label}</h3>
         {updatedAt && (
           <span className="whitespace-nowrap text-[11px] text-faint">
-            updated {new Date(updatedAt).toLocaleDateString()}
+            updated {fmtDate(updatedAt)}
           </span>
         )}
       </div>

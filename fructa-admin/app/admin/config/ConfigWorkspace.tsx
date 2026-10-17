@@ -20,6 +20,7 @@ import {
   validate,
 } from "./schema";
 import { IconSearch } from "../_icons";
+import { fmtDateTime } from "../../../lib/dates";
 
 /* Colour rule for this page: COLOUR IS STATE, SHAPE IS IDENTITY.
  * The dot is freshness and only freshness. Staged is a gold BAR, never a dot.
@@ -234,7 +235,7 @@ export function ConfigWorkspace({
           <Count n={staleCount} tone="border-bad/40 text-bad" label="stale" />
           <Count n={dueCount} tone="border-warn/40 text-warn" label="due" />
           <span className="font-mono text-[11.5px] text-faint">
-            {publishedAt ? `snapshot published ${new Date(publishedAt).toLocaleString()}` : "never published"}
+            {publishedAt ? `snapshot published ${fmtDateTime(publishedAt)}` : "never published"}
           </span>
         </div>
       </div>

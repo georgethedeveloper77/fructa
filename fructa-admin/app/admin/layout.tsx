@@ -94,6 +94,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, [navOpen]);
 
   const today = new Date().toLocaleDateString("en-GB", {
+    timeZone: "Africa/Nairobi",
     weekday: "short",
     day: "numeric",
     month: "short",

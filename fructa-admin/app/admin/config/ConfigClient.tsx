@@ -5,6 +5,7 @@ import { upsertConfig, type ConfigRow } from "./actions";
 import { ConfigCard } from "./editors";
 import { CONFIG_SCHEMA, fieldFor, groupRank } from "./schema";
 import { IconSearch } from "../_icons";
+import { fmtDate } from "../../../lib/dates";
 
 export function ConfigClient({ rows }: { rows: ConfigRow[] }) {
   const [q, setQ] = useState("");
@@ -90,7 +91,7 @@ export function ConfigClient({ rows }: { rows: ConfigRow[] }) {
       <div className="grid grid-cols-3 gap-3">
         <Kpi label="Keys" value={rows.length} />
         <Kpi label="Groups" value={groupCounts.length} />
-        <Kpi label="Last updated" value={lastUpdated ? new Date(lastUpdated).toLocaleDateString() : "—"} />
+        <Kpi label="Last updated" value={lastUpdated ? fmtDate(lastUpdated) : "never"} />
       </div>
 
       {/* two-column: vertical group rail + content */}

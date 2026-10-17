@@ -18,6 +18,7 @@ import {
 } from "./config-meta";
 import { computeImpact, type Board } from "./impact";
 import { IconPlus, IconX } from "../_icons";
+import { fmtDate } from "../../../lib/dates";
 
 /* The detail pane answers the operator's questions in the order they actually
  * arrive: what is this, can I trust it, what is it, what breaks, who reads it,
@@ -604,7 +605,7 @@ export function Detail({
             : "Deleting this key makes the app fall back to the value baked into the build."}
           {updatedAt && !isNew && (
             <span className="ml-1.5 font-mono text-[11px] text-faint">
-              last published {new Date(updatedAt).toLocaleDateString()}
+              last published {fmtDate(updatedAt)}
             </span>
           )}
         </span>
