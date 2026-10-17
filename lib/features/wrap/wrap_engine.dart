@@ -608,12 +608,11 @@ final localWeeklyWrapProvider = Provider.autoDispose<WeeklyWrap>((ref) {
   );
 });
 
-/// Pro decides whether the personal slides open. While Pro is switched off
-/// remotely there is nothing to sell, so they are open to everyone.
-final wrapPersonalUnlockedProvider = Provider<bool>((ref) {
-  if (!ref.watch(proEnabledProvider)) return true;
-  return ref.watch(isProProvider);
-});
+/// Pro decides whether the personal slides open. Follows [proAccessProvider],
+/// so switching sales off never opens them to everyone.
+final wrapPersonalUnlockedProvider = Provider<bool>(
+  (ref) => ref.watch(proAccessProvider),
+);
 
 // ── Month wrap ────────────────────────────────────────────────────────────
 

@@ -99,7 +99,10 @@ class _ProSettingsGroupState extends ConsumerState<ProSettingsGroup> {
 
   @override
   Widget build(BuildContext context) {
-    if (!ref.watch(proEnabledProvider)) return const SizedBox.shrink();
+    // Subscribers keep Restore and Manage even while sales are switched off.
+    if (!ref.watch(proEnabledProvider) && !ref.watch(isProProvider)) {
+      return const SizedBox.shrink();
+    }
 
     final c = context.c;
     final s = ref.watch(proProvider);

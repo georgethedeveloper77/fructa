@@ -21,21 +21,16 @@ import 'goals.dart';
 import 'pro_widgets.dart';
 import 'switch_page.dart';
 
-/// Pro, placed where it helps.
-///
-/// A subscriber never sees the word "Pro": the tools are simply part of Today,
-/// Portfolio, the fund page and the holding sheet. A free user sees the same
-/// places as small locked teasers with a PRO badge that open the paywall.
-/// While Pro is switched off remotely there is nothing to sell, so everyone
-/// gets the full tools.
-final proAccessProvider = Provider<bool>(
-  (ref) => !ref.watch(proEnabledProvider) || ref.watch(isProProvider),
-);
+// Re-exported so screens that import this file for the gates keep compiling.
+export '../../data/pro/pro_providers.dart' show proAccessProvider, proTeaserProvider;
 
-/// Show locked teasers: Pro is on sale and this user has not bought it.
-final proTeaserProvider = Provider<bool>(
-  (ref) => ref.watch(proEnabledProvider) && !ref.watch(isProProvider),
-);
+// Pro, placed where it helps.
+//
+// A subscriber never sees the word "Pro": the tools are simply part of Today,
+// Portfolio, the fund page and the holding sheet. A free user sees the same
+// places as small locked teasers with a PRO badge that open the paywall.
+// Access and teaser rules live in pro_providers.dart ([proAccessProvider],
+// [proTeaserProvider]) so every surface shares one definition.
 
 // ── Switch opportunity ───────────────────────────────────────────────────────
 

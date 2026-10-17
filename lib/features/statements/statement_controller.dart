@@ -13,12 +13,11 @@ import '../../engine/statement/statement_analysis.dart';
 import '../../engine/statement/statement_model.dart';
 import '../../engine/statement/statement_parser.dart';
 
-/// Everything beyond the headline is Pro. While Pro is switched off remotely
-/// there is nothing to sell, so everyone gets the full check.
-final statementFullAccessProvider = Provider<bool>((ref) {
-  if (!ref.watch(proEnabledProvider)) return true;
-  return ref.watch(isProProvider);
-});
+/// Everything beyond the headline is Pro. Follows [proAccessProvider], so a
+/// remote switch-off hides the full check rather than giving it away.
+final statementFullAccessProvider = Provider<bool>(
+  (ref) => ref.watch(proAccessProvider),
+);
 
 /// Admin-described managers as parser entries. A bad pattern is skipped, not
 /// fatal: one typo in admin must not stop every statement from reading.

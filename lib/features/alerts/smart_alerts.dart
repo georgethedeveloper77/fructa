@@ -36,7 +36,7 @@ final smartAlertsRunnerProvider = Provider<void>((ref) {
 });
 
 bool _allowed(Ref ref, SmartAlertType t) {
-  final unlocked = !ref.read(proEnabledProvider) || ref.read(isProProvider);
+  final unlocked = ref.read(proAccessProvider);
   return unlocked && (ref.read(smartAlertPrefsProvider)[t] ?? true);
 }
 

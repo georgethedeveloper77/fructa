@@ -49,9 +49,11 @@ class _RateChartState extends ConsumerState<RateChart> {
     if (mounted) setState(() => _all = true);
   }
 
-  /// The "All" pill, shown only once Pro is switched on remotely.
+  /// The "All" pill: shown while Pro is on sale, and always to subscribers.
   Widget? _allPill() {
-    if (!ref.watch(proEnabledProvider)) return null;
+    if (!ref.watch(proEnabledProvider) && !ref.watch(isProProvider)) {
+      return null;
+    }
     return RangeBarPill(
       label: t('chart.all'),
       selected: _all,

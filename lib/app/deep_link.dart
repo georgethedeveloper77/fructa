@@ -112,7 +112,7 @@ void _route(BuildContext ctx, String target) {
 
 /// The web's slug for a fund name: lowercase, every run of other characters
 /// a dash, no dash at either end. Matches slugify() in fructa-admin, so a
-/// /funds/<slug> link finds the same fund here.
+/// `/funds/<slug>` link finds the same fund here.
 String _slugify(String s) => s
     .toLowerCase()
     .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
@@ -135,12 +135,16 @@ Fund? _fundForSlug(Iterable<Fund> funds, String slug) {
 /// The app target a fructa.africa link points at, or null for one it does
 /// not handle (it then stays in the browser on the next tap).
 String? targetForWebLink(Uri uri) {
-  if (uri.host != 'fructa.africa' && uri.host != 'www.fructa.africa')
+  if (uri.host != 'fructa.africa' && uri.host != 'www.fructa.africa') {
     return null;
+  }
   final parts = uri.pathSegments.where((p) => p.isNotEmpty).toList();
-  if (parts.length >= 2 && parts.first == 'funds')
+  if (parts.length >= 2 && parts.first == 'funds') {
     return 'fundslug/${parts[1]}';
-  if (parts.isNotEmpty && parts.first == 'rates') return 'markets';
+  }
+  if (parts.isNotEmpty && parts.first == 'rates') {
+    return 'markets';
+  }
   return null;
 }
 

@@ -119,7 +119,7 @@ class _SmartSettings extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.c;
-    final unlocked = !ref.watch(proEnabledProvider) || ref.watch(isProProvider);
+    final unlocked = ref.watch(proAccessProvider);
     final prefs = ref.watch(smartAlertPrefsProvider);
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
